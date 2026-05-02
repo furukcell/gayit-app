@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Gayit",
+    "slug": "gayit-app",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.gayit.app"
+    }
+  }
+}
