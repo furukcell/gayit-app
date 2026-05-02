@@ -25,16 +25,13 @@ const YENI_ILAN_KATEGORILER = ['Temizlik', 'Boya/Badana', 'Tesisat(sucu)', 'Elek
 
 export default function App() {
   const [splash, setSplash] = useState(true);
-  
-  // YENİLEME İÇİN GEREKLİ KODLAR BURADA GARİ
   const [yenileniyor, setYenileniyor] = useState(false);
   const onYenile = () => {
     setYenileniyor(true);
     setTimeout(() => {
-      setYenileniyor(false); 
-    }, 1200); 
+      setYenileniyor(false);
+    }, 1200);
   };
-
   const [ekran, setEkran] = useState('karsilama');
   const [rol, setRol] = useState('');
   const [mod, setMod] = useState('kayit');
@@ -142,7 +139,11 @@ export default function App() {
       if (ilan.id !== ilanId) return ilan;
       const zatenVerdi = ilan.teklifler.find(t => t.ustaId === kullanici.email);
       if (zatenVerdi) { Alert.alert("Uyari", "Bu ilana zaten teklif verdiniz!"); return ilan; }
-      return { ...ilan, teklifler: [...ilan.teklifler, { id: 't' + Date.now(), ustaId: kullanici.email, ustaAd: kullanici.ad, fiyat: teklifFiyat + ' TL', not: teklifNot, telefon: kullanici.telefon || '0500 000 00 00' }] };
+      return {
+        ...ilan, teklifler: [...ilan.teklifler, {
+          id: 't' + Date.now(), ustaId: kullanici.email, ustaAd: kullanici.ad, fiyat: teklifFiyat + ' TL', not: teklifNot, telefon: kullanici.telefon || '0500 000 00 00'
+        }]
+      };
     }));
     setTeklifFiyat(''); setTeklifNot('');
     Alert.alert("Basarili!", "Teklifiniz gönderildi! Musteri onaylarsa iletisim bilgileriniz paylasılacak.");
@@ -152,10 +153,12 @@ export default function App() {
   const anlasmaYap = (ilanId, teklif) => {
     Alert.alert("Anlasmayı Onayla", `${teklif.ustaAd} ile ${teklif.fiyat} üzerinden anlasıyor musunuz?`, [
       { text: "Vazgec", style: "cancel" },
-      { text: "Evet, Anlas!", onPress: () => {
-        setIlanlar(ilanlar.map(ilan => ilan.id === ilanId ? { ...ilan, anlasmaVar: true, anlasilanUsta: teklif } : ilan));
-        setAktifSohbetTeklif(teklif); setAnlasmaSaglandi(true); setEkran('sohbet');
-      }}
+      {
+        text: "Evet, Anlas!", onPress: () => {
+          setIlanlar(ilanlar.map(ilan => ilan.id === ilanId ? { ...ilan, anlasmaVar: true, anlasilanUsta: teklif } : ilan));
+          setAktifSohbetTeklif(teklif); setAnlasmaSaglandi(true); setEkran('sohbet');
+        }
+      }
     ]);
   };
 
@@ -192,19 +195,17 @@ export default function App() {
           )}
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('ilanlarim'); }}><Text style={s.menuText}>{rol === 'usta' ? 'Tekliflerim' : 'İlanlarim'}</Text></TouchableOpacity>
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setOdemeAdim('secim'); setEkran('odeme'); }}><Text style={s.menuText}>Paket ve Kupon</Text></TouchableOpacity>
-          
+
           <View style={s.ayrac} />
-          
-      
-          <TouchableOpacity 
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 }} 
+
+          <TouchableOpacity
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 }}
             onPress={() => setIlcelerAcik(!ilcelerAcik)}
           >
             <Text style={[s.menuBaslik, { marginTop: 0, marginBottom: 0, fontSize: 13, fontWeight: 'bold' }]}>MUĞLA USTA RAPORU</Text>
             <Text style={{ color: '#FFF', opacity: 0.6, fontSize: 12 }}>{ilcelerAcik ? '▲' : '▼'}</Text>
           </TouchableOpacity>
 
-        
           {ilcelerAcik && BOLGELER.map((b) => (
             <View key={b.ad}>
               <TouchableOpacity style={s.ilceItem} onPress={() => setAcikIlce(acikIlce === b.ad ? null : b.ad)}>
@@ -218,29 +219,28 @@ export default function App() {
               )}
             </View>
           ))}
-          {/* AÇILIR KAPANIR LİSTE BİTTİ */}
-
           <View style={s.ayrac} />
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('hizmet_kosullari'); }}><Text style={s.menuText}>Hizmet Koşulları</Text></TouchableOpacity>
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('hakkimizda'); }}><Text style={s.menuText}>Hakkımızda</Text></TouchableOpacity>
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('ayarlar'); }}><Text style={s.menuText}>Ayarlar</Text></TouchableOpacity>
-          
+
           <View style={s.ayrac} />
           <TouchableOpacity style={s.menuItem} onPress={() => { setKullanici(null); setEkran('karsilama'); setMenuAcik(false); }}><Text style={s.cikisY}>CIKIS YAP</Text></TouchableOpacity>
         </ScrollView>
       </View>
     </View>
   );
-if (splash) {
+
+  if (splash) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F0', justifyContent: 'center', alignItems: 'center' }}>
-        <Image 
-          source={{ uri: 'https://i.ibb.co/35njqV6C/MG-20260501-221828.png' }} 
-          style={{ 
-            width: '100%', 
-            height: '90%', 
-          }} 
-          resizeMode="contain" 
+        <Image
+          source={{ uri: 'https://i.ibb.co/35njqV6C/MG-20260501-221828.png' }}
+          style={{
+            width: '100%',
+            height: '90%',
+          }}
+          resizeMode="contain"
         />
       </SafeAreaView>
     );
@@ -315,6 +315,101 @@ if (splash) {
           )}
           <TouchableOpacity style={s.girisBtn} onPress={islemiTamamla}><Text style={s.anaBtnY}>DEVAM ET</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setEkran('karsilama')}><Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>Geri</Text></TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // --- İLAN EKLEME SAYFASI GARİ ---
+  if (ekran === 'ilanver') {
+    return (
+      <SafeAreaView style={s.con}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}><Text style={s.menuSimge}>←</Text></TouchableOpacity>
+          <Text style={s.headerBaslik}>Yeni İlan Ver</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <ScrollView contentContainerStyle={s.authIc}>
+          
+          <Text style={s.inputBaslik}>İlan Kategorisi</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
+            {YENI_ILAN_KATEGORILER.map(k => (
+              <TouchableOpacity key={k} onPress={() => setIlanKategori(k)} style={[s.chip, ilanKategori === k && s.chipAktif]}>
+                <Text style={[s.chipY, ilanKategori === k && s.chipYAktif]}>{k}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={s.inputBaslik}>İlan Başlığı</Text>
+          <TextInput style={s.inp} placeholder="Örn: Banyo Tesisat Yenileme" value={ilanBaslik} onChangeText={setIlanBaslik} />
+
+          <Text style={s.inputBaslik}>Açıklama (Maks 500 Karakter)</Text>
+          <TextInput 
+            style={[s.inp, { height: 100, textAlignVertical: 'top' }]} 
+            placeholder="İşin detaylarını buraya yazın..." 
+            value={ilanDetay} 
+            onChangeText={setIlanDetay} 
+            multiline 
+            maxLength={500} 
+          />
+
+          <Text style={s.inputBaslik}>Fotoğraf Ekle (Opsiyonel)</Text>
+          <TouchableOpacity style={s.fotoEkleBtn} onPress={() => Alert.alert("Galeri", "Fotoğraf seçme ekranı açıldı gari.")}>
+            <Text style={{ fontSize: 24 }}>📷</Text>
+            <Text style={{ marginLeft: 10, color: '#1B4965', fontWeight: 'bold' }}>Fotoğraf Seç</Text>
+          </TouchableOpacity>
+
+          <Text style={s.inputBaslik}>İlçe (Bölge)</Text>
+          <View style={s.chipAlan}>
+            {BOLGELER.map(b => (
+              <TouchableOpacity key={b.ad} style={[s.chip, ilanIlce === b.ad && s.chipAktif]} onPress={() => setIlanIlce(b.ad)}>
+                <Text style={[s.chipY, ilanIlce === b.ad && s.chipYAktif]}>{b.ad}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={s.inputBaslik}>Mahalle</Text>
+          <TextInput style={s.inp} placeholder="Örn: Güneş Mahallesi" value={ilanMahalle} onChangeText={setIlanMahalle} />
+
+          <TouchableOpacity style={[s.girisBtn, {marginBottom: 40}]} onPress={() => {
+            if (!ilanBaslik || !ilanDetay || !ilanIlce || !ilanMahalle) {
+              Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldurun gari!");
+              return;
+            }
+            // Hak kontrolü ve Yayına Alma
+            if (kullanici?.abonelik || kullanici?.yeniKullaniciHakki > 0 || kullanici?.hak > 0) {
+              if (!kullanici.abonelik) {
+                if (kullanici.yeniKullaniciHakki > 0) {
+                   setKullanici({ ...kullanici, yeniKullaniciHakki: kullanici.yeniKullaniciHakki - 1 });
+                } else {
+                   setKullanici({ ...kullanici, hak: kullanici.hak - 1 });
+                }
+              }
+              const yeniIlan = {
+                id: Date.now().toString(),
+                baslik: ilanBaslik,
+                kategori: ilanKategori,
+                bolge: ilanIlce,
+                mahalle: ilanMahalle,
+                sure: 'Şimdi',
+                isTarihi: 'Hemen',
+                kalanGun: 1,
+                ustaGoruntulenme: 0,
+                sahip: kullanici.email,
+                anlasmaVar: false,
+                teklifler: []
+              };
+              setIlanlar([yeniIlan, ...ilanlar]);
+              setIlanBaslik(''); setIlanDetay(''); setIlanMahalle('');
+              Alert.alert("Başarılı", "İlanınız anında yayınlandı gari!");
+              setEkran('anasayfa');
+            } else {
+              setOdemeAdim('secim');
+              setEkran('odeme');
+            }
+          }}>
+            <Text style={s.anaBtnY}>İLAN OLUŞTUR VE YAYINLA</Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
@@ -449,36 +544,32 @@ if (splash) {
         </View>
         <ScrollView style={s.scroll}>
           <TouchableOpacity style={s.profilResimSec} onPress={() => Alert.alert("Galeri", "Profil fotografı secme ekrani acildi.")}>
-            <Text style={{ fontSize: 40 }}> 📷 </Text>
+            <Text style={{ fontSize: 40 }}>  📷  </Text>
             <Text style={{ color: '#1B4965', fontWeight: 'bold', marginTop: 5, fontSize: 12 }}>Fotograf Yükle</Text>
           </TouchableOpacity>
-
-          {/* İŞTE ABONELİK ROZETİ BURAYA GELDİ GARİ */}
           <View style={{ alignItems: 'center', marginTop: -10, marginBottom: 25 }}>
-            <View style={{ 
-              backgroundColor: kullanici?.abonelik ? '#FFF8E1' : '#E1E6EB', 
+            <View style={{
+              backgroundColor: kullanici?.abonelik ? '#FFF8E1' : '#E1E6EB',
               borderColor: kullanici?.abonelik ? '#F39C12' : '#A3B1B9',
               borderWidth: 1,
-              paddingHorizontal: 15, 
-              paddingVertical: 6, 
-              borderRadius: 20 
+              paddingHorizontal: 15,
+              paddingVertical: 6,
+              borderRadius: 20
             }}>
-              <Text style={{ 
-                color: kullanici?.abonelik ? '#F39C12' : '#526E7F', 
-                fontWeight: 'bold', 
-                fontSize: 12 
+              <Text style={{
+                color: kullanici?.abonelik ? '#F39C12' : '#526E7F',
+                fontWeight: 'bold',
+                fontSize: 12
               }}>
-                {kullanici?.abonelik ? '👑 VIP (Sınırsız) Abonelik' : '📦 Standart Abonelik'}
+                {kullanici?.abonelik ? ' 👑  VIP (Sınırsız) Abonelik' : ' 📦  Standart Abonelik'}
               </Text>
             </View>
           </View>
-          {/* ABONELİK ROZETİ BİTTİ */}
-
           {rol === 'usta' && (
             <>
               <Text style={s.inputBaslik}>Musteri Puan Ortalamaniz</Text>
               <View style={[s.inp, { backgroundColor: '#FFF8E1', borderColor: '#F39C12' }]}>
-                <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 16 }}> ⭐  {kullanici?.puanOrtalamasi} / 5.0</Text>
+                <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 16 }}>  ⭐   {kullanici?.puanOrtalamasi} / 5.0</Text>
               </View>
               <Text style={s.inputBaslik}>Hizmet Verilen Kategori (Meslek)</Text>
               <TextInput style={s.inp} placeholder="Örn: Tesisat, Boyaci" value={profilMeslek} onChangeText={setProfilMeslek} />
@@ -492,8 +583,10 @@ if (splash) {
           <TextInput style={s.inp} placeholder="Örn: 0532 XXX XX XX" value={profilTel} onChangeText={setProfilTel} keyboardType="phone-pad" />
           <Text style={s.inputBaslik}>Bulundugu Konum (Ilce)</Text>
           <TextInput style={s.inp} placeholder="Örn: Milas, Yatagan..." value={profilBolge} onChangeText={setProfilBolge} />
-          <TouchableOpacity style={[s.girisBtn, { marginBottom: 10 }]} onPress={() => { setKullanici({ ...kullanici, telefon: profilTel, bolge: profilBolge, meslek: profilMeslek });
-            Alert.alert("Basarili", "Profil bilgilerin kaydedildi!"); }}>
+          <TouchableOpacity style={[s.girisBtn, { marginBottom: 10 }]} onPress={() => {
+            setKullanici({ ...kullanici, telefon: profilTel, bolge: profilBolge, meslek: profilMeslek });
+            Alert.alert("Basarili", "Profil bilgilerin kaydedildi!");
+          }}>
             <Text style={s.anaBtnY}>BILGILERI KAYDET</Text>
           </TouchableOpacity>
           <View style={s.ayracKoyu} />
@@ -506,7 +599,7 @@ if (splash) {
               </View>
               {is.durum === 'Puan Bekliyor' && rol === 'musteri' ? (
                 <TouchableOpacity style={s.puanlaBtnAcil} onPress={() => setEkran('puanla')}><Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>PUANLA</Text></TouchableOpacity>
-              ) : (is.puan && <View style={s.puanBadge}><Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}> ⭐  {is.puan}</Text></View>)}
+              ) : (is.puan && <View style={s.puanBadge}><Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>  ⭐   {is.puan}</Text></View>)}
             </View>
           ))}
           <View style={{ height: 40 }} />
@@ -514,6 +607,7 @@ if (splash) {
       </SafeAreaView>
     );
   }
+
   if (ekran === 'bildirimler') {
     return (
       <SafeAreaView style={s.con}>
@@ -607,7 +701,7 @@ if (splash) {
           {anlasmaSaglandi && <View style={s.numaraKutu}><Text style={s.numaraText}>ANLASILDI: {aktifSohbetTeklif?.telefon}</Text></View>}
         </ScrollView>
         <View style={s.mesajInputAlan}>
-          <TouchableOpacity style={s.fotoBtnMesaj} onPress={() => Alert.alert("Galeri", "Foto acildi.")}><Text style={{ fontSize: 22 }}> 📷 </Text></TouchableOpacity>
+          <TouchableOpacity style={s.fotoBtnMesaj} onPress={() => Alert.alert("Galeri", "Foto acildi.")}><Text style={{ fontSize: 22 }}>  📷  </Text></TouchableOpacity>
           <TextInput style={s.mesajInp} placeholder="Mesaj yaz..." value={sohbetMesaj} onChangeText={setSohbetMesaj} />
           <TouchableOpacity style={s.gonderBtn} onPress={() => setSohbetMesaj('')}><Text style={{ color: '#FFF' }}>GÖNDER</Text></TouchableOpacity>
         </View>
@@ -650,8 +744,6 @@ if (splash) {
     );
   }
 
-  // --- BURADAN BAŞLAYARAK YAPIŞTIR GARİ ---
-
   if (ekran === 'hakkimizda') {
     return (
       <SafeAreaView style={s.con}>
@@ -679,7 +771,7 @@ if (splash) {
     );
   }
 
- if (ekran === 'hizmet_kosullari') {
+  if (ekran === 'hizmet_kosullari') {
     return (
       <SafeAreaView style={s.con}>
         <View style={s.header}>
@@ -690,39 +782,27 @@ if (splash) {
           <View style={{ width: 24 }} />
         </View>
         <ScrollView style={{ padding: 20 }}>
-
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 5 }}>1. Hizmetin Tanımı</Text>
-          <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>
-            GAYIT, Muğla ilindeki hizmet alanlar (Müşteri) ile hizmet verenleri (Usta) bir araya getiren dijital bir pazar yeridir. GAYIT, taraflar arasında sadece bir köprüdür; verilen hizmetin bizzat tarafı veya garantörü değildir.
-          </Text>
-
+          <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>GAYIT, Muğla ilindeki hizmet alanlar (Müşteri) ile hizmet verenleri (Usta) bir araya getiren dijital bir pazar yeridir. GAYIT, taraflar arasında sadece bir köprüdür; verilen hizmetin bizzat tarafı veya garantörü değildir.</Text>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 5 }}>2. Üyelik ve Abonelik</Text>
           <Text style={{ color: '#526E7F', marginBottom: 5, lineHeight: 22 }}>• Uygulamaya kayıt olan her kullanıcı verdiği bilgilerin doğruluğundan sorumludur.</Text>
-          <Text style={{ color: '#526E7F', marginBottom: 5, lineHeight: 22 }}>• <Text style={{fontWeight: 'bold'}}>Standart Üyelik:</Text> Kullanıcılara sınırlı ilan verme veya teklif sunma hakkı tanır.</Text>
-          <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>• <Text style={{fontWeight: 'bold'}}>VIP (Sınırsız) Abonelik:</Text> Ücret karşılığında veya kampanya kodlarıyla tanımlanır ve kullanıcıya belirlenen süre boyunca sınırsız işlem hakkı verir.</Text>
-
+          <Text style={{ color: '#526E7F', marginBottom: 5, lineHeight: 22 }}>• <Text style={{ fontWeight: 'bold' }}>Standart Üyelik:</Text> Kullanıcılara sınırlı ilan verme veya teklif sunma hakkı tanır.</Text>
+          <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>• <Text style={{ fontWeight: 'bold' }}>VIP (Sınırsız) Abonelik:</Text> Ücret karşılığında veya kampanya kodlarıyla tanımlanır ve kullanıcıya belirlenen süre boyunca sınırsız işlem hakkı verir.</Text>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 5 }}>3. Sorumluluk Sınırları</Text>
           <Text style={{ color: '#526E7F', marginBottom: 5, lineHeight: 22 }}>• Usta tarafından sunulan hizmetin kalitesi, süresi ve güvenliği tamamen Usta’nın sorumluluğundadır. GAYIT, işçilik kusurlarından veya uyuşmazlıklardan sorumlu tutulamaz gari.</Text>
           <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>• Müşteri ve Usta arasındaki pazarlık ve ödeme süreci tamamen tarafların kendi aralarındaki anlaşmaya bağlıdır.</Text>
-
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 5 }}>4. İlan ve Teklif Kuralları</Text>
           <Text style={{ color: '#526E7F', marginBottom: 5, lineHeight: 22 }}>• Yanıltıcı, yasal olmayan veya genel ahlaka aykırı ilanlar silinir.</Text>
           <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>• Sistem üzerinden paylaşılan telefon numaraları ve kişisel veriler, sadece ilgili işin çözümü için kullanılmalıdır.</Text>
-
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 5 }}>5. Cayma ve İade</Text>
-          <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>
-            Dijital olarak tanımlanan "İş Hakkı" veya "VIP Abonelik" işlemleri, kullanıma başlandığı anda iade kapsamı dışındadır.
-          </Text>
-
+          <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>Dijital olarak tanımlanan "İş Hakkı" veya "VIP Abonelik" işlemleri, kullanıma başlandığı anda iade kapsamı dışındadır.</Text>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 5 }}>6. Değişiklik Hakları</Text>
-          <Text style={{ color: '#526E7F', marginBottom: 40, lineHeight: 22 }}>
-            GAYIT, uygulama içindeki ücretlendirme, hak sistemi ve kullanım koşullarında önceden haber vermeksizin değişiklik yapma hakkını saklı tutar.
-          </Text>
-
+          <Text style={{ color: '#526E7F', marginBottom: 40, lineHeight: 22 }}>GAYIT, uygulama içindeki ücretlendirme, hak sistemi ve kullanım koşullarında önceden haber vermeksizin değişiklik yapma hakkını saklı tutar.</Text>
         </ScrollView>
       </SafeAreaView>
     );
   }
+
   if (ekran === 'ayarlar') {
     return (
       <SafeAreaView style={s.con}>
@@ -732,8 +812,6 @@ if (splash) {
           <View style={{ width: 24 }} />
         </View>
         <ScrollView style={{ padding: 20 }}>
-          
-          {/* 1. BİLDİRİM AYARLARI */}
           <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 10, marginLeft: 5 }}>Bildirim Ayarları</Text>
           <View style={{ backgroundColor: '#FFF', borderRadius: 15, padding: 15, marginBottom: 25, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
@@ -746,31 +824,56 @@ if (splash) {
               <Switch value={mesajBildirimAcik} onValueChange={setMesajBildirimAcik} trackColor={{ false: '#D1D9E0', true: '#588157' }} thumbColor="#FFF" />
             </View>
           </View>
-
-          {/* 2. GÖRÜNÜM AYARLARI */}
           <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 10, marginLeft: 5 }}>Görünüm</Text>
           <View style={{ backgroundColor: '#FFF', borderRadius: 15, padding: 15, marginBottom: 25, elevation: 2 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: '#526E7F', fontSize: 15, fontWeight: '500' }}>Karanlık Mod 🌙</Text>
-              <Switch value={karanlikMod} onValueChange={(val) => { 
-                setKaranlikMod(val); 
-                if(val) Alert.alert("Bilgi", "Karanlık mod tasarımı yakında aktif olacak gari!"); 
+              <Text style={{ color: '#526E7F', fontSize: 15, fontWeight: '500' }}>Karanlık Mod  🌙 </Text>
+              <Switch value={karanlikMod} onValueChange={(val) => {
+                setKaranlikMod(val);
+                if (val) Alert.alert("Bilgi", "Karanlık mod tasarımı yakında aktif olacak gari!");
               }} trackColor={{ false: '#D1D9E0', true: '#1B4965' }} thumbColor="#FFF" />
             </View>
           </View>
-
-          {/* 3. HESAP İŞLEMLERİ */}
           <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 10, marginLeft: 5 }}>Hesap Güvenliği</Text>
           <View style={{ backgroundColor: '#FFF', borderRadius: 15, padding: 5, marginBottom: 25, elevation: 2 }}>
-            <TouchableOpacity style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#F2F4F7' }} onPress={() => Alert.alert('Şifre', 'Şifre sıfırlama bağlantısı e-postanıza gönderilecek.')}>
+            <TouchableOpacity style={{ padding: 15, borderBottomWidth: 1, borderBottomColor: '#F2F4F7' }} onPress={() => setEkran('sifre_degistir')}>
               <Text style={{ color: '#1B4965', fontSize: 15, fontWeight: '500' }}>Şifre Değiştir</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={{ padding: 15 }} onPress={() => Alert.alert('Emin misin?', 'Hesabını silersen tüm geçmiş işlerin ve tekliflerin silinir gari. Yine de silinsin mi?', [{text: 'Vazgeç', style: 'cancel'}, {text: 'Hesabı Sil', style: 'destructive'}])}>
+            <TouchableOpacity style={{ padding: 15 }} onPress={() => Alert.alert('Emin misin?', 'Hesabını silersen tüm geçmiş işlerin ve tekliflerin silinir gari. Yine de silinsin mi?', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Hesabı Sil', style: 'destructive' }])}>
               <Text style={{ color: '#FF4444', fontSize: 15, fontWeight: 'bold' }}>Hesabı Sil</Text>
             </TouchableOpacity>
           </View>
-
           <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 10, marginBottom: 40, fontSize: 12 }}>GAYIT App v1.0.0</Text>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // --- ŞİFRE DEĞİŞTİRME SAYFASI ---
+  if (ekran === 'sifre_degistir') {
+    return (
+      <SafeAreaView style={s.con}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('ayarlar')}><Text style={s.menuSimge}>←</Text></TouchableOpacity>
+          <Text style={s.headerBaslik}>Şifre Değiştir</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <ScrollView contentContainerStyle={s.authIc}>
+          <Text style={s.inputBaslik}>Mevcut Şifreniz</Text>
+          <TextInput style={s.inp} placeholder="Eski şifrenizi girin" secureTextEntry />
+          
+          <Text style={s.inputBaslik}>Yeni Şifre</Text>
+          <TextInput style={s.inp} placeholder="Yeni şifrenizi girin" secureTextEntry />
+          
+          <Text style={s.inputBaslik}>Yeni Şifre (Tekrar)</Text>
+          <TextInput style={s.inp} placeholder="Yeni şifrenizi tekrar girin" secureTextEntry />
+
+          <TouchableOpacity style={[s.girisBtn, {marginTop: 20}]} onPress={() => {
+            Alert.alert("Başarılı", "Şifreniz güncellendi gari!");
+            setEkran('ayarlar');
+          }}>
+            <Text style={s.anaBtnY}>ŞİFREYİ GÜNCELLE</Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
@@ -780,27 +883,17 @@ if (splash) {
     <SafeAreaView style={s.con}>
       {menuAcik && <SolMenu />}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => setMenuAcik(true)}><Text style={s.menuSimge}> ☰ </Text></TouchableOpacity>
-
-        { /* Anasayfa Şov: G + AYIT */ }
+        <TouchableOpacity onPress={() => setMenuAcik(true)}><Text style={s.menuSimge}>  ☰  </Text></TouchableOpacity>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Image source={{ uri: 'https://i.ibb.co/2RcsY8P/lv-0-20260502100751.png' }} style={{ width: 70, height: 70 }} resizeMode="contain" />
-          <Text style={{
-            fontSize: 15,
-            fontWeight: '700',
-            color: '#1B4965',
-            letterSpacing: 2,
-            marginLeft: -15,
-            marginTop: 15,
-            fontFamily: 'serif'
-          }}>AYIT</Text>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B4965', letterSpacing: 2, marginLeft: -15, marginTop: 15, fontFamily: 'serif' }}>AYIT</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)} style={{ marginRight: 20 }}>
-            <Text style={{ fontSize: 20 }}> 🔽 </Text>
+            <Text style={{ fontSize: 20 }}>  🔽  </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setEkran('bildirimler')} style={{ position: 'relative' }}>
-            <Text style={s.zilSimge}> 🔔 </Text>
+            <Text style={s.zilSimge}>  🔔  </Text>
             {bildirimler.some(b => !b.okundu) && <View style={s.bildirimNokta} />}
           </TouchableOpacity>
         </View>
@@ -817,16 +910,11 @@ if (splash) {
           </ScrollView>
         </View>
       )}
-      
-      {/* İŞTE O EFSANE YENİLEME KONTROLÜ (RefreshControl) BURADA GARİ */}
-      <ScrollView 
+
+      <ScrollView
         stickyHeaderIndices={[0]}
         refreshControl={
-          <RefreshControl 
-            refreshing={yenileniyor} 
-            onRefresh={onYenile} 
-            colors={['#1B4965']} 
-          />
+          <RefreshControl refreshing={yenileniyor} onRefresh={onYenile} colors={['#1B4965']} />
         }
       >
         <View style={s.istatistikPanel}>
@@ -846,12 +934,10 @@ if (splash) {
               <Text style={s.anaBtnY}>YENI ILAN YAYINLA</Text>
             </TouchableOpacity>
           )}
-
           {anasayfaIlanlari.length === 0 ? (
             <Text style={{ textAlign: 'center', marginTop: 30, color: '#A3B1B9' }}>Bölgene uygun acik is yok.</Text>
           ) : (
-            <FlatList data={anasayfaIlanlari} keyExtractor={item => item.id} scrollEnabled={false} style={{ marginTop: rol === 'müşteri' ?
-            20 : 0 }} renderItem={({ item }) => {
+            <FlatList data={anasayfaIlanlari} keyExtractor={item => item.id} scrollEnabled={false} style={{ marginTop: rol === 'müşteri' ? 20 : 0 }} renderItem={({ item }) => {
               const tarihStil = getTarihStil(item.kalanGun);
               return (
                 <View style={[s.kart, item.anlasmaVar && { opacity: 0.6 }]}>
@@ -863,7 +949,7 @@ if (splash) {
                     <Text style={{ color: '#A3B1B9', fontSize: 12 }}>{item.sure}</Text>
                   </View>
                   <Text style={s.kartBaslik}>{item.baslik}</Text>
-                  <Text style={s.kartAlt}> 📍  {item.mahalle} Mah. - {item.bolge}</Text>
+                  <Text style={s.kartAlt}>  📍   {item.mahalle} Mah. - {item.bolge}</Text>
                   {item.anlasmaVar ? (
                     <Text style={{ color: '#588157', fontWeight: 'bold', marginTop: 8 }}>ANLASMA SAGLANDI</Text>
                   ) : (
@@ -999,5 +1085,3 @@ const s = StyleSheet.create({
   splashAlt: { fontSize: 14, color: '#8B7355', fontStyle: 'italic', marginBottom: 30 },
   splashAraçlar: { flexDirection: 'row', marginTop: 10 },
 });
-
-
