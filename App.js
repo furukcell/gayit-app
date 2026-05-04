@@ -11,7 +11,7 @@ const BOLGELER = ['Menteşe (Merkez)', 'Bodrum', 'Dalaman', 'Datça', 'Fethiye',
 const BRANSLAR = ['Tesisat (Sucu)', 'Elektrik', 'Boyacı', 'Klimacı', 'Nakliyat', 'Temizlik', 'Diğer'];
 const KATEGORILER = ['Tümü', 'Tesisat (Sucu)', 'Klimacı', 'Boyacı', 'Elektrik', 'Temizlik', 'Nakliyat', 'Diğer'];
 const YENI_ILAN_KATEGORILER = ['Temizlik', 'Boya/Badana', 'Tesisat (Sucu)', 'Elektrik', 'Klima', 'Nakliyat', 'Diğer'];
-const IS_TARIHI_SECENEKLER = ['Hemen', 'Yarın', 'Bu Hafta', 'İleri Bir Tarih'];
+const IS_TARIHI_SECENEKLER = ['Bugün', 'Yarın', 'Bu Hafta', 'İleri Bir Tarih'];
 
 const referansKoduOlustur = () => {
   const karakterler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
@@ -114,7 +114,7 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [bildirimAcik, setBildirimAcik] = useState(true);
   const [karanlikMod, setKaranlikMod] = useState(false);
-  const [isTarihiTip, setIsTarihiTip] = useState('Hemen'); 
+  const [isTarihiTip, setIsTarihiTip] = useState('Bugün'); 
 const [ozelTarih, setOzelTarih] = useState('');
 const [takvimAcik, setTakvimAcik] = useState(false);
 const [ilceDuzenleAcik, setIlceDuzenleAcik] = useState(false);
@@ -698,8 +698,8 @@ haberUcur(secilenIlan.sahipUid || secilenIlan.uid, "💰 Yeni Teklif!", `${kulla
           <TextInput style={s.inp} placeholder="Örn: Güneş Mahallesi" onChangeText={setIlanMahalle} />
          <Text style={s.inputBaslik}>İşin Yapılacağı Tarih</Text>
           <View style={s.chipAlan}>
-            <TouchableOpacity style={[s.chip, isTarihiTip === 'Hemen' && s.chipAktif]} onPress={() => setIsTarihiTip('Hemen')}>
-              <Text style={[s.chipY, isTarihiTip === 'Hemen' && s.chipYAktif]}>Hemen</Text>
+            <TouchableOpacity style={[s.chip, isTarihiTip === 'Bugün' && s.chipAktif]} onPress={() => setIsTarihiTip('Bugün')}>
+              <Text style={[s.chipY, isTarihiTip === 'Bugün' && s.chipYAktif]}>Bugün</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={[s.chip, isTarihiTip === 'Yarın' && s.chipAktif]} onPress={() => setIsTarihiTip('Yarın')}>
@@ -725,7 +725,7 @@ haberUcur(secilenIlan.sahipUid || secilenIlan.uid, "💰 Yeni Teklif!", `${kulla
                   setTakvimDegeri(date);
                   setOzelTarih(date.toLocaleDateString('tr-TR')); // Tarihi "15.05.2026" yapar
                 } else {
-                  setIsTarihiTip('Hemen'); // Adam iptale basarsa "Hemen"e dönsün
+                  setIsTarihiTip('Bugün'); // Adam iptale basarsa "Bugün"e dönsün
                 }
               }}
             />
