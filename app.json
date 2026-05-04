@@ -4,17 +4,25 @@
     "slug": "gayit-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./icon.png",
     "splash": {
-      "image": "icon": "./icon.png",
+      "image": "./icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F5F5F0"
     },
     "android": {
       "package": "com.gayit.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./icon.png",
         "backgroundColor": "#F5F5F0"
+      }
+    },
+    "web": {
+      "favicon": "./icon.png",
+      "pwa": {
+        "enabled": true,
+        "icon": "./icon.png",
+        "themeColor": "#F5F5F0"
       }
     },
     "extra": {
