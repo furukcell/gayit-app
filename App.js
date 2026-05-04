@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, FlatList, Alert, Dimensions, Image, RefreshControl, Switch, Animated, Modal, Linking, Share } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
 
@@ -141,9 +142,25 @@ const [takvimDegeri, setTakvimDegeri] = useState(new Date());
   const donmeAnimasyon = useRef(new Animated.Value(0)).current;
   const splashOpacity = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
+ useEffect(() => {
+    // 1. Önce "Nerede kalmıştık?" diye soralım 
+    const hafizayiGetir = async () => {
+      try {
+        const kaydedilenEkran = await AsyncStorage.getItem('sonEkran');
+        if (kaydedilenEkran) {
+          setEkran(kaydedilenEkran);
+        }
+      } catch (e) {
+        console.log("Hafıza okuma hatası!");
+      }
+    };
+    
+    hafizayiGetir(); // Notu oku...
+
+    // 2. Senin mevcut splash animasyon kodların (Burayı ellemene gerek yok)
     Animated.timing(splashOpacity, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     Animated.loop(Animated.timing(donmeAnimasyon, { toValue: 1, duration: 1200, useNativeDriver: true })).start();
+    
     setTimeout(() => {
       Animated.timing(splashOpacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => setSplash(false));
     }, 2500);
@@ -152,6 +169,21 @@ const [takvimDegeri, setTakvimDegeri] = useState(new Date());
   useEffect(() => {
     if (kullanici) { veriYukle(); zamanBekcisi(); }
   }, [kullanici]);
+  // Ekran her değiştiğinde hafızaya atalım gari
+  useEffect(() => {
+    const hafizayaYaz = async () => {
+      try {
+        if (ekran) {
+          // localStorage yerine AsyncStorage kullanıyoruz
+          await AsyncStorage.setItem('sonEkran', ekran);
+        }
+      } catch (e) {
+        console.log("Hafıza yazma hatası!");
+      }
+    };
+    hafizayaYaz();
+
+}, [ekran]);
 
   const zamanBekcisi = async () => {
     if (!kullanici || !token) return;
