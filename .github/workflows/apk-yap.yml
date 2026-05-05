@@ -1,0 +1,32 @@
+name: GAYIT APK Oluşturucu
+on:
+  workflow_dispatch: # Manuel başlatmak için
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Kodları Çek
+        uses: actions/checkout@v4
+
+      - name: 🟢 Node.js Kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 🚀 Expo ve EAS Kur
+        run: npm install -g expo-cli eas-cli
+
+      - name: 📦 Bağımlılıkları Yükle
+        run: npm install
+
+      - name: 🛠 APK Oluştur (EAS Build)
+        run: npx eas build --platform android --profile preview --local
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📥 APK'yı GitHub'a Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: gayit-uygulama-apk
+          path: ./*.apk
