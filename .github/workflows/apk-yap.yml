@@ -21,7 +21,7 @@ jobs:
         run: npm install
 
       - name: 🛠 APK Oluştur (EAS Build)
-        run: npx eas build --platform android --profile preview --local
+        run: npx eas build --platform android --profile preview --local --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
