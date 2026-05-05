@@ -14,7 +14,7 @@ import { AnasayfaEkrani, SolMenu } from './HomeScreen';
 import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './IlanScreens';
 import { SohbetEkrani } from './ChatScreen';
 import { ProfilEkrani } from './ProfileScreens';
-import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani } from './PackageScreens';
+import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani } from './PackageScreens';
 import { PuanModali, SikayetModali } from './Modals';
 import { AdminEkrani } from './AdminScreen';
 
@@ -160,6 +160,7 @@ export default function App() {
         setMenuAcik={setMenuAcik}
         setSecilenIlan={setSecilenIlan}
         ustaTeklifTiklandi={ustaTeklifTiklandi}
+        setBildirimEkrani={() => setEkran('bildirimler')}
         s={st}
       />
     );
@@ -261,6 +262,7 @@ export default function App() {
     if (ekran === 'iletisim') return <IletisimEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
     if (ekran === 'hakkimizda') return <HakkimizdaEkrani setEkran={setEkran} s={st} />;
     if (ekran === 'hizmet_kosullari') return <HizmetKosullariEkrani setEkran={setEkran} s={st} />;
+    if (ekran === 'bildirimler') return <BildirimEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
 
     if (ekran === 'admin') return (
       <AdminEkrani
