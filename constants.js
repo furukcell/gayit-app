@@ -1,0 +1,76 @@
+// ============================================================
+// ADIM 1 — constants.js
+// Sabit listeler, yardımcı fonksiyonlar
+// ============================================================
+
+// --- Firebase Bilgileri ---
+export const API_KEY = "AIzaSyCcvq9VkMugDZTq3fOPypJIy0ATiGmPxrk";
+export const DB_URL = "https://usta-mugla-default-rtdb.europe-west1.firebasedatabase.app";
+
+// --- Sabit Listeler ---
+export const BOLGELER = [
+  'Menteşe (Merkez)', 'Bodrum', 'Dalaman', 'Datça', 'Fethiye',
+  'Kavaklıdere', 'Köyceğiz', 'Marmaris', 'Milas', 'Ortaca',
+  'Seydikemer', 'Ula', 'Yatağan'
+];
+
+export const KATEGORILER = [
+  'Tümü', 'Tesisat (Sucu)', 'Klimacı', 'Boyacı',
+  'Elektrik', 'Temizlik', 'Nakliyat', 'Diğer'
+];
+
+export const YENI_ILAN_KATEGORILER = [
+  'Tesisat (Sucu)', 'Klimacı', 'Boyacı',
+  'Elektrik', 'Temizlik', 'Nakliyat', 'Diğer'
+];
+
+// --- Yardımcı Fonksiyonlar ---
+
+// Referans kodu üretici
+export const referansKoduOlustur = () => {
+  const karakterler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let kod = '';
+  for (let i = 0; i < 7; i++) {
+    kod += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
+  }
+  return kod;
+};
+
+// Tarih düzeltmesi — seçilen tarihi doğru formatta döndürür
+// Orijinal kodda isTarihiTip 'İleri' olarak set edilmeden ilan
+// oluşturulunca "Bugün" yazıyordu. Bu fonksiyon bunu önler.
+export const tarihHesapla = (isTarihiTip, ozelTarih) => {
+  if (isTarihiTip === 'Bugün') {
+    return new Date().toLocaleDateString('tr-TR');
+  }
+  if (isTarihiTip === 'Yarın') {
+    const yarin = new Date();
+    yarin.setDate(yarin.getDate() + 1);
+    return yarin.toLocaleDateString('tr-TR');
+  }
+  if (isTarihiTip === 'İleri' && ozelTarih) {
+    return ozelTarih;
+  }
+  // Fallback — her ihtimale karşı bugünü döndür
+  return new Date().toLocaleDateString('tr-TR');
+};
+
+// Zaman damgasını okunabilir tarihe çevirir
+export const damgaToTarih = (timestamp) => {
+  if (!timestamp) return '';
+  return new Date(timestamp).toLocaleDateString('tr-TR');
+};
+
+// Zaman damgasını "X dakika önce / X saat önce" formatına çevirir
+export const zamanFarki = (timestamp) => {
+  if (!timestamp) return '';
+  const fark = Date.now() - timestamp;
+  const dakika = Math.floor(fark / 60000);
+  const saat = Math.floor(fark / 3600000);
+  const gun = Math.floor(fark / 86400000);
+
+  if (dakika < 1) return 'Az önce';
+  if (dakika < 60) return `${dakika} dk önce`;
+  if (saat < 24) return `${saat} saat önce`;
+  return `${gun} gün önce`;
+};
