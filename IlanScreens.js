@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Switch
+  ScrollView, Alert, Switch, Platform
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla } from './constants';
@@ -201,24 +201,43 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           </TouchableOpacity>
         </View>
 
-        {/* TAKVİM — Tarih düzeltmesi burada: date null gelirse tipi sıfırlamıyoruz */}
+        {/* TAKVİM — Web'de native input, mobilde DateTimePicker */}
         {takvimAcik && (
-          <DateTimePicker
-            value={takvimDegeri}
-            mode="date"
-            minimumDate={new Date()}
-            onChange={(event, date) => {
-              setTakvimAcik(false);
-              if (date) {
-                setTakvimDegeri(date);
-                setOzelTarih(date.toLocaleDateString('tr-TR'));
-                // İsTarihiTip zaten 'İleri' — burada tekrar set etmiyoruz,
-                // böylece Android'in ikinci tetiklemesi tipi sıfırlamıyor.
-              }
-              // date null/undefined gelirse isTarihiTip 'İleri' kalıyor,
-              // ozelTarih boş kalıyor ve ilan oluşturmada kontrol yakalıyor.
-            }}
-          />
+          Platform.OS === 'web' ? (
+            <View style={{ marginBottom: 15 }}>
+              <Text style={{ color: '#526E7F', fontSize: 13, marginBottom: 6 }}>Tarih Seçin</Text>
+              <input
+                type="date"
+                min={new Date().toISOString().split('T')[0]}
+                style={{
+                  width: '100%', padding: 14, borderRadius: 12,
+                  border: '1px solid #E8E8E0', fontSize: 15,
+                  color: '#1B4965', backgroundColor: '#FFF',
+                }}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const parcalar = e.target.value.split('-');
+                    const trTarih = `${parcalar[2]}.${parcalar[1]}.${parcalar[0]}`;
+                    setOzelTarih(trTarih);
+                    setTakvimAcik(false);
+                  }
+                }}
+              />
+            </View>
+          ) : (
+            <DateTimePicker
+              value={takvimDegeri}
+              mode="date"
+              minimumDate={new Date()}
+              onChange={(event, date) => {
+                setTakvimAcik(false);
+                if (date) {
+                  setTakvimDegeri(date);
+                  setOzelTarih(date.toLocaleDateString('tr-TR'));
+                }
+              }}
+            />
+          )
         )}
 
         {/* ACİL İLAN */}

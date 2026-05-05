@@ -21,7 +21,8 @@ export function ProfilEkrani({
   const [ilceDuzenleAcik, setIlceDuzenleAcik] = useState(false);
   const [puanlar, setPuanlar] = useState([]);
   const [gecmisIsler, setGecmisIsler] = useState([]);
-  const [aktifSekme, setAktifSekme] = useState('profil'); // 'profil' | 'degerlendirmeler' | 'gecmis'
+  const [aktifSekme, setAktifSekme] = useState('profil');
+  const [kaydedildi, setKaydedildi] = useState(false); // 'profil' | 'degerlendirmeler' | 'gecmis'
 
   useEffect(() => {
     if (rol === 'usta' && kullanici?.email) {
@@ -82,7 +83,8 @@ export function ProfilEkrani({
         body: JSON.stringify(up),
       });
     }
-    Alert.alert('Başarılı ✅', 'Profil bilgilerin kaydedildi usta!');
+    setKaydedildi(true);
+    setTimeout(() => setKaydedildi(false), 3000);
   };
 
   const onayBasvur = async () => {
@@ -291,6 +293,12 @@ export function ProfilEkrani({
             >
               <Text style={{ color: '#FF4444', fontSize: 13 }}>⚠️ Şikayet Et</Text>
             </TouchableOpacity>
+
+            {kaydedildi && (
+              <View style={{ backgroundColor: '#588157', borderRadius: 12, padding: 12, marginBottom: 10, alignItems: 'center' }}>
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>✅ Bilgiler kaydedildi!</Text>
+              </View>
+            )}
 
             <TouchableOpacity style={[s.girisBtn, { marginBottom: 40, marginTop: 15 }]} onPress={bilgileriKaydet}>
               <Text style={s.anaBtnY}>BİLGİLERİ KAYDET</Text>

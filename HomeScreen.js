@@ -202,7 +202,7 @@ export function SolMenu({
 export function AnasayfaEkrani({
   kullanici, rol, ilanlar, yenileniyor, onYenile,
   setEkran, setMenuAcik, setSecilenIlan,
-  ustaTeklifTiklandi, s
+  ustaTeklifTiklandi, setBildirimEkrani, s
 }) {
   const [seciliKategori, setSeciliKategori] = useState('Tümü');
   const [filtreAcik, setFiltreAcik] = useState(false);
@@ -231,14 +231,24 @@ export function AnasayfaEkrani({
         <Text style={s.headerBaslik}>
           {rol === 'usta' ? '🛠️ Açık İşler' : '📋 İlanlar'}
         </Text>
-        <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)}>
-          <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={setBildirimEkrani}>
+            <Text style={{ fontSize: 22 }}>🔔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)}>
+            <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Kategori Filtresi */}
       {filtreAcik && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 15, paddingVertical: 8, backgroundColor: '#F5F5F0' }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ backgroundColor: '#F5F5F0', maxHeight: 52 }}
+          contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 8, alignItems: 'center' }}
+        >
           {KATEGORILER.map(k => (
             <TouchableOpacity
               key={k}
