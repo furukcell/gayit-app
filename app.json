@@ -9,6 +9,10 @@
       "image": "./icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F5F5F0"
+      "extra": {
+      "eas": {
+        "projectId": "c9a59eb0-0d68-4c87-9586-eb5dc3f4217d"
+      }
     },
     "android": {
       "package": "com.gayit.app",
@@ -24,11 +28,5 @@
         "icon": "./icon.png",
         "themeColor": "#F5F5F0"
       }
-    },
-    "extra": {
-      "eas": {
-        "projectId": "gayit-mugla"
-      }
     }
-  }
-}
+    
