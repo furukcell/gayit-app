@@ -9,7 +9,8 @@
       "image": "./icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F5F5F0"
-      "extra": {
+    },
+    "extra": {
       "eas": {
         "projectId": "c9a59eb0-0d68-4c87-9586-eb5dc3f4217d"
       }
@@ -29,4 +30,5 @@
         "themeColor": "#F5F5F0"
       }
     }
-    
+  }
+}
