@@ -1,6 +1,6 @@
 workflows:
   react-native-android:
-    name: GAYİT APK Pişirici
+    name: GAYİT APK Tam Sürüm
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
@@ -8,10 +8,14 @@ workflows:
     scripts:
       - name: Bağımlılıkları Yükle
         script: npm install
-      - name: APK Oluştur
-        script: npx expo export --platform android
+      - name: Expo CLI Kur
+        script: npm install -g expo-cli eas-cli
+      - name: APK Oluştur (Full Build)
+        script: |
+          npx eas-cli build --platform android --profile preview --non-interactive --local
     artifacts:
-      - dist/bundles/*.apk
+      - build-*.apk
+      - app-release.apk
     publishing:
       email:
         recipients:
