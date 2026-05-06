@@ -12,10 +12,5 @@
     "production": {
       "channel": "production"
     }
-  },
-  "update": {
-    "production": {
-      "channel": "production"
-    }
   }
 }
