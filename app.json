@@ -10,6 +10,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#F5F5F0"
     },
+    "updates": {
+      "url": "https://u.expo.dev/bedf51a1-744f-4b74-a9ac-1c5dfc366127",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "extra": {
       "eas": {
         "projectId": "bedf51a1-744f-4b74-a9ac-1c5dfc366127"
