@@ -24,7 +24,72 @@ export const YENI_ILAN_KATEGORILER = [
   'Elektrik', 'Temizlik', 'Nakliyat', 'Diğer'
 ];
 
-// --- Yardımcı Fonksiyonlar ---
+// --- İlçe-Mahalle Haritası ---
+export const ILCE_MAHALLELER = {
+  'Menteşe (Merkez)': [
+    'Akıncı', 'Balıbey', 'Camikebir', 'Cumhuriyet', 'Düğerek',
+    'Emirbeyazıt', 'Hacıali', 'Hacırüstem', 'Karamehmet', 'Karşıyaka',
+    'Kötekli', 'Menteşe', 'Muslihittin', 'Müştakbey', 'Orhaniye',
+    'Orta', 'Ömerağa', 'Pınarbaşı', 'Şeyh', 'Yayla',
+    'Yeniçeşme', 'Yumaklı'
+  ],
+  'Bodrum': [
+    'Bitez', 'Yalıkavak', 'Turgutreis', 'Bahçelievler', 'Kumbahçe',
+    'Cevat Şakir', 'Eskiçeşme', 'Konacık', 'Akyarlar', 'Gündoğan',
+    'Yokuşbaşı', 'İslamhaneleri', 'Gümüşlük', 'Yeniköy', 'Çarşı',
+    'Gümbet', 'Torba', 'Cumhuriyet', 'Türkkuyusu', 'Güvercinlik',
+    'Mumcular', 'Tepecik', 'Peksimet'
+  ],
+  'Dalaman': [
+    'Cumhuriyet', 'Karaçalı', 'Merkez', 'Muratbağı', 'Kapıkargın',
+    'Karacaağaç', 'Sütlügen', 'Gürköy', 'Elcik', 'Bozbel'
+  ],
+  'Datça': [
+    'Cumhuriyet', 'Hükümet', 'İskele', 'Palamutbükü', 'Knidos',
+    'Mesudiye', 'Yazıköy', 'Karaköy', 'Emecik', 'Kızlan'
+  ],
+  'Fethiye': [
+    'Tuzla', 'Karaçulha', 'Patlangıç', 'Taşyaka', 'Foça',
+    'Pazaryeri', 'Babataşı', 'Menteşeoğlu', 'Akarca', 'Yeni',
+    'Çamköy', 'Esenköy', 'Ölüdeniz', 'Göcek', 'Çatalarık',
+    'Çiftlik', 'Kesikkapı', 'Cumhuriyet', 'Karagedik'
+  ],
+  'Kavaklıdere': [
+    'Cumhuriyet', 'Kavaklıdere Merkez', 'Çamköy', 'Göktepe',
+    'Horzum', 'Kocaköy', 'Söğütlüdere'
+  ],
+  'Köyceğiz': [
+    'Cumhuriyet', 'Hamitköy', 'Merkez', 'Beyobası', 'Döğüşbelen',
+    'Sultaniye', 'Toparlar', 'Yangı', 'Zeytinalanı'
+  ],
+  'Marmaris': [
+    'Armutalan', 'Beldibi', 'Tepe', 'Kemeraltı', 'Çıldır',
+    'İçmeler', 'Sarıana', 'Adaköy', 'Çamdibi', 'Hatipirimi',
+    'Siteler', 'Atatürk', 'Birgi', 'Çetibeli', 'Turunç'
+  ],
+  'Milas': [
+    'İsmet Paşa', 'Ahmetçavuş-Hayıtlı', 'Cumhuriyet', 'Aydınlıkevler',
+    'Burgaz', 'Güllük', 'Selimiye', 'Hacıabti', 'Beçin',
+    'Emek', 'Hacı İlyas', 'Gümüşlük', 'Şevketiye', 'Ören',
+    'Boğaziçi', 'Meşelik', 'Koru'
+  ],
+  'Ortaca': [
+    'Cumhuriyet', 'Merkez', 'Dalyan', 'Ekincik', 'İztuzu',
+    'Gökbel', 'Köyceğiz', 'Sarıgerme'
+  ],
+  'Seydikemer': [
+    'Cumhuriyet', 'Merkez', 'Eşen', 'Kınık', 'Pınara',
+    'Üzümlü', 'Yakaköy', 'Boğaziçi', 'Dereköy'
+  ],
+  'Ula': [
+    'Cumhuriyet', 'Merkez', 'Gökova', 'Muğla', 'Çamlıköy',
+    'Çökertme', 'Turgut', 'Yerkesik'
+  ],
+  'Yatağan': [
+    'Cumhuriyet', 'Merkez', 'Eskihisar', 'Milas', 'Selçuk',
+    'Turgut', 'Bozüyük', 'Çerçin', 'Kayaköy'
+  ],
+};
 
 // Referans kodu üretici
 export const referansKoduOlustur = () => {
