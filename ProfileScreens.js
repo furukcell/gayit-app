@@ -247,6 +247,17 @@ export function ProfilEkrani({
               editable={false}
             />
 
+            {rol === 'usta' && kullanici?.meslek && (
+              <>
+                <Text style={s.inputBaslik}>Meslek / Branş</Text>
+                <TextInput
+                  style={[s.inp, { backgroundColor: '#F2F4F7', color: '#A3B1B9' }]}
+                  value={kullanici.meslek}
+                  editable={false}
+                />
+              </>
+            )}
+
             <Text style={s.inputBaslik}>Telefon Numarası</Text>
             <TextInput
               style={s.inp}

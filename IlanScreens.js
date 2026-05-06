@@ -386,6 +386,12 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
       return;
     }
 
+    // Aynı fiyatta revize kontrolü
+    if (revizeModu && mevcutTeklif?.fiyat === teklifFiyat + ' TL') {
+      Alert.alert('Aynı Fiyat', 'Zaten bu fiyatı verdin usta! Değiştirmek istiyorsan farklı bir fiyat gir.');
+      return;
+    }
+
     // Hak kontrolü — sadece ilk teklif için hak düş, revizede düşme
     if (!revizeModu && !kullanici?.abonelik) {
       let gYH = kullanici?.yeniKullaniciHakki ?? 0;

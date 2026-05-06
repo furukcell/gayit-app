@@ -73,9 +73,22 @@ export function SolMenu({
 
   return (
     <View style={s.drawerContainer}>
+      <TouchableOpacity
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        onPress={() => setMenuAcik(false)}
+        activeOpacity={1}
+      />
       <View style={s.drawerIc}>
-        <TouchableOpacity style={s.drawerKapat} onPress={() => setMenuAcik(false)}>
-          <Text style={{ color: '#FFF', fontSize: 22 }}>✕</Text>
+        {/* X butonu her zaman sabit üstte */}
+        <TouchableOpacity
+          onPress={() => setMenuAcik(false)}
+          style={{
+            position: 'absolute', top: 45, right: 15, zIndex: 999,
+            backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36,
+            borderRadius: 18, justifyContent: 'center', alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
         </TouchableOpacity>
 
         <ScrollView showsVerticalScrollIndicator={false}>
