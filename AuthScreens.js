@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Image, Switch, Linking
+  ScrollView, Alert, Image, Switch, Linking, ActivityIndicator
 } from 'react-native';
 import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur } from './constants';
 import { pushTokenAl } from './notifications';
@@ -69,6 +69,7 @@ export function AuthEkrani({
   const [davetKodu, setDavetKodu] = useState('');
   const [kvkkKabul, setKvkkKabul] = useState(false);
   const [sozlesmeKabul, setSozlesmeKabul] = useState(false);
+  const [yukleniyor, setYukleniyor] = useState(false);
 
   const islemiTamamla = async () => {
     if (!email || !sifre || (mod === 'kayit' && !ad))
@@ -82,6 +83,7 @@ export function AuthEkrani({
     if (mod === 'kayit' && !sozlesmeKabul)
       return Alert.alert('Hata', 'Üyelik sözleşmesini onaylamanız gerekiyor!');
 
+    setYukleniyor(true);
     try {
       if (mod === 'kayit') {
         const res = await fetch(
@@ -186,6 +188,8 @@ export function AuthEkrani({
       setEkran('anasayfa');
     } catch (e) {
       Alert.alert('Hata', 'Bağlantı hatası gari, internetini bir kontrol et!');
+    } finally {
+      setYukleniyor(false);
     }
   };
 
@@ -298,8 +302,12 @@ export function AuthEkrani({
           </>
         )}
 
-        <TouchableOpacity style={s.girisBtn} onPress={islemiTamamla}>
-          <Text style={s.anaBtnY}>DEVAM ET</Text>
+        <TouchableOpacity style={[s.girisBtn, { opacity: yukleniyor ? 0.7 : 1 }]} onPress={islemiTamamla} disabled={yukleniyor}>
+          {yukleniyor ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={s.anaBtnY}>DEVAM ET</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setEkran('karsilama')}>
           <Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>← Geri</Text>

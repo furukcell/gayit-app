@@ -8,6 +8,7 @@ import {
   View, Text, TouchableOpacity, SafeAreaView, FlatList,
   ScrollView, RefreshControl, Alert
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { BOLGELER, KATEGORILER } from './constants';
 
 // ============================================================
@@ -174,6 +175,15 @@ export function SolMenu({
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('hizmet_kosullari'); }}>
             <Text style={s.menuText}>📄 Hizmet Koşulları</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={s.menuItem}
+            onPress={() => {
+              setMenuAcik(false);
+              WebBrowser.openBrowserAsync('https://furukcell.github.io/gayit-gizlilik');
+            }}
+          >
+            <Text style={s.menuText}>🔒 Gizlilik Politikası</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('ayarlar'); }}>
             <Text style={s.menuText}>⚙️ Ayarlar</Text>
           </TouchableOpacity>
@@ -200,21 +210,30 @@ export function SolMenu({
 // ANASAYFA EKRANI
 // ============================================================
 export function AnasayfaEkrani({
-  kullanici, rol, ilanlar, yenileniyor, onYenile,
+  kullanici, rol, ilanlar, sistemIst, yenileniyor, onYenile,
   setEkran, setMenuAcik, setSecilenIlan,
   ustaTeklifTiklandi, setBildirimEkrani, s
 }) {
   const [seciliKategori, setSeciliKategori] = useState('Tümü');
+  const [seciliIlce, setSeciliIlce] = useState('Tümü');
   const [filtreAcik, setFiltreAcik] = useState(false);
+  const [gosterilen, setGosterilen] = useState(20);
 
-  // Anasayfa ilan filtresi
-  const anasayfaIlanlari = ilanlar.filter(ilan => {
-    const bolgeUygun = ilan.bolge === kullanici?.bolge;
+  // Filtre mantığı
+  const filtrelenmis = ilanlar.filter(ilan => {
     const kategoriUygun = rol === 'usta'
       ? (seciliKategori === 'Tümü' ? ilan.kategori === kullanici?.meslek : ilan.kategori === seciliKategori)
       : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
-    return bolgeUygun && kategoriUygun;
+
+    const ilceUygun = seciliIlce === 'Tümü' || ilan.bolge === seciliIlce;
+
+    // Usta: kendi kategorisi, tüm ilçeler
+    // Müşteri: tüm ilanlar
+    if (rol === 'usta') return kategoriUygun && ilceUygun;
+    return kategoriUygun && ilceUygun;
   });
+
+  const gosterilenIlanlar = filtrelenmis.slice(0, gosterilen);
 
   const onTekliflerTikla = (ilan) => {
     setSecilenIlan(ilan);
@@ -228,9 +247,7 @@ export function AnasayfaEkrani({
         <TouchableOpacity style={s.menuBtn} onPress={() => setMenuAcik(true)}>
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
-        <Text style={s.headerBaslik}>
-          {rol === 'usta' ? '🛠️ Açık İşler' : '📋 İlanlar'}
-        </Text>
+        <Text style={s.headerBaslik}>İlanlar</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity onPress={setBildirimEkrani}>
             <Text style={{ fontSize: 22 }}>🔔</Text>
@@ -241,24 +258,52 @@ export function AnasayfaEkrani({
         </View>
       </View>
 
-      {/* Kategori Filtresi */}
+      {/* Sayaç Bandı */}
+      <View style={{ flexDirection: 'row', backgroundColor: '#1B4965', paddingHorizontal: 15, paddingVertical: 8, justifyContent: 'space-around' }}>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>{sistemIst?.usta || 0}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Kayıtlı Usta</Text>
+        </View>
+        <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>{sistemIst?.musteri || 0}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Kayıtlı Kullanıcı</Text>
+        </View>
+        <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>{ilanlar.length}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Aktif İlan</Text>
+        </View>
+      </View>
+
+      {/* Filtre Paneli */}
       {filtreAcik && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ backgroundColor: '#F5F5F0', maxHeight: 52 }}
-          contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 8, alignItems: 'center' }}
-        >
-          {KATEGORILER.map(k => (
-            <TouchableOpacity
-              key={k}
-              style={[s.chip, seciliKategori === k && s.chipAktif, { marginRight: 8 }]}
-              onPress={() => setSeciliKategori(k)}
-            >
-              <Text style={[s.chipY, seciliKategori === k && s.chipYAktif]}>{k}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={{ backgroundColor: '#F5F5F0', padding: 10 }}>
+          <Text style={{ color: '#526E7F', fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>KATEGORİ</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44 }} contentContainerStyle={{ alignItems: 'center' }}>
+            {KATEGORILER.map(k => (
+              <TouchableOpacity
+                key={k}
+                style={[s.chip, seciliKategori === k && s.chipAktif, { marginRight: 8 }]}
+                onPress={() => setSeciliKategori(k)}
+              >
+                <Text style={[s.chipY, seciliKategori === k && s.chipYAktif]}>{k}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={{ color: '#526E7F', fontSize: 11, fontWeight: 'bold', marginBottom: 6, marginTop: 8 }}>İLÇE</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44 }} contentContainerStyle={{ alignItems: 'center' }}>
+            {['Tümü', ...BOLGELER].map(b => (
+              <TouchableOpacity
+                key={b}
+                style={[s.chip, seciliIlce === b && s.chipAktif, { marginRight: 8 }]}
+                onPress={() => setSeciliIlce(b)}
+              >
+                <Text style={[s.chipY, seciliIlce === b && s.chipYAktif]}>{b}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {/* Müşteri için ilan ver butonu */}
@@ -273,7 +318,7 @@ export function AnasayfaEkrani({
 
       {/* İlan Listesi */}
       <FlatList
-        data={anasayfaIlanlari}
+        data={gosterilenIlanlar}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 15 }}
         refreshControl={
@@ -284,10 +329,20 @@ export function AnasayfaEkrani({
             <Text style={{ fontSize: 48, marginBottom: 10 }}>🔍</Text>
             <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>
               {rol === 'usta'
-                ? 'Bölgende henüz iş ilanı yok gari.\nBirazdan gelir!'
-                : 'Bölgende henüz ilan yok.\nİlk ilanı sen ver!'}
+                ? 'Henüz iş ilanı yok gari.\nBirazdan gelir!'
+                : 'Henüz ilan yok.\nİlk ilanı sen ver!'}
             </Text>
           </View>
+        }
+        ListFooterComponent={
+          filtrelenmis.length > gosterilen ? (
+            <TouchableOpacity
+              style={{ backgroundColor: '#E1F2FE', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 20 }}
+              onPress={() => setGosterilen(prev => prev + 20)}
+            >
+              <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>Daha Fazla Yükle ({filtrelenmis.length - gosterilen} ilan daha)</Text>
+            </TouchableOpacity>
+          ) : null
         }
         renderItem={({ item }) => (
           <IlanKarti

@@ -4,12 +4,13 @@
 // Hizmet Koşulları, İletişim ekranları
 // ============================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Switch, Linking, Share
+  ScrollView, Alert, Switch, Linking, Share, Clipboard, Platform
 } from 'react-native';
-import { DB_URL, referansKoduOlustur } from './constants';
+import * as WebBrowser from 'expo-web-browser';
+import { DB_URL, referansKoduOlustur, zamanFarki } from './constants';
 
 // ============================================================
 // ÖDEME & PAKET EKRANI
@@ -17,6 +18,7 @@ import { DB_URL, referansKoduOlustur } from './constants';
 export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }) {
   const [odemeAdim, setOdemeAdim] = useState('secim');
   const [kuponKod, setKuponKod] = useState('');
+  const [kuponMesaj, setKuponMesaj] = useState(null); // { tip: 'basarili'|'hata', metin: '' }
 
   const kuponUygula = async () => {
     if (kuponKod.toUpperCase() === 'BAYRAM2026') {
@@ -29,10 +31,11 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           body: JSON.stringify({ abonelik: true, abonelikBitis: haziranBirTarihi }),
         });
       }
-      Alert.alert('Bayram Hediyesi! 🎉', '1 Haziran\'a kadar sınırsız kullanım tanımlandı usta!');
-      setEkran('anasayfa');
+      setKuponMesaj({ tip: 'basarili', metin: '🎉 Kupon uygulandı! 1 Haziran\'a kadar sınırsız.' });
+      setTimeout(() => setEkran('anasayfa'), 2000);
     } else {
-      Alert.alert('Hata', 'Geçersiz kod girdin veya kampanya bitmiş gari.');
+      setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
+      setTimeout(() => setKuponMesaj(null), 2500);
     }
   };
 
@@ -95,6 +98,14 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         {odemeAdim === 'kupon' && (
           <>
             <Text style={s.alt}>Kupon Kodunu Girin</Text>
+            {kuponMesaj && (
+              <View style={{
+                backgroundColor: kuponMesaj.tip === 'basarili' ? '#588157' : '#E74C3C',
+                borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center'
+              }}>
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{kuponMesaj.metin}</Text>
+              </View>
+            )}
             <View style={s.kuponBolumu}>
               <TextInput
                 style={s.kuponInp}
@@ -138,6 +149,13 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
 export function DavetEkrani({ kullanici, setEkran, s }) {
   const refKod = kullanici?.referansKodu || referansKoduOlustur();
   const paylasimMetni = `GAYİT uygulamasını kullanıyorum! Muğla'nın en iyi usta platformu. Davet kodumla kayıt ol, ikimiz de hak kazanalım!\n\nDavet Kodum: ${refKod}\n\nİndirmek için: gayit.com.tr`;
+  const [kopyalandi, setKopyalandi] = useState(false);
+
+  const kopyala = () => {
+    Clipboard.setString(refKod);
+    setKopyalandi(true);
+    setTimeout(() => setKopyalandi(false), 2000);
+  };
 
   return (
     <SafeAreaView style={s.con}>
@@ -152,9 +170,15 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
         <View style={{ backgroundColor: '#1B4965', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 }}>
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 8 }}>Senin Davet Kodun</Text>
           <Text style={{ color: '#FFF', fontSize: 28, fontWeight: '900', letterSpacing: 4, marginBottom: 15 }}>{refKod}</Text>
+          {kopyalandi && (
+            <View style={{ backgroundColor: '#588157', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10 }}>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>✅ Kopyalandı!</Text>
+            </View>
+          )}
           <TouchableOpacity
             style={{ backgroundColor: '#588157', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 }}
-            onPress={() => Alert.alert('Kopyalandı! ✅', `${refKod} kodun kopyalandı usta!`)}
+            onPress={kopyala}
+            onLongPress={kopyala}
           >
             <Text style={{ color: '#FFF', fontWeight: 'bold' }}>📋 Kodu Kopyala</Text>
           </TouchableOpacity>
@@ -191,9 +215,8 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
 // ============================================================
 // AYARLAR EKRANI
 // ============================================================
-export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, s }) {
+export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanlikMod, setKaranlikMod, s }) {
   const [bildirimAcik, setBildirimAcik] = useState(true);
-  const [karanlikMod, setKaranlikMod] = useState(false);
 
   const hesabiSil = () => {
     Alert.alert(
@@ -241,10 +264,14 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, s }) {
 
         <View style={[s.kart, { marginBottom: 10 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>🌙 Karanlık Mod</Text>
-            <Switch value={karanlikMod} onValueChange={setKaranlikMod} trackColor={{ false: '#D1D9E0', true: '#1B4965' }} thumbColor="#FFF" />
+            <Text style={{ color: s.kartBaslik?.color || '#1B4965', fontWeight: 'bold' }}>🌙 Karanlık Mod</Text>
+            <Switch
+              value={karanlikMod}
+              onValueChange={setKaranlikMod}
+              trackColor={{ false: '#D1D9E0', true: '#1B4965' }}
+              thumbColor="#FFF"
+            />
           </View>
-          <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 4 }}>Yakında aktif olacak</Text>
         </View>
 
         <TouchableOpacity style={[s.kart, { marginBottom: 10 }]} onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}>
@@ -367,11 +394,11 @@ export function HakkimizdaEkrani({ setEkran, s }) {
 // ============================================================
 // HİZMET KOŞULLARI EKRANI
 // ============================================================
-export function HizmetKosullariEkrani({ setEkran, s }) {
+export function HizmetKosullariEkrani({ setEkran, kayittan, s }) {
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
-        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran(kayittan ? 'auth' : 'anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerBaslik}>Hizmet Koşulları</Text>
@@ -393,9 +420,95 @@ export function HizmetKosullariEkrani({ setEkran, s }) {
             <Text style={{ color: '#526E7F', lineHeight: 22 }}>{madde.icerik}</Text>
           </View>
         ))}
-        <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => setEkran('auth')}>
-          <Text style={s.anaBtnY}>✅ OKUDUM, ANLADIM</Text>
+        {kayittan && (
+          <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => setEkran('auth')}>
+            <Text style={s.anaBtnY}>✅ OKUDUM, ANLADIM</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// ============================================================
+// BİLDİRİM EKRANI
+// ============================================================
+export function BildirimEkrani({ kullanici, setEkran, s }) {
+  const [bildirimler, setBildirimler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+
+  useEffect(() => {
+    bildirimYukle();
+  }, []);
+
+  const bildirimYukle = async () => {
+    if (!kullanici?.uid) return;
+    try {
+      const res = await fetch(`${DB_URL}/bildirimler/${kullanici.uid}.json`);
+      const data = await res.json();
+      if (data) {
+        const liste = Object.keys(data)
+          .map(key => ({ id: key, ...data[key] }))
+          .sort((a, b) => b.tarih - a.tarih);
+        setBildirimler(liste);
+
+        // Hepsini okundu yap
+        const okunmamislar = liste.filter(b => !b.okundu);
+        for (const b of okunmamislar) {
+          await fetch(`${DB_URL}/bildirimler/${kullanici.uid}/${b.id}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ okundu: true }),
+          });
+        }
+      }
+    } catch (e) {
+      console.log('Bildirimler yüklenemedi:', e);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={s.con}>
+      <View style={s.header}>
+        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+          <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
+        <Text style={s.headerBaslik}>🔔 Bildirimler</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView style={s.scroll}>
+        {yukleniyor ? (
+          <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 40 }}>Yükleniyor...</Text>
+        ) : bildirimler.length === 0 ? (
+          <View style={{ alignItems: 'center', marginTop: 60 }}>
+            <Text style={{ fontSize: 48, marginBottom: 10 }}>🔔</Text>
+            <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>Henüz bildirim yok gari.</Text>
+          </View>
+        ) : (
+          bildirimler.map(b => (
+            <View
+              key={b.id}
+              style={{
+                backgroundColor: b.okundu ? '#FFF' : '#E1F2FE',
+                borderRadius: 12, padding: 15, marginBottom: 10,
+                borderLeftWidth: 4,
+                borderLeftColor: b.okundu ? '#D1D9E0' : '#1B4965',
+              }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Text style={{ fontWeight: 'bold', color: '#1B4965', flex: 1 }}>{b.baslik}</Text>
+                <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{zamanFarki(b.tarih)}</Text>
+              </View>
+              <Text style={{ color: '#526E7F', marginTop: 4 }}>{b.mesaj}</Text>
+              {!b.okundu && (
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#1B4965', position: 'absolute', top: 15, right: 15 }} />
+              )}
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );

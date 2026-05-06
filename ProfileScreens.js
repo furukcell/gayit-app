@@ -201,10 +201,21 @@ export function ProfilEkrani({
                   Belgelerini gönder, profilinde mavi tik gösterelim gari.
                 </Text>
                 {kullanici?.onayDurumu === 'beklemede' ? (
-                  <View style={{ marginTop: 10, padding: 8, backgroundColor: '#FDF2F2', borderRadius: 8 }}>
-                    <Text style={{ color: '#E53E3E', fontSize: 12, textAlign: 'center', fontWeight: 'bold' }}>
-                      ⌛ Belgelerin İncelemede...
-                    </Text>
+                  <View style={{ marginTop: 10 }}>
+                    <View style={{ padding: 8, backgroundColor: '#FFF8E1', borderRadius: 8, marginBottom: 8 }}>
+                      <Text style={{ color: '#F39C12', fontSize: 12, textAlign: 'center', fontWeight: 'bold' }}>
+                        ⌛ Belgeler İncelemede...
+                      </Text>
+                      <Text style={{ color: '#A3B1B9', fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+                        Belgelerini info@gayit.com.tr adresine gönderdin mi? Gönderemediysen aşağıdaki butona bas.
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#A3B1B9', padding: 10, borderRadius: 8 }}
+                      onPress={() => Alert.alert('Belge Gönderimi', 'Kimlik ve Ustalık belgenizi info@gayit.com.tr adresine gönderiniz. İncelendikten sonra rozetiniz aktif edilecektir.')}
+                    >
+                      <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>📧 Belge Gönderme Bilgisi</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity
@@ -212,7 +223,7 @@ export function ProfilEkrani({
                     onPress={onayBasvur}
                   >
                     <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>
-                      BELGE GÖNDER VE BAŞVUR
+                      BAŞVUR (Belgeleri e-posta ile gönder)
                     </Text>
                   </TouchableOpacity>
                 )}
