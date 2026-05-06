@@ -1,0 +1,29 @@
+name: GAYIT OTA Güncelleme
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Kodları Çek
+        uses: actions/checkout@v4
+
+      - name: 🟢 Node.js Kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 🚀 EAS CLI Kur
+        run: npm install -g eas-cli
+
+      - name: 📦 Bağımlılıkları Yükle
+        run: npm install
+
+      - name: 📡 OTA Güncelleme Gönder
+        run: eas update --branch main --message "Otomatik güncelleme" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
