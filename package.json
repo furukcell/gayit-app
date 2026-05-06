@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start"
   },
-"dependencies": {
+  "dependencies": {
     "expo": "~51.0.0",
     "react": "18.2.0",
     "react-native": "0.74.0",
@@ -17,7 +17,8 @@
     "@react-native-community/datetimepicker": "8.1.1",
     "expo-notifications": "~0.28.9",
     "expo-constants": "~16.0.2",
-    "expo-linking": "~6.3.1"
+    "expo-linking": "~6.3.1",
+    "expo-web-browser": "~13.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
