@@ -181,7 +181,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
             <TouchableOpacity
               key={b}
               style={[s.chip, ilanIlce === b && s.chipAktif]}
-              onPress={() => { setIlanIlce(b); setIlanMahalle(''); }}}
+              onPress={() => { setIlanIlce(b); setIlanMahalle(''); }}
             >
               <Text style={[s.chipY, ilanIlce === b && s.chipYAktif]}>{b}</Text>
             </TouchableOpacity>
