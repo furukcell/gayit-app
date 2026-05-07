@@ -126,6 +126,11 @@ export function SolMenu({
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('ilanlarim'); }}>
             <Text style={s.menuText}>📋 {rol === 'usta' ? 'Tekliflerim' : 'İlanlarım'}</Text>
           </TouchableOpacity>
+          {rol === 'usta' && (
+            <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('sohbetlerim'); }}>
+              <Text style={s.menuText}>💬 Sohbetlerim</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setOdemeAdim('secim'); setEkran('odeme'); }}>
             <Text style={s.menuText}>🎫 Paket & Kupon</Text>

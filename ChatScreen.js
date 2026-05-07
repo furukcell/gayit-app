@@ -43,16 +43,25 @@ export function SohbetEkrani({
         const liste = Object.keys(data)
           .map(key => ({ id: key, ...data[key] }))
           .sort((a, b) => a.tarih - b.tarih);
-        setMesajlar(liste);
 
         // Karşı tarafın mesajlarını okundu yap
         const okunacaklar = liste.filter(m => m.gonderen !== kullanici?.uid && m.durum !== 'okundu');
-        for (const m of okunacaklar) {
-          fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${m.id}.json`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ durum: 'okundu' }),
-          }).catch(() => {});
+        if (okunacaklar.length > 0) {
+          // Önce Firebase'e yaz
+          await Promise.all(okunacaklar.map(m =>
+            fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${m.id}.json`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ durum: 'okundu' }),
+            }).catch(() => {})
+          ));
+          // Listeyi güncelle — okundu yazıldıktan sonra state'i de güncelle
+          const guncellenmisListe = liste.map(m =>
+            okunacaklar.find(o => o.id === m.id) ? { ...m, durum: 'okundu' } : m
+          );
+          setMesajlar(guncellenmisListe);
+        } else {
+          setMesajlar(liste);
         }
       } else {
         setMesajlar([]);
@@ -92,7 +101,7 @@ export function SohbetEkrani({
       const data = await res.json();
 
       if (data?.name) {
-        fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${data.name}.json`, {
+        await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${data.name}.json`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ durum: 'iletildi' }),

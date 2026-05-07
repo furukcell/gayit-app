@@ -283,6 +283,53 @@ export default function App() {
       />
     );
 
+    if (ekran === 'sohbetlerim') {
+      const tumSohbetler = ilanlar.filter(
+        i => i.teklifler?.some(t => t.ustaUid === kullanici?.uid)
+      );
+      return (
+        <SafeAreaView style={st.con}>
+          <View style={st.header}>
+            <TouchableOpacity style={st.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+              <Text style={st.menuSimge}>←</Text>
+            </TouchableOpacity>
+            <Text style={st.headerBaslik}>Sohbetlerim</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <ScrollView style={st.scroll}>
+            {tumSohbetler.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 30 }}>
+                Henüz aktif sohbet yok usta.
+              </Text>
+            ) : (
+              tumSohbetler.map(ilan => {
+                const beniminTeklif = ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
+                return (
+                  <TouchableOpacity
+                    key={ilan.id}
+                    style={st.kart}
+                    onPress={() => {
+                      setSecilenIlan(ilan);
+                      setAktifSohbetTeklif(beniminTeklif || ilan.anlasilanUsta);
+                      setAnlasmaSaglandi(!!ilan.anlasmaVar);
+                      setEkran('sohbet');
+                    }}
+                  >
+                    <Text style={st.kategoriBadge}>{ilan.kategori}</Text>
+                    <Text style={st.kartBaslik}>{ilan.baslik}</Text>
+                    <Text style={st.kartAlt}>📍 {ilan.mahalle} - {ilan.bolge}</Text>
+                    <Text style={{ color: ilan.anlasmaVar ? '#588157' : '#F39C12', fontWeight: 'bold', marginTop: 5 }}>
+                      {ilan.anlasmaVar ? '✅ Anlaşıldı' : '💬 Teklif Verildi'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
     if (ekran === 'profil') return (
       <ProfilEkrani
         kullanici={kullanici}

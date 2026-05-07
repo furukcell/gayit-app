@@ -372,6 +372,12 @@ export function IlanlarimEkrani({ kullanici, rol, ilanlar, setEkran, setSecilenI
               {item.isTarihi && <Text style={s.kartAlt}>📅 {item.isTarihi}</Text>}
               <View style={s.kartIstatistikler}>
                 <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
+                {/* Unique view sayacı — müşteri kendi ilanında görür */}
+                {rol === 'musteri' && item.goruntuleyen && (
+                  <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
+                    👁️ {Object.keys(item.goruntuleyen).length} usta gördü
+                  </Text>
+                )}
                 {item.anlasmaVar && (
                   <Text style={{ color: '#588157', fontWeight: 'bold', marginLeft: 10 }}>✅ ANLAŞMA SAĞLANDI</Text>
                 )}
@@ -406,18 +412,20 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
     }
   }, [secilenIlan?.id]);
 
-  // Usta ilana girince görüntülenme sayacını artır
+  // Usta ilana girince unique view sayacı (kullanıcı bazlı — aynı usta tekrar sayılmaz)
   useEffect(() => {
-    if (secilenIlan?.id && kullanici?.rol === 'usta') {
-      fetch(`${DB_URL}/ilanlar/${secilenIlan.id}.json`)
+    if (secilenIlan?.id && kullanici?.uid) {
+      fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json`)
         .then(r => r.json())
         .then(data => {
-          const mevcutGoruntur = data?.goruntuleme || 0;
-          fetch(`${DB_URL}/ilanlar/${secilenIlan.id}.json`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ goruntuleme: mevcutGoruntur + 1 }),
-          });
+          if (!data) {
+            // Bu usta daha önce bakmamış — kaydet
+            fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(true),
+            });
+          }
         })
         .catch(() => {});
     }
@@ -525,9 +533,10 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
           <Text style={s.kartAlt}>📍 {secilenIlan?.mahalle} - {secilenIlan?.bolge}</Text>
           {secilenIlan?.isTarihi && <Text style={s.kartAlt}>📅 {secilenIlan.isTarihi}</Text>}
           <Text style={s.kartAlt}>{secilenIlan?.teklifler?.length || 0} teklif var</Text>
-          {secilenIlan?.goruntuleme > 0 && (
+          {/* Unique view sayacı — ilan detayında göster */}
+          {secilenIlan?.goruntuleyen && (
             <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 4 }}>
-              👁️ {secilenIlan.goruntuleme} usta gördü
+              👁️ {Object.keys(secilenIlan.goruntuleyen).length} usta gördü
             </Text>
           )}
         </View>
@@ -648,6 +657,12 @@ export function TekliflerEkrani({
           <Text style={s.kartBaslik}>{ilan?.baslik}</Text>
           {ilan?.isTarihi && <Text style={s.kartAlt}>📅 {ilan.isTarihi}</Text>}
           <Text style={s.kartAlt}>{ilan?.anlasmaVar ? '✅ ANLAŞMA SAĞLANDI' : '🟢 Aktif İlan'}</Text>
+          {/* Unique view sayacı — müşteri teklifler ekranında da görür */}
+          {ilan?.goruntuleyen && (
+            <Text style={{ color: '#A3B1B9', fontSize: 12, marginTop: 4 }}>
+              👁️ {Object.keys(ilan.goruntuleyen).length} usta gördü
+            </Text>
+          )}
         </View>
 
         {ilan?.anlasmaVar && (
