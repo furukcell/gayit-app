@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, TextInput, FlatList
+  ScrollView, Alert, TextInput, FlatList, Image, Linking
 } from 'react-native';
 import { DB_URL, damgaToTarih, zamanFarki } from './constants';
 
@@ -340,9 +340,53 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
                   <Text style={{ color: '#526E7F', fontSize: 12 }}>{k.email}</Text>
                   <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{k.meslek} • {k.bolge}</Text>
                   <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
-                    Belgeler: info@gayit.com.tr adresine gönderildi
+                    Başvuru: {damgaToTarih(k.basvuruTarihi)}
                   </Text>
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+
+                  {/* Belge görüntüleme */}
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 12 }}>
+                    {k.kimlikUrl ? (
+                      <TouchableOpacity
+                        style={{ flex: 1 }}
+                        onPress={() => Linking.openURL(k.kimlikUrl)}
+                      >
+                        <Image
+                          source={{ uri: k.kimlikUrl }}
+                          style={{ width: '100%', height: 100, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                        <Text style={{ color: '#1B4965', fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+                          🪪 Kimlik (Aç →)
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={{ flex: 1, backgroundColor: '#F5F5F0', height: 100, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ color: '#A3B1B9', fontSize: 12 }}>Kimlik yüklenmedi</Text>
+                      </View>
+                    )}
+
+                    {k.ustaBelgeUrl ? (
+                      <TouchableOpacity
+                        style={{ flex: 1 }}
+                        onPress={() => Linking.openURL(k.ustaBelgeUrl)}
+                      >
+                        <Image
+                          source={{ uri: k.ustaBelgeUrl }}
+                          style={{ width: '100%', height: 100, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                        <Text style={{ color: '#1B4965', fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+                          📄 Ustalık (Aç →)
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={{ flex: 1, backgroundColor: '#F5F5F0', height: 100, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ color: '#A3B1B9', fontSize: 12 }}>Belge yüklenmedi</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
                       style={{ backgroundColor: '#588157', padding: 10, borderRadius: 8, flex: 1 }}
                       onPress={() => onayKarari(k.uid, 'onayli')}

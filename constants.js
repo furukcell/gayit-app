@@ -6,6 +6,7 @@
 // --- Firebase Bilgileri ---
 export const API_KEY = "AIzaSyCcvq9VkMugDZTq3fOPypJIy0ATiGmPxrk";
 export const DB_URL = "https://usta-mugla-default-rtdb.europe-west1.firebasedatabase.app";
+export const STORAGE_BUCKET = "usta-mugla.appspot.com";
 
 // --- Sabit Listeler ---
 export const BOLGELER = [
@@ -16,12 +17,14 @@ export const BOLGELER = [
 
 export const KATEGORILER = [
   'Tümü', 'Tesisat (Sucu)', 'Klimacı', 'Boyacı',
-  'Elektrik', 'Temizlik', 'Nakliyat', 'Diğer'
+  'Elektrik', 'Temizlik', 'Nakliyat',
+  'Marangoz', 'İnşaat', 'Bahçe/Peyzaj', 'Dijital Hizmetler', 'Diğer'
 ];
 
 export const YENI_ILAN_KATEGORILER = [
   'Tesisat (Sucu)', 'Klimacı', 'Boyacı',
-  'Elektrik', 'Temizlik', 'Nakliyat', 'Diğer'
+  'Elektrik', 'Temizlik', 'Nakliyat',
+  'Marangoz', 'İnşaat', 'Bahçe/Peyzaj', 'Dijital Hizmetler', 'Diğer'
 ];
 
 // --- İlçe-Mahalle Haritası ---

@@ -6,9 +6,10 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Image
+  ScrollView, Alert, Image, ActivityIndicator
 } from 'react-native';
-import { DB_URL, BOLGELER, damgaToTarih } from './constants';
+import * as ImagePicker from 'expo-image-picker';
+import { DB_URL, BOLGELER, STORAGE_BUCKET, API_KEY, damgaToTarih } from './constants';
 
 // ============================================================
 // PROFİL EKRANI
@@ -22,7 +23,10 @@ export function ProfilEkrani({
   const [puanlar, setPuanlar] = useState([]);
   const [gecmisIsler, setGecmisIsler] = useState([]);
   const [aktifSekme, setAktifSekme] = useState('profil');
-  const [kaydedildi, setKaydedildi] = useState(false); // 'profil' | 'degerlendirmeler' | 'gecmis'
+  const [kaydedildi, setKaydedildi] = useState(false);
+  const [belgeYukleniyor, setBelgeYukleniyor] = useState(false);
+  const [kimlikUrl, setKimlikUrl] = useState(kullanici?.kimlikUrl || null);
+  const [ustaBelgeUrl, setUstaBelgeUrl] = useState(kullanici?.ustaBelgeUrl || null);
 
   useEffect(() => {
     if (rol === 'usta' && kullanici?.email) {
@@ -87,22 +91,89 @@ export function ProfilEkrani({
     setTimeout(() => setKaydedildi(false), 3000);
   };
 
-  const onayBasvur = async () => {
-    Alert.alert(
-      'Evrak Gönderimi',
-      'Belgelerini (Kimlik, Ustalık Belgesi) info@gayit.com.tr adresine yolla gari.'
-    );
-    setKullanici({ ...kullanici, onayDurumu: 'beklemede' });
-    if (token && kullanici?.uid) {
-      try {
-        await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ onayDurumu: 'beklemede' }),
-        });
-      } catch (e) {
-        console.log('Onay başvurusu iletilemedi:', e);
+  // Fotoğraf seç ve Firebase Storage'a yükle
+  const belgeYukle = async (tip) => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('İzin Gerekli', 'Galeriye erişim izni vermelisiniz.');
+        return;
       }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (result.canceled) return;
+
+      setBelgeYukleniyor(true);
+
+      const base64 = result.assets[0].base64;
+      const mimeType = 'image/jpeg';
+      const dosyaAdi = `belgeler/${kullanici.uid}/${tip}_${Date.now()}.jpg`;
+
+      // Firebase Storage REST API ile yükle
+      const storageUrl = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(dosyaAdi)}?uploadType=media`;
+
+      const uploadRes = await fetch(storageUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': mimeType,
+          'Authorization': `Bearer ${token}`,
+        },
+        body: Uint8Array.from(atob(base64), c => c.charCodeAt(0)),
+      });
+
+      const uploadData = await uploadRes.json();
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(dosyaAdi)}?alt=media&token=${uploadData.downloadTokens}`;
+
+      // URL'yi kullanıcı profiline kaydet
+      const guncelVeri = tip === 'kimlik'
+        ? { kimlikUrl: downloadUrl }
+        : { ustaBelgeUrl: downloadUrl };
+
+      await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(guncelVeri),
+      });
+
+      if (tip === 'kimlik') setKimlikUrl(downloadUrl);
+      else setUstaBelgeUrl(downloadUrl);
+
+      setKullanici({ ...kullanici, ...guncelVeri });
+      Alert.alert('Yüklendi! ✅', `${tip === 'kimlik' ? 'Kimlik' : 'Ustalık belgesi'} yüklendi.`);
+    } catch (e) {
+      console.log('Belge yükleme hatası:', e);
+      Alert.alert('Hata', 'Belge yüklenemedi gari!');
+    } finally {
+      setBelgeYukleniyor(false);
+    }
+  };
+
+  const onayBasvur = async () => {
+    if (!kimlikUrl || !ustaBelgeUrl) {
+      Alert.alert('Eksik Belge', 'Başvuru yapmadan önce hem kimlik hem ustalık belgeni yüklemelisin usta!');
+      return;
+    }
+    try {
+      await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          onayDurumu: 'beklemede',
+          kimlikUrl,
+          ustaBelgeUrl,
+          basvuruTarihi: Date.now(),
+        }),
+      });
+      setKullanici({ ...kullanici, onayDurumu: 'beklemede', kimlikUrl, ustaBelgeUrl });
+      Alert.alert('Başvuru Alındı! ✅', 'Belgeler admin paneline iletildi. En kısa sürede incelenecek usta!');
+    } catch (e) {
+      Alert.alert('Hata', 'Başvuru gönderilemedi!');
     }
   };
 
@@ -197,33 +268,65 @@ export function ProfilEkrani({
                 marginBottom: 15, borderWidth: 1, borderColor: '#00a2ed', borderStyle: 'dashed'
               }}>
                 <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>Onaylı Usta Rozeti Al</Text>
-                <Text style={{ fontSize: 11, color: '#526E7F', marginTop: 4 }}>
-                  Belgelerini gönder, profilinde mavi tik gösterelim gari.
+                <Text style={{ fontSize: 11, color: '#526E7F', marginTop: 4, marginBottom: 12 }}>
+                  Kimlik ve ustalık belgesini yükle, admin onaylasın.
                 </Text>
+
+                {/* Kimlik Yükleme */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: kimlikUrl ? '#E8F5E9' : '#F5F5F0',
+                    borderRadius: 10, padding: 12, marginBottom: 10,
+                    borderWidth: 1, borderColor: kimlikUrl ? '#588157' : '#D1D9E0',
+                    flexDirection: 'row', alignItems: 'center',
+                  }}
+                  onPress={() => belgeYukle('kimlik')}
+                  disabled={belgeYukleniyor}
+                >
+                  <Text style={{ fontSize: 20, marginRight: 10 }}>{kimlikUrl ? '✅' : '📷'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 13 }}>Kimlik Fotoğrafı</Text>
+                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{kimlikUrl ? 'Yüklendi ✓' : 'Fotoğraf seç'}</Text>
+                  </View>
+                  {belgeYukleniyor && <ActivityIndicator size="small" color="#1B4965" />}
+                </TouchableOpacity>
+
+                {/* Ustalık Belgesi Yükleme */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: ustaBelgeUrl ? '#E8F5E9' : '#F5F5F0',
+                    borderRadius: 10, padding: 12, marginBottom: 12,
+                    borderWidth: 1, borderColor: ustaBelgeUrl ? '#588157' : '#D1D9E0',
+                    flexDirection: 'row', alignItems: 'center',
+                  }}
+                  onPress={() => belgeYukle('ustaBelge')}
+                  disabled={belgeYukleniyor}
+                >
+                  <Text style={{ fontSize: 20, marginRight: 10 }}>{ustaBelgeUrl ? '✅' : '📄'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 13 }}>Ustalık Belgesi</Text>
+                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{ustaBelgeUrl ? 'Yüklendi ✓' : 'Fotoğraf seç'}</Text>
+                  </View>
+                  {belgeYukleniyor && <ActivityIndicator size="small" color="#1B4965" />}
+                </TouchableOpacity>
+
                 {kullanici?.onayDurumu === 'beklemede' ? (
-                  <View style={{ marginTop: 10 }}>
-                    <View style={{ padding: 8, backgroundColor: '#FFF8E1', borderRadius: 8, marginBottom: 8 }}>
-                      <Text style={{ color: '#F39C12', fontSize: 12, textAlign: 'center', fontWeight: 'bold' }}>
-                        ⌛ Belgeler İncelemede...
-                      </Text>
-                      <Text style={{ color: '#A3B1B9', fontSize: 11, textAlign: 'center', marginTop: 4 }}>
-                        Belgelerini info@gayit.com.tr adresine gönderdin mi? Gönderemediysen aşağıdaki butona bas.
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={{ backgroundColor: '#A3B1B9', padding: 10, borderRadius: 8 }}
-                      onPress={() => Alert.alert('Belge Gönderimi', 'Kimlik ve Ustalık belgenizi info@gayit.com.tr adresine gönderiniz. İncelendikten sonra rozetiniz aktif edilecektir.')}
-                    >
-                      <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>📧 Belge Gönderme Bilgisi</Text>
-                    </TouchableOpacity>
+                  <View style={{ padding: 10, backgroundColor: '#FFF8E1', borderRadius: 8 }}>
+                    <Text style={{ color: '#F39C12', fontSize: 12, textAlign: 'center', fontWeight: 'bold' }}>
+                      ⌛ Belgeler İncelemede...
+                    </Text>
                   </View>
                 ) : (
                   <TouchableOpacity
-                    style={{ backgroundColor: '#00a2ed', padding: 10, borderRadius: 8, marginTop: 10 }}
+                    style={{
+                      backgroundColor: (kimlikUrl && ustaBelgeUrl) ? '#00a2ed' : '#D1D9E0',
+                      padding: 12, borderRadius: 8,
+                    }}
                     onPress={onayBasvur}
+                    disabled={!kimlikUrl || !ustaBelgeUrl}
                   >
                     <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>
-                      BAŞVUR (Belgeleri e-posta ile gönder)
+                      {(kimlikUrl && ustaBelgeUrl) ? '📤 BAŞVURUYU GÖNDER' : 'Önce belgeleri yükle'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -247,12 +350,12 @@ export function ProfilEkrani({
               editable={false}
             />
 
-            {rol === 'usta' && kullanici?.meslek && (
+            {rol === 'usta' && (
               <>
                 <Text style={s.inputBaslik}>Meslek / Branş</Text>
                 <TextInput
-                  style={[s.inp, { backgroundColor: '#F2F4F7', color: '#A3B1B9' }]}
-                  value={kullanici.meslek}
+                  style={[s.inp, { backgroundColor: '#F2F4F7', color: '#526E7F' }]}
+                  value={kullanici?.meslek || kullanici?.brans || 'Belirtilmemiş'}
                   editable={false}
                 />
               </>
