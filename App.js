@@ -21,6 +21,7 @@ import { AdminEkrani } from './AdminScreen';
 // Yardımcılar
 import { DB_URL } from './constants';
 import { pushTokenAl } from './notifications';
+import * as Updates from 'expo-updates';
 
 // Bildirim ayarı
 Notifications.setNotificationHandler({
@@ -33,6 +34,24 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   // --- Temel State ---
+    // --- GÜNCELLEME KONTROLÜ ---
+  useEffect(() => {
+    async function checkUpdate() {
+      if (__DEV__) return;
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          Alert.alert('🚀 Güncelleme', 'Yeni sürüm indirildi, uygulansın mı?', [
+            { text: 'Hayır' },
+            { text: 'Evet', onPress: () => Updates.reloadAsync() }
+          ]);
+        }
+      } catch (e) { console.log(e); }
+    }
+    checkUpdate();
+  }, []);
+  
   const [ekran, setEkran] = useState('karsilama');
   const [kullanici, setKullanici] = useState(null);
   const [token, setToken] = useState(null);
