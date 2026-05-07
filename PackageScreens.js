@@ -419,16 +419,18 @@ export function HizmetKosullariEkrani({ setEkran, kayittan, s }) {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15, textAlign: 'center' }}>
-          GAYİT KULLANIM KOŞULLARI
-        </Text>
-        {[
-          { baslik: '1. Genel Hükümler', icerik: 'GAYİT platformunu kullanarak bu koşulları kabul etmiş sayılırsınız. Platform, usta ile müşteri arasında aracılık hizmeti sunar.' },
-          { baslik: '2. Kullanıcı Sorumlulukları', icerik: 'Kayıt olurken doğru bilgi verme yükümlülüğünüz bulunmaktadır. Yanıltıcı ilan veya teklif vermek hesabınızın kapatılmasına neden olabilir.' },
-          { baslik: '3. Ödeme ve Haklar', icerik: 'Satın alınan haklar ve abonelikler iade edilemez.' },
-          { baslik: '4. Gizlilik', icerik: 'Telefon numaranız yalnızca anlaşma sağlandığında karşı tarafa iletilir. Verileriniz üçüncü kişilerle paylaşılmaz.' },
-          { baslik: '5. Değişiklik Hakkı', icerik: 'GAYİT, bu koşulları önceden bildirmeksizin güncelleme hakkını saklı tutar.' },
-        ].map((madde, i) => (
+     <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15, textAlign: 'center' }}>
+        GAYIT KULLANIM VE HİZMET KOŞULLARI
+      </Text>
+      {[
+        { baslik: '1. Hizmetin Kapsamı', icerik: 'GAYIT, Muğla ve ilçelerinde hizmet veren ustalar ile hizmet almak isteyen kullanıcıları buluşturan bir dijital platformdur. GAYIT, taraflar arasında sadece bir aracı konumundadır; verilen hizmetin kalitesinden, tamamlanmasından veya usta-müşteri arasındaki fiyatsal anlaşmazlıklardan doğrudan sorumlu tutulamaz.' },
+        { baslik: '2. Üyelik ve Güvenlik', icerik: 'Sisteme kayıt olurken beyan edilen isim, soyisim ve telefon numarası gibi bilgilerin doğruluğundan kullanıcı sorumludur. Başkasına ait bilgilerle hesap açılması veya yanıltıcı ilan/teklif verilmesi durumunda hesabınız süresiz olarak askıya alınır.' },
+        { baslik: '3. Teklif ve Anlaşma Süreci', icerik: 'Ustalar: Verilen teklifler bağlayıcıdır. Gereksiz veya alakasız tekliflerle sistemi meşgul etmek "Hak" iadesi yapılmaksızın kısıtlama sebebidir. Müşteriler: İlanların detaylı ve doğru açıklanması usta memnuniyeti için esastır. Anlaşma sağlandığı anda tarafların iletişim bilgileri (telefon numarası) karşılıklı olarak erişime açılır.' },
+        { baslik: '4. Ödeme, Haklar ve İade Politikası', icerik: 'Uygulama üzerinden satın alınan ilan verme hakları, usta teklif hakları veya VIP abonelikler dijital içerik kapsamında olduğu için iade edilemez. Satın alınan paketler sadece hesap sahibi tarafından kullanılabilir, devredilemez.' },
+        { baslik: '5. Sorumluluk Sınırları', icerik: 'GAYIT, platform üzerindeki kullanıcıların davranışlarından, iş sahasındaki olası kazalardan veya tarafların birbirine verdiği zararlardan hukuki olarak sorumlu değildir. Bizim görevimiz; doğru ustayı, doğru müşteriyle en hızlı şekilde buluşturmaktır.' },
+        { baslik: '6. Kişisel Verilerin Korunması (KVKK)', icerik: 'Verileriniz Milas merkezli yerel sunucularımızda ve güvenli altyapılarda saklanır. Telefon numaranız, siz onay verip bir iş için "Anlaşma" butonuna basana kadar kesinlikle üçüncü taraflarla paylaşılmaz.' },
+        { baslik: '7. Değişiklik Hakkı', icerik: 'GAYIT yönetimi, hizmet bedellerini, paket içeriklerini ve bu koşulları önceden haber vermeksizin güncelleme hakkını saklı tutar.' }
+      ].map((madde, i) => (
           <View key={i} style={{ marginBottom: 20 }}>
             <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#1B4965', marginBottom: 5 }}>{madde.baslik}</Text>
             <Text style={{ color: '#526E7F', lineHeight: 22 }}>{madde.icerik}</Text>
