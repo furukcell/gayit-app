@@ -30,11 +30,11 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 
   const ilanOlustur = async () => {
     if (!ilanBaslik || !ilanDetay || !ilanIlce || !ilanMahalle) {
-      Alert.alert('Eksik Bilgi', 'Usta, lütfen tüm alanları doldur gari!');
+      Alert.alert('Eksik Bilgi', 'Lütfen tüm alanları doldur!');
       return;
     }
     if (isTarihiTip === 'İleri' && !ozelTarih) {
-      Alert.alert('Eksik Bilgi', 'İşin yapılacağı tarihi tam olarak seçmedin usta!');
+      Alert.alert('Eksik Bilgi', 'İşin yapılacağı tarihi tam olarak seçmedin!');
       return;
     }
 
@@ -42,7 +42,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       i => i.sahip === kullanici.email && i.kategori === ilanKategori && !i.anlasmaVar
     );
     if (aktifAyniKategoriIlan) {
-      Alert.alert('Hata', 'Bu kategoride zaten aktif bir ilanınız var gari!');
+      Alert.alert('Hata', 'Bu kategoride zaten aktif bir ilanınız var!');
       return;
     }
 
@@ -52,7 +52,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       return;
     }
     if (ilanAcil && !kullanici?.abonelik) {
-      Alert.alert('Acil İlan', 'Acil ilan ücreti 50 TL\'dir. Ödeme ekranına yönlendiriliyorsun usta.');
+      Alert.alert('Acil İlan', 'Acil ilan ücreti 50 TL\'dir. Ödeme ekranına yönlendiriliyorsun.');
       setEkran('odeme');
       return;
     }
@@ -129,7 +129,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       setIlanAcil(false);
       setEkran('anasayfa');
     } catch (e) {
-      Alert.alert('Hata', 'İlan kaydedilemedi gari!');
+      Alert.alert('Hata', 'İlan kaydedilemedi!');
     }
   };
 
@@ -500,7 +500,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
       setGonderildi(true);
       setTimeout(() => { setGonderildi(false); setEkran('anasayfa'); }, 1500);
     } catch (e) {
-      Alert.alert('Hata', 'Teklif gönderilemedi gari!');
+      Alert.alert('Hata', 'Teklif gönderilemedi!');
     }
   };
 
