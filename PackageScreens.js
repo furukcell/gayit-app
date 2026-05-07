@@ -376,18 +376,26 @@ export function HakkimizdaEkrani({ setEkran, s }) {
           <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1B4965', marginTop: 10 }}>GAYİT</Text>
           <Text style={{ color: '#8B7355', fontStyle: 'italic', marginTop: 5 }}>Muğla'nın bütün işi gaydı artık burada</Text>
         </View>
-        <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 2 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 10 }}>Biz Kimiz?</Text>
-          <Text style={{ color: '#526E7F', lineHeight: 22 }}>
-            Biz Kimiz?
-GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur. Bizler, "Muğla’da işi ehline teslim etmek" geleneğini dijital çağa taşıyoruz. Bu toprakların her köşesinde alın teri döken ustalarımızla, kaliteli hizmet arayan komşularımızı bir araya getiriyoruz.
-Amacımız
-Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri ustayı tek tıkla bulmanızı sağlıyoruz. Milaslı bir hemşehrinizin emeğiyle yükselen bu platformda, yerel esnafımızın dijital dünyada hak ettiği yeri almasını ve komşularımızın mağdur olmadan hizmet almasını hedefliyoruz.
-Neden GAYIT?
-Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz. GAYIT, "Muğla’nın bütün işi gaydı artık burada" sloganıyla yola çıkarken; sadece bir uygulama olmayı değil, Muğla genelinde yardımlaşma kültürünü büyütmeyi amaçlıyor. Kendi insanımıza güveniyor, emeğin değerini biliyoruz.
-Gullanın Gari!!
-          </Text>
-        </View>
+            <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 2 }}>
+      <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Biz Kimiz?</Text>
+      <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15 }}>
+        GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur. Bizler, "Muğla’da işi ehline teslim etmek" geleneğini dijital çağa taşıyoruz.
+      </Text>
+
+      <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Amacımız</Text>
+      <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15 }}>
+        Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri ustayı tek tıkla bulmanızı sağlıyoruz. Milaslı bir hemşehrinizin emeğiyle yükselen bu platformda, yerel esnafımızın dijital dünyada hak ettiği yeri almasını hedefliyoruz.
+      </Text>
+
+      <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Neden GAYIT?</Text>
+      <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 20 }}>
+        Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz. GAYIT, "Muğla’nın bütün işi gaydı artık burada" sloganıyla yola çıkarken; sadece bir uygulama olmayı değil, Muğla genelinde yardımlaşma kültürünü büyütmeyi amaçlıyor.
+      </Text>
+
+      <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#e67e22', textAlign: 'center', fontStyle: 'italic' }}>
+        Gullanın Gari!!
+      </Text>
+    </View>
         <View style={{ backgroundColor: '#E8F5E9', borderRadius: 16, padding: 20, marginBottom: 30 }}>
           <Text style={{ color: '#588157', fontWeight: 'bold', textAlign: 'center' }}>📧 info@gayit.com.tr</Text>
           <Text style={{ color: '#588157', textAlign: 'center', marginTop: 5 }}>🌐 gayit.com.tr</Text>
