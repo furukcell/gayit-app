@@ -221,7 +221,7 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
   const hesabiSil = () => {
     Alert.alert(
       'Hesabı Sil',
-      'Hesabını silmek istediğinden emin misin? Bu işlem geri alınamaz usta!',
+      'Hesabını silmek istediğinden emin misin? Bu işlem geri alınamaz!',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -237,7 +237,7 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
               setKullanici(null);
               setEkran('karsilama');
             } catch (e) {
-              Alert.alert('Hata', 'Hesap silinemedi gari!');
+              Alert.alert('Hata', 'Hesap silinemedi!');
             }
           },
         },
@@ -312,12 +312,12 @@ export function IletisimEkrani({ kullanici, setEkran, s }) {
           tarih: Date.now(),
         }),
       });
-      Alert.alert('Teşekkürler! 💙', 'Mesajın yönetime iletildi usta!');
+      Alert.alert('Teşekkürler! 💙', 'Mesajın yönetime iletildi!');
       setIletisimKonu('');
       setIletisimMesajState('');
       setEkran('anasayfa');
     } catch (e) {
-      Alert.alert('Hata', 'Mesaj gönderilemedi gari!');
+      Alert.alert('Hata', 'Mesaj gönderilemedi!');
     }
   };
 
