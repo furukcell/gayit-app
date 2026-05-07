@@ -181,7 +181,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
             <TouchableOpacity
               key={b}
               style={[s.chip, ilanIlce === b && s.chipAktif]}
-              onPress={() => { setIlanIlce(b); setIlanMahalle(''); }}
+              onPress={() => { setIlanIlce(b); setIlanMahalle(''); }}}
             >
               <Text style={[s.chipY, ilanIlce === b && s.chipYAktif]}>{b}</Text>
             </TouchableOpacity>
@@ -392,8 +392,10 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
   const [teklifNot, setTeklifNot] = useState('');
   const [gonderildi, setGonderildi] = useState(false);
 
-  // Daha önce teklif verilmiş mi kontrol et
-  const mevcutTeklif = secilenIlan?.teklifler?.find(t => t.ustaId === kullanici?.email);
+  // Daha önce teklif verilmiş mi kontrol et — acil ve normal ilan için
+  const mevcutTeklif = secilenIlan?.teklifler?.find(
+    t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid
+  );
   const revizeModu = !!mevcutTeklif && !secilenIlan?.anlasmaVar;
 
   // Revize modunda eski fiyatı doldur
@@ -664,13 +666,26 @@ export function TekliflerEkrani({
           ilan?.teklifler.map(teklif => (
             <View
               key={teklif.id}
-              style={[s.kart, ilan.anlasilanUsta?.id === teklif.id && { borderWidth: 2, borderColor: '#588157' }]}
+              style={[s.kart,
+                ilan.anlasilanUsta?.id === teklif.id && { borderWidth: 2, borderColor: '#588157' },
+                ilan.anlasmaVar && ilan.anlasilanUsta?.id !== teklif.id && { opacity: 0.5 }
+              ]}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965' }}>{teklif.ustaAd}</Text>
                 <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>{teklif.fiyat}</Text>
               </View>
-              {teklif.not ? <Text style={{ color: '#526E7F', marginTop: 5 }}>{teklif.not}</Text> : null}
+
+              {/* Teklif notu — kullanıcı görebilsin */}
+              {teklif.not ? (
+                <View style={{ backgroundColor: '#F5F5F0', borderRadius: 8, padding: 10, marginTop: 8 }}>
+                  <Text style={{ color: '#526E7F', fontSize: 13 }}>💬 {teklif.not}</Text>
+                </View>
+              ) : null}
+
+              {teklif.revizeTarihi ? (
+                <Text style={{ color: '#F39C12', fontSize: 11, marginTop: 4 }}>🔄 Revize edildi</Text>
+              ) : null}
 
               <TouchableOpacity
                 onPress={() => { setSikayetHedef(teklif.ustaAd); setSikayetModalAcik(true); }}
@@ -692,12 +707,26 @@ export function TekliflerEkrani({
                   <Text style={s.anaBtnY}>💬 SOHBETE GİT</Text>
                 </TouchableOpacity>
               ) : !ilan.anlasmaVar ? (
-                <TouchableOpacity
-                  style={[s.girisBtn, { marginTop: 10 }]}
-                  onPress={() => anlasmaYap(ilan.id, teklif)}
-                >
-                  <Text style={s.anaBtnY}>🤝 BU USTAYLA ANLAŞ</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                  {/* Anlaşmadan önce sohbet et butonu */}
+                  <TouchableOpacity
+                    style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
+                    onPress={() => {
+                      setAktifSohbetTeklif(teklif);
+                      setAnlasmaSaglandi(false);
+                      setSecilenIlan(ilan);
+                      setEkran('sohbet');
+                    }}
+                  >
+                    <Text style={s.anaBtnY}>💬 Sohbet Et</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.girisBtn, { flex: 1 }]}
+                    onPress={() => anlasmaYap(ilan.id, teklif)}
+                  >
+                    <Text style={s.anaBtnY}>🤝 Anlaş</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <View style={[s.girisBtn, { backgroundColor: '#ccc', marginTop: 10 }]}>
                   <Text style={s.anaBtnY}>Başka Ustayla Anlaşıldı</Text>

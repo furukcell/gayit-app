@@ -232,19 +232,20 @@ export function AnasayfaEkrani({
   const [filtreAcik, setFiltreAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(20);
 
-  // Filtre mantığı
+  // Filtre mantığı — sadece anlaşılmamış ilanlar
   const filtrelenmis = ilanlar.filter(ilan => {
+    if (ilan.anlasmaVar) return false; // Anlaşılan ilanları gizle
+
     const kategoriUygun = rol === 'usta'
       ? (seciliKategori === 'Tümü' ? ilan.kategori === kullanici?.meslek : ilan.kategori === seciliKategori)
       : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
 
     const ilceUygun = seciliIlce === 'Tümü' || ilan.bolge === seciliIlce;
-
-    // Usta: kendi kategorisi, tüm ilçeler
-    // Müşteri: tüm ilanlar
-    if (rol === 'usta') return kategoriUygun && ilceUygun;
     return kategoriUygun && ilceUygun;
   });
+
+  const aktifIlanSayisi = ilanlar.filter(i => !i.anlasmaVar).length;
+  const toplamIlanSayisi = ilanlar.length;
 
   const gosterilenIlanlar = filtrelenmis.slice(0, gosterilen);
 
@@ -284,8 +285,11 @@ export function AnasayfaEkrani({
         </View>
         <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.2)' }} />
         <View style={{ alignItems: 'center' }}>
-          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>{ilanlar.length}</Text>
-          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Aktif İlan</Text>
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>
+            {aktifIlanSayisi}
+            <Text style={{ fontSize: 11, fontWeight: 'normal' }}> / {toplamIlanSayisi}</Text>
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Aktif / Toplam İlan</Text>
         </View>
       </View>
 
