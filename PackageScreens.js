@@ -52,7 +52,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
     Alert.alert(
       'Başarılı! ✅',
-      rol === 'usta' ? '3 adet teklif verme hakkı tanımlandı usta!' : '1 adet ilan verme hakkı tanımlandı!'
+      rol === 'usta' ? '3 adet teklif verme hakkı tanımlandı!' : '1 adet ilan verme hakkı tanımlandı!'
     );
     setEkran('anasayfa');
   };
@@ -67,7 +67,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         body: JSON.stringify({ abonelik: true, abonelikBitis: otuzGunSonra }),
       });
     }
-    Alert.alert('Başarılı! 🎉', 'Aylık sınırsız abonelik aktifleştirildi gari!');
+    Alert.alert('Başarılı! 🎉', 'Aylık sınırsız abonelik aktifleştirildi!');
     setEkran('anasayfa');
   };
 
