@@ -20,7 +20,7 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
 
   const puanGonder = async () => {
     if (secilenPuan === 0) {
-      Alert.alert('Hata', 'Lütfen bir puan seç usta!');
+      Alert.alert('Hata', 'Lütfen bir puan seç!');
       return;
     }
 
@@ -70,12 +70,12 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
         ));
       }
 
-      Alert.alert('Teşekkürler! ⭐', 'Değerlendirmen kaydedildi usta!');
+      Alert.alert('Teşekkürler! ⭐', 'Değerlendirmen kaydedildi!');
       setSecilenPuan(0);
       setPuanYorum('');
       setGorunur(false);
     } catch (e) {
-      Alert.alert('Hata', 'Puan gönderilemedi gari!');
+      Alert.alert('Hata', 'Puan gönderilemedi!');
     }
   };
 
@@ -163,7 +163,7 @@ export function SikayetModali({ gorunur, setGorunur, sikayetHedef, kullanici, s 
         }),
       });
 
-      Alert.alert('Şikayetin Alındı ✅', 'Yönetim en kısa sürede inceleyecek usta.');
+      Alert.alert('Şikayetin Alındı ✅', 'Yönetim en kısa sürede inceleyecek.');
       setSikayetMesaj('');
       setSikayetTip('');
       setGorunur(false);
