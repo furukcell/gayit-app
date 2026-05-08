@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView, FlatList,
-  ScrollView, RefreshControl, Alert
+  ScrollView, RefreshControl, Alert, Image
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { BOLGELER, KATEGORILER } from './constants';
@@ -28,7 +28,6 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={s.kategoriBadge}>{item.kategori}</Text>
-        {/* Onaylı usta rozeti ilan kartında da görünsün */}
         {item.ustaOnayli && (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ color: '#00a2ed', fontSize: 11, fontWeight: 'bold' }}>✅ Onaylı</Text>
@@ -79,7 +78,6 @@ export function SolMenu({
         activeOpacity={1}
       />
       <View style={s.drawerIc}>
-        {/* X butonu her zaman sabit üstte */}
         <TouchableOpacity
           onPress={() => setMenuAcik(false)}
           style={{
@@ -140,7 +138,6 @@ export function SolMenu({
             <Text style={s.menuText}>🎁 Davet Et, Kazan</Text>
           </TouchableOpacity>
 
-          {/* Admin Paneli — sadece admin rolündeyse görünür */}
           {kullanici?.rol === 'admin' && (
             <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('admin'); }}>
               <Text style={[s.menuText, { color: '#F39C12' }]}>⚙️ Admin Paneli</Text>
@@ -149,7 +146,6 @@ export function SolMenu({
 
           <View style={s.ayrac} />
 
-          {/* Muğla Usta Raporu */}
           <TouchableOpacity
             style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 }}
             onPress={() => setIlcelerAcik(!ilcelerAcik)}
@@ -237,22 +233,17 @@ export function AnasayfaEkrani({
   const [filtreAcik, setFiltreAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(20);
 
-  // Filtre mantığı — sadece anlaşılmamış ilanlar
   const filtrelenmis = ilanlar.filter(ilan => {
-    if (ilan.anlasmaVar) return false; // Anlaşılan ilanları gizle
-
-    // Usta her zaman sadece kendi branşındaki ilanları görür
+    if (ilan.anlasmaVar) return false;
     const kategoriUygun = rol === 'usta'
       ? ilan.kategori === kullanici?.meslek
       : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
-
     const ilceUygun = seciliIlce === 'Tümü' || ilan.bolge === seciliIlce;
     return kategoriUygun && ilceUygun;
   });
 
   const aktifIlanSayisi = ilanlar.filter(i => !i.anlasmaVar).length;
   const toplamIlanSayisi = ilanlar.length;
-
   const gosterilenIlanlar = filtrelenmis.slice(0, gosterilen);
 
   const onTekliflerTikla = (ilan) => {
@@ -267,7 +258,26 @@ export function AnasayfaEkrani({
         <TouchableOpacity style={s.menuBtn} onPress={() => setMenuAcik(true)}>
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
-        <Text style={s.headerBaslik}>İlanlar</Text>
+
+        {/* Logo + AYIT → birlikte "Gayıt" okunur */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+          <Image
+            source={require('./icon.png')}
+            style={{ width: 36, height: 36 }}
+            resizeMode="contain"
+          />
+          <Text style={{
+            fontSize: 20,
+            fontWeight: '600',
+            color: '#1B4965',
+            letterSpacing: 3,
+            marginLeft: 2,
+            fontFamily: 'serif',
+          }}>
+            AYIT
+          </Text>
+        </View>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity onPress={setBildirimEkrani}>
             <Text style={{ fontSize: 22 }}>🔔</Text>
