@@ -28,6 +28,32 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
   const [takvimAcik, setTakvimAcik] = useState(false);
   const [takvimDegeri, setTakvimDegeri] = useState(new Date());
 
+  // === YENİ: Acil Switch Kontrolü ===
+  const handleAcilSwitch = (deger) => {
+    if (deger === true) {
+      // Eğer kullanıcının aboneliği yoksa uyarı ver ve ödeme/paket ekranına yönlendir
+      if (!kullanici?.abonelik) {
+        Alert.alert(
+          'Acil İlan Hakkı Yok',
+          'İlanınızı ACİL kategorisinde yayınlamak için 100 TL ödeme yapabilir veya Premium/VIP paket satın alarak avantajlı fiyatlardan yararlanabilirsiniz.',
+          [
+            { text: 'Vazgeç', style: 'cancel', onPress: () => setIlanAcil(false) },
+            { 
+              text: 'Paketlere Göz At', 
+              onPress: () => {
+                setIlanAcil(false); // Switch'i geri kapat
+                setEkran('odeme'); // Paketler ekranına fırlat
+              } 
+            }
+          ]
+        );
+        return; // Switch'i açma
+      }
+    }
+    setIlanAcil(deger); // VIP ise sorunsuz aç/kapat
+  };
+  // ====================================
+
   const ilanOlustur = async () => {
     if (!ilanBaslik || !ilanDetay || !ilanIlce || !ilanMahalle) {
       Alert.alert('Eksik Bilgi', 'Lütfen tüm alanları doldur!');
@@ -51,8 +77,8 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       setEkran('odeme');
       return;
     }
+    // İlan kaydedilirken ikinci kez abonelik kontrolü
     if (ilanAcil && !kullanici?.abonelik) {
-      Alert.alert('Acil İlan', 'Acil ilan ücreti 50 TL\'dir. Ödeme ekranına yönlendiriliyorsun.');
       setEkran('odeme');
       return;
     }
@@ -262,7 +288,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           </TouchableOpacity>
         </View>
 
-        {/* TAKVİM — Web'de native input, mobilde DateTimePicker */}
+        {/* TAKVİM */}
         {takvimAcik && (
           Platform.OS === 'web' ? (
             <View style={{ marginBottom: 15 }}>
@@ -301,20 +327,20 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           )
         )}
 
-        {/* ACİL İLAN */}
+        {/* ACİL İLAN YENİ GÖRÜNÜM VE KONTROL */}
         <View style={[s.onayKutu, { backgroundColor: ilanAcil ? '#FFEBEE' : '#FFF', borderColor: ilanAcil ? '#FF4444' : '#D1D9E0' }]}>
           <Switch
             value={ilanAcil}
-            onValueChange={setIlanAcil}
+            onValueChange={handleAcilSwitch} // === YENİ KONTROL FONKSİYONUMUZ ===
             trackColor={{ false: '#D1D9E0', true: '#FF4444' }}
             thumbColor="#FFF"
           />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={{ color: ilanAcil ? '#FF4444' : '#526E7F', fontWeight: 'bold', fontSize: 14 }}>
-              🚨 Bu İlan Acil mi?
+              🚨 İlanınız Acil Kategorisinde Yayınlansın mı?
             </Text>
             <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 2 }}>
-              Acil ilanlar üstte gösterilir (+50 TL)
+              Acil ilanlar en üstte gösterilir (100 TL)
             </Text>
           </View>
         </View>
