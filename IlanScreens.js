@@ -9,7 +9,7 @@ import {
   ScrollView, Alert, Switch, Platform, Modal, FlatList
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla, ILCE_MAHALLELER } from './constants';
+import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla, MAHALLE_HIYERARSISI } from './constants';
 import { bildirimGonderVeKaydet } from './notifications';
 
 // ============================================================
@@ -22,6 +22,8 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
   const [ilanIlce, setIlanIlce] = useState('');
   const [ilanMahalle, setIlanMahalle] = useState('');
   const [mahalleModalAcik, setMahalleModalAcik] = useState(false);
+  const [mahalleGrubu, setMahalleGrubu] = useState(''); // 'Merkez' mi 'Köy' mü?
+  const [asama, setAsama] = useState(1); // 1: Grup seçimi, 2: Mahalle listesi
   const [ilanAcil, setIlanAcil] = useState(false);
   const [isTarihiTip, setIsTarihiTip] = useState('Bugün');
   const [ozelTarih, setOzelTarih] = useState('');
@@ -249,23 +251,39 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
                   <Text style={{ color: '#FF4444', fontSize: 16 }}>✕</Text>
                 </TouchableOpacity>
               </View>
-              <FlatList
-                data={ILCE_MAHALLELER[ilanIlce] || []}
-                keyExtractor={item => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={{
-                      padding: 16, borderBottomWidth: 1, borderBottomColor: '#F5F5F0',
-                      backgroundColor: ilanMahalle === item ? '#E1F2FE' : '#FFF'
-                    }}
-                    onPress={() => { setIlanMahalle(item); setMahalleModalAcik(false); }}
-                  >
-                    <Text style={{ color: ilanMahalle === item ? '#1B4965' : '#526E7F', fontWeight: ilanMahalle === item ? 'bold' : 'normal' }}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
+              {asama === 1 ? (
+          // AŞAMA 1: GRUP SEÇ (Merkez mi Köy mü?)
+          <ScrollView>
+            {Object.keys(MAHALLE_HIYERARSISI[ilanIlce] || {}).map((grup, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={{ padding: 20, backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10, alignItems: 'center' }} 
+                onPress={() => { setMahalleGrubu(grup); setAsama(2); }}
+              >
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1B4965' }}>{grup} ❯</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          // AŞAMA 2: MAHALLE LİSTESİ
+          <FlatList
+            data={MAHALLE_HIYERARSISI[ilanIlce][mahalleGrubu] || []}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#F5F5F8', backgroundColor: ilanMahalle === item ? '#F3F2FE' : '#FFF' }}
+                onPress={() => { setIlanMahalle(item); setMahalleModalAcik(false); setAsama(1); }}
+              >
+                <Text style={{ color: ilanMahalle === item ? '#1B4965' : '#526E7F', fontWeight: ilanMahalle === item ? 'bold' : 'normal' }}>{item}</Text>
+              </TouchableOpacity>
+            )}
+            ListHeaderComponent={() => (
+              <TouchableOpacity onPress={() => setAsama(1)} style={{ padding: 10 }}>
+                <Text style={{ color: '#E67E22', fontWeight: 'bold' }}>❮ Geri Dön</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
             </View>
           </View>
         </Modal>
