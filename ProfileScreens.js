@@ -12,6 +12,81 @@ import * as ImagePicker from 'expo-image-picker';
 import { DB_URL, BOLGELER, STORAGE_BUCKET, API_KEY, damgaToTarih } from './constants';
 
 // ============================================================
+// ABONELİK ROZETİ YARDIMCI FONKSİYONU
+// abonelik değerleri: null/undefined = standart, 'premium' = premium, 'vip' = vip
+// ============================================================
+function AbonelikRozeti({ kullanici, rol }) {
+  const abonelik = kullanici?.abonelik;
+
+  // VIP
+  if (abonelik === 'vip') {
+    return (
+      <View style={{
+        backgroundColor: '#F39C12',
+        borderColor: '#F39C12',
+        borderWidth: 2,
+        paddingHorizontal: 15,
+        paddingVertical: 6,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>
+          👑 VIP Üye
+        </Text>
+        {kullanici?.onayDurumu === 'onayli' && (
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>✅ Onaylı Usta</Text>
+        )}
+      </View>
+    );
+  }
+
+  // PREMIUM
+  if (abonelik === 'premium') {
+    return (
+      <View style={{
+        backgroundColor: '#FFF8E1',
+        borderColor: '#F39C12',
+        borderWidth: 2,
+        paddingHorizontal: 15,
+        paddingVertical: 6,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+        <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
+          ⭐ Premium Üye
+        </Text>
+        {kullanici?.onayDurumu === 'onayli' && (
+          <Text style={{ color: '#00a2ed', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>✅ Onaylı Usta</Text>
+        )}
+      </View>
+    );
+  }
+
+  // STANDART (default)
+  return (
+    <View style={{
+      backgroundColor: '#E1E6EB',
+      borderColor: '#A3B1B9',
+      borderWidth: 1,
+      paddingHorizontal: 15,
+      paddingVertical: 6,
+      borderRadius: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+    }}>
+      <Text style={{ color: '#526E7F', fontWeight: 'bold', fontSize: 12 }}>
+        📦 Standart Üyelik
+      </Text>
+      {kullanici?.onayDurumu === 'onayli' && (
+        <Text style={{ color: '#00a2ed', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>✅ Onaylı Usta</Text>
+      )}
+    </View>
+  );
+}
+
+// ============================================================
 // PROFİL EKRANI
 // ============================================================
 export function ProfilEkrani({
@@ -91,7 +166,6 @@ export function ProfilEkrani({
     setTimeout(() => setKaydedildi(false), 3000);
   };
 
-  // Fotoğraf seç ve Firebase Storage'a yükle
   const belgeYukle = async (tip) => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -115,7 +189,6 @@ export function ProfilEkrani({
       const mimeType = 'image/jpeg';
       const dosyaAdi = `belgeler/${kullanici.uid}/${tip}_${Date.now()}.jpg`;
 
-      // Firebase Storage REST API ile yükle
       const storageUrl = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(dosyaAdi)}?uploadType=media`;
 
       const uploadRes = await fetch(storageUrl, {
@@ -130,7 +203,6 @@ export function ProfilEkrani({
       const uploadData = await uploadRes.json();
       const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(dosyaAdi)}?alt=media&token=${uploadData.downloadTokens}`;
 
-      // URL'yi kullanıcı profiline kaydet
       const guncelVeri = tip === 'kimlik'
         ? { kimlikUrl: downloadUrl }
         : { ustaBelgeUrl: downloadUrl };
@@ -224,24 +296,7 @@ export function ProfilEkrani({
 
             {/* Abonelik rozeti */}
             <View style={{ alignItems: 'center', marginTop: -10, marginBottom: 15 }}>
-              <View style={{
-                backgroundColor: kullanici?.abonelik ? '#FFF8E1' : '#E1E6EB',
-                borderColor: kullanici?.abonelik ? '#F39C12' : '#A3B1B9',
-                borderWidth: 1,
-                paddingHorizontal: 15,
-                paddingVertical: 6,
-                borderRadius: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
-                <Text style={{ color: kullanici?.abonelik ? '#F39C12' : '#526E7F', fontWeight: 'bold', fontSize: 12 }}>
-                  {kullanici?.abonelik ? '👑 VIP (Sınırsız) Abonelik' : '📦 Standart Üyelik'}
-                </Text>
-                {/* Onaylı usta rozeti */}
-                {kullanici?.onayDurumu === 'onayli' && (
-                  <Text style={{ color: '#00a2ed', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>✅ Onaylı Usta</Text>
-                )}
-              </View>
+              <AbonelikRozeti kullanici={kullanici} rol={rol} />
             </View>
 
             {/* Ortalama puan (sadece usta) */}
@@ -272,7 +327,6 @@ export function ProfilEkrani({
                   Kimlik ve ustalık belgesini yükle, admin onaylasın.
                 </Text>
 
-                {/* Kimlik Yükleme */}
                 <TouchableOpacity
                   style={{
                     backgroundColor: kimlikUrl ? '#E8F5E9' : '#F5F5F0',
@@ -291,7 +345,6 @@ export function ProfilEkrani({
                   {belgeYukleniyor && <ActivityIndicator size="small" color="#1B4965" />}
                 </TouchableOpacity>
 
-                {/* Ustalık Belgesi Yükleme */}
                 <TouchableOpacity
                   style={{
                     backgroundColor: ustaBelgeUrl ? '#E8F5E9' : '#F5F5F0',
@@ -333,7 +386,6 @@ export function ProfilEkrani({
               </View>
             )}
 
-            {/* Ad Soyad */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: -10 }}>
               <Text style={s.inputBaslik}>Ad Soyad</Text>
             </View>
@@ -370,7 +422,6 @@ export function ProfilEkrani({
               keyboardType="phone-pad"
             />
 
-            {/* İlçe değiştirme */}
             <View style={{ marginTop: 15, alignItems: 'center' }}>
               <Text style={{ fontSize: 15, color: '#1B4965', fontWeight: 'bold' }}>
                 📍 Kayıtlı Bölge: {kullanici?.bolge || 'Belirtilmemiş'}
@@ -447,7 +498,6 @@ export function ProfilEkrani({
               </View>
             ) : (
               <>
-                {/* Özet */}
                 <View style={{ backgroundColor: '#FFF8E1', borderRadius: 16, padding: 20, margin: 15, alignItems: 'center' }}>
                   <Text style={{ fontSize: 48, fontWeight: 'bold', color: '#F39C12' }}>{ortalamaPuan}</Text>
                   <View style={{ flexDirection: 'row', marginVertical: 8 }}>
@@ -458,7 +508,6 @@ export function ProfilEkrani({
                   <Text style={{ color: '#A3B1B9' }}>{puanlar.length} değerlendirme</Text>
                 </View>
 
-                {/* Yorum listesi */}
                 {puanlar.map(p => (
                   <View key={p.id} style={[s.kart, { marginHorizontal: 15, marginBottom: 10 }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -497,13 +546,9 @@ export function ProfilEkrani({
                   <Text style={s.kartBaslik}>{ilan.baslik}</Text>
                   <Text style={s.kartAlt}>📍 {ilan.mahalle} - {ilan.bolge}</Text>
                   {rol === 'usta' ? (
-                    <Text style={s.kartAlt}>
-                      👤 Müşteri: {ilan.sahip}
-                    </Text>
+                    <Text style={s.kartAlt}>👤 Müşteri: {ilan.sahip}</Text>
                   ) : (
-                    <Text style={s.kartAlt}>
-                      🛠️ Usta: {ilan.anlasilanUsta?.ustaAd || '-'} — {ilan.anlasilanUsta?.fiyat || '-'}
-                    </Text>
+                    <Text style={s.kartAlt}>🛠️ Usta: {ilan.anlasilanUsta?.ustaAd || '-'} — {ilan.anlasilanUsta?.fiyat || '-'}</Text>
                   )}
                   <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 6 }}>
                     {damgaToTarih(ilan.tarih)}

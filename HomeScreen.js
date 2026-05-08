@@ -89,14 +89,25 @@ export function SolMenu({
             style={s.profilTiklanabilir}
             onPress={() => { setMenuAcik(false); setProfilTel(kullanici?.telefon || ''); setEkran('profil'); }}
           >
-            <View style={s.profilAvatar}>
-              <Text style={s.avatarHarf}>{kullanici?.ad?.[0] || '?'}</Text>
+            {/* AVATAR — aboneliğe göre çerçeve rengi */}
+            <View style={[
+              s.profilAvatar,
+              kullanici?.abonelik === 'vip'
+                ? { borderWidth: 3, borderColor: '#F39C12', backgroundColor: '#F39C12' }
+                : kullanici?.abonelik === 'premium'
+                  ? { borderWidth: 3, borderColor: '#F39C12', backgroundColor: 'transparent' }
+                  : { borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }
+            ]}>
+              <Text style={s.avatarHarf}>{kullanici?.ad?.[0]?.toUpperCase() || '?'}</Text>
             </View>
             <Text style={s.profilAd}>{kullanici?.ad || 'Usta'}</Text>
+            {/* ABONE YAZISI — vip / premium / standart */}
             <Text style={s.profilDuzenleText}>
-              {kullanici?.abonelik
+              {kullanici?.abonelik === 'vip'
                 ? '👑 VIP ABONE'
-                : `Hak: ${kullanici?.hak ?? 0} | Yeni: ${kullanici?.yeniKullaniciHakki ?? 0}`}
+                : kullanici?.abonelik === 'premium'
+                  ? '⭐ PREMİUM ÜYE'
+                  : `Hak: ${kullanici?.hak ?? 0} | Yeni: ${kullanici?.yeniKullaniciHakki ?? 0}`}
             </Text>
           </TouchableOpacity>
 
