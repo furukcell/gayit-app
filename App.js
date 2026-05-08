@@ -59,6 +59,7 @@ export default function App() {
 
   // --- İlan State ---
   const [ilanlar, setIlanlar] = useState([]);
+  const [adminMesajlari, setAdminMesajlari] = useState([]);
   const [secilenIlan, setSecilenIlan] = useState(null);
   const [yenileniyor, setYenileniyor] = useState(false);
 
@@ -132,6 +133,14 @@ export default function App() {
           return b.tarih - a.tarih;
         })
       );
+      if (kullanici?.uid) {
+        fetch(`${DB_URL}/adminMesajlari/${kullanici.uid}.json`)
+          .then(r => r.json())
+          .then(adData => {
+            if (adData) setAdminMesajlari(Object.keys(adData).map(k => ({ id: k, ...adData[k] })));
+          })
+          .catch(() => {});
+      }
     } catch (e) {
       console.log('Veri yükleme hatası:', e);
     } finally {
@@ -298,43 +307,69 @@ export default function App() {
     );
 
     if (ekran === 'sohbetlerim') {
-      const tumSohbetler = ilanlar.filter(
-        i => i.teklifler?.some(t => t.ustaUid === kullanici?.uid)
-      );
+      // ÇÖKMEYE KARŞI GÜVENLİ FİLTRELEME
+      const aktifSohbetler = (ilanlar || []).filter(i => {
+        const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
+        const benUsta = i.teklifler?.some(t => t.ustaUid === kullanici?.uid) && i.anlasmaVar;
+        return benMusteri || benUsta;
+      });
+
       return (
         <SafeAreaView style={st.con}>
           <View style={st.header}>
             <TouchableOpacity style={st.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
               <Text style={st.menuSimge}>←</Text>
             </TouchableOpacity>
-            <Text style={st.headerBaslik}>Sohbetlerim</Text>
+            <Text style={st.headerBaslik}>Mesajlarım</Text>
             <View style={{ width: 24 }} />
           </View>
           <ScrollView style={st.scroll}>
-            {tumSohbetler.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 30 }}>
-                Henüz aktif sohbet yok usta.
-              </Text>
+            
+            {/* ADMİN DESTEK YANITI (Turuncu Kart) */}
+            {(adminMesajlari || []).length > 0 && (
+              <TouchableOpacity 
+                style={[st.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
+                onPress={() => setEkran('iletisim')}
+              >
+                <Text style={{ fontWeight: 'bold', color: '#E67E22' }}>🛡️ GAYİT Destek Yanıtı</Text>
+                <Text style={st.kartAlt}>Yönetimden bir mesajınız var, görmek için tıklayın.</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* NORMAL SOHBETLER */}
+            {aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
+              <View style={{alignItems: 'center', marginTop: 50}}>
+                <Text style={{ textAlign: 'center', color: '#A3B1B9' }}>Henüz aktif bir sohbet yok gari.</Text>
+              </View>
             ) : (
-              tumSohbetler.map(ilan => {
-                const beniminTeklif = ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
+              aktifSohbetler.map(ilan => {
+                // Eğer müşteriysem anlaşan ustayı bul, ustaysam kendi teklifimi bul
+                const hedefTeklif = ilan.sahipUid === kullanici?.uid 
+                  ? ilan.anlasilanUsta 
+                  : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
+
+                if (!hedefTeklif) return null; // Veri hatası varsa render etme, çökme!
+
                 return (
                   <TouchableOpacity
                     key={ilan.id}
-                    style={st.kart}
+                    style={[st.kart, { borderLeftWidth: 5, borderLeftColor: '#588157' }]}
                     onPress={() => {
                       setSecilenIlan(ilan);
-                      setAktifSohbetTeklif(beniminTeklif || ilan.anlasilanUsta);
-                      setAnlasmaSaglandi(!!ilan.anlasmaVar);
+                      setAktifSohbetTeklif(hedefTeklif);
+                      setAnlasmaSaglandi(true);
                       setEkran('sohbet');
                     }}
                   >
                     <Text style={st.kategoriBadge}>{ilan.kategori}</Text>
                     <Text style={st.kartBaslik}>{ilan.baslik}</Text>
-                    <Text style={st.kartAlt}>📍 {ilan.mahalle} - {ilan.bolge}</Text>
-                    <Text style={{ color: ilan.anlasmaVar ? '#588157' : '#F39C12', fontWeight: 'bold', marginTop: 5 }}>
-                      {ilan.anlasmaVar ? '✅ Anlaşıldı' : '💬 Teklif Verildi'}
+                    <Text style={st.kartAlt}>
+                      {kullanici.rol === 'usta' ? `👤 Müşteri: ${ilan.sahip}` : `👤 Usta: ${hedefTeklif.ustaAd}`}
                     </Text>
+                    <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 5}}>
+                       <Text style={{ color: '#588157', fontWeight: 'bold', fontSize: 12 }}>✅ Anlaşıldı</Text>
+                       <Text style={{ color: '#1B4965', fontSize: 12 }}>Sohbete Git →</Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })
