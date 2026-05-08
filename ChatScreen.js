@@ -35,7 +35,7 @@ export function SohbetEkrani({
   : null;
 
   const mesajlariYukle = async () => {
-    if (!sohbetId) return;
+   if (!sohbetId || !secilenIlan?.id) return;
     try {
       const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`);
       const data = await res.json();
