@@ -144,11 +144,18 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       });
 
     if (token && kullanici?.uid) {
-      let guncellenecekVeri = { hak: yeniHak };
+      let guncelleVeri = { hak: yeniHak, acilHak: yeniAcilHak }; // acilHak buraya eklendi
       if (abonelikAyarla) {
-        guncellenecekVeri.abonelik = true;
-        guncellenecekVeri.abonelikBitis = otuzGunSonra;
+        guncelleVeri.abonelik = true;
+        guncelleVeri.abonelikBitis = otuzGunSonra;
       }
+
+      await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(guncelleVeri),
+      });
+    }
 
       await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
