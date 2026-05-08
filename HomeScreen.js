@@ -265,21 +265,22 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-        {/* Orta: Logo + AYIT + İLANLAR */}
+                {/* Orta: Logo + AYIT + ILANLAR */}
         <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          {/* Logo + AYIT yan yana */}
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          
+          {/* 1. Kısım: Logo ve AYIT Yan Yana */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 15 }}>
             <Image
-              source={require('./Logo.png')}
-              style={{ width: 48, height: 48 }}
+              source={require('./logo.png')}
+              style={{ width: 75, height: 75 }} // Logo 2x'e yakın büyüdü
               resizeMode="contain"
             />
             <Text style={{
-              fontSize: 28,
+              fontSize: 26, // Yazıyı hafif kıstık ki logo çok daha büyük dursun
               fontWeight: '800',
               color: '#1B4965',
-              letterSpacing: 4,
-              marginLeft: 3,
+              letterSpacing: 2,
+              marginLeft: -2, // Logoyla tam bitsin diye hafif sola çektik
               fontFamily: 'serif',
               textShadowColor: 'rgba(27,73,101,0.15)',
               textShadowOffset: { width: 1, height: 1 },
@@ -288,23 +289,26 @@ export function AnasayfaEkrani({
               AYIT
             </Text>
           </View>
-          {/* Alt çizgili İLANLAR */}
+
+          {/* 2. Kısım: Alt Çizgili İLANLAR */}
           <View style={{
-            borderBottomWidth: 3,
+            borderBottomWidth: 2, // Çizgiyi zarifleştirdik
             borderBottomColor: '#1B4965',
             paddingBottom: 2,
-            marginTop: 1,
+            marginTop: -5, // Logoyla arasını dengelemek için
+            paddingHorizontal: 10 // Çizgi yanlara doğru biraz daha uzun dursun
           }}>
             <Text style={{
-              fontSize: 9,
+              fontSize: 11,
               color: '#1B4965',
-              letterSpacing: 5,
+              letterSpacing: 3, // O darmadağınık boşluğu kıstık, derli toplu oldu
               fontWeight: '700',
             }}>
-              İ L A N L A R
+              İLANLAR
             </Text>
           </View>
         </View>
+
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity onPress={setBildirimEkrani}>
