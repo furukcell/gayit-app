@@ -30,9 +30,9 @@ export function SohbetEkrani({
   const [yukleniyor, setYukleniyor] = useState(true);
   const flatListRef = useRef(null);
 
-  const sohbetId = secilenIlan?.id
-    ? `${secilenIlan.id}_${(aktifSohbetTeklif?.ustaId || '').replace(/[.@]/g, '_')}`
-    : null;
+  const sohbetId = (secilenIlan?.id && aktifSohbetTeklif?.ustaId)
+  ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaId.replace(/[.@]/g, '_')}`
+  : null;
 
   const mesajlariYukle = async () => {
     if (!sohbetId) return;
