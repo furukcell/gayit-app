@@ -65,6 +65,10 @@ export default function App() {
   // --- Menü State ---
   const [menuAcik, setMenuAcik] = useState(false);
 
+  // --- Auth Onay State ---
+  const [kvkkKabul, setKvkkKabul] = useState(false);
+  const [sozlesmeKabul, setSozlesmeKabul] = useState(false);
+
   // --- Sohbet State ---
   const [aktifSohbetTeklif, setAktifSohbetTeklif] = useState(null);
   const [anlasmaSaglandi, setAnlasmaSaglandi] = useState(false);
@@ -87,11 +91,21 @@ export default function App() {
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
   }, []);
 
-  // Kullanıcı girişinde verileri yükle
+  // Kullanıcı girişinde verileri yükle + push token kaydet
   useEffect(() => {
     if (kullanici) {
       veriYukle();
       sistemIstatistikleriniGuncelle();
+      // Push token al ve Firebase'e kaydet
+      pushTokenAl().then(pToken => {
+        if (pToken && kullanici.uid && token) {
+          fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pushToken: pToken }),
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
   }, [kullanici]);
 
@@ -193,9 +207,9 @@ export default function App() {
   const ekraniGoster = () => {
     // Auth ekranları
     if (ekran === 'karsilama') return <KarsilamaEkrani setRol={setRol} setMod={() => {}} setEkran={setEkran} s={st} />;
-    if (ekran === 'auth') return <AuthEkrani rol={rol} setRol={setRol} setEkran={setEkran} setKullanici={setKullanici} setToken={setToken} s={st} />;
+    if (ekran === 'auth') return <AuthEkrani rol={rol} setRol={setRol} setEkran={setEkran} setKullanici={setKullanici} setToken={setToken} kvkkKabul={kvkkKabul} setKvkkKabul={setKvkkKabul} sozlesmeKabul={sozlesmeKabul} setSozlesmeKabul={setSozlesmeKabul} s={st} />;
     if (ekran === 'sifremi_unuttum') return <SifremiUnuttumEkrani setEkran={setEkran} s={st} />;
-    if (ekran === 'kvkk') return <KvkkEkrani setEkran={setEkran} s={st} />;
+    if (ekran === 'kvkk') return <KvkkEkrani setEkran={setEkran} setKvkkKabul={setKvkkKabul} s={st} />;
 
     // Ana ekranlar
     if (ekran === 'anasayfa') return (
@@ -358,7 +372,7 @@ export default function App() {
     if (ekran === 'ayarlar') return <AyarlarEkrani kullanici={kullanici} setKullanici={setKullanici} token={token} setEkran={setEkran} karanlikMod={karanlikMod} setKaranlikMod={setKaranlikMod} s={st} />;
     if (ekran === 'iletisim') return <IletisimEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
     if (ekran === 'hakkimizda') return <HakkimizdaEkrani setEkran={setEkran} s={st} />;
-    if (ekran === 'hizmet_kosullari') return <HizmetKosullariEkrani setEkran={setEkran} kayittan={!kullanici} s={st} />;
+    if (ekran === 'hizmet_kosullari') return <HizmetKosullariEkrani setEkran={setEkran} setSozlesmeKabul={setSozlesmeKabul} kayittan={!kullanici} s={st} />;
     if (ekran === 'bildirimler') return <BildirimEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
 
     if (ekran === 'admin') return (

@@ -241,8 +241,9 @@ export function AnasayfaEkrani({
   const filtrelenmis = ilanlar.filter(ilan => {
     if (ilan.anlasmaVar) return false; // Anlaşılan ilanları gizle
 
+    // Usta her zaman sadece kendi branşındaki ilanları görür
     const kategoriUygun = rol === 'usta'
-      ? (seciliKategori === 'Tümü' ? ilan.kategori === kullanici?.meslek : ilan.kategori === seciliKategori)
+      ? ilan.kategori === kullanici?.meslek
       : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
 
     const ilceUygun = seciliIlce === 'Tümü' || ilan.bolge === seciliIlce;

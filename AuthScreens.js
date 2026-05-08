@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Image, Switch, Linking, ActivityIndicator
+  ScrollView, Alert, Image, Switch, ActivityIndicator
 } from 'react-native';
 import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur } from './constants';
 import { pushTokenAl } from './notifications';
@@ -33,7 +33,6 @@ export function KarsilamaEkrani({ setRol, setMod, setEkran, s }) {
             Muğla'nın bütün işi gaydı artık burada
           </Text>
         </View>
-
         <View style={s.btnAlan}>
           <TouchableOpacity
             style={[s.anaBtn, { backgroundColor: '#1B4965' }]}
@@ -41,7 +40,6 @@ export function KarsilamaEkrani({ setRol, setMod, setEkran, s }) {
           >
             <Text style={s.anaBtnY}>Usta Girişi / Kayıt</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[s.anaBtn, { backgroundColor: '#588157' }]}
             onPress={() => { setRol('musteri'); setMod('kayit'); setEkran('auth'); }}
@@ -57,9 +55,7 @@ export function KarsilamaEkrani({ setRol, setMod, setEkran, s }) {
 // ============================================================
 // GİRİŞ / KAYIT EKRANI
 // ============================================================
-export function AuthEkrani({
-  rol, setRol, setEkran, setKullanici, setToken, s
-}) {
+export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkkKabul, setKvkkKabul, sozlesmeKabul, setSozlesmeKabul, s }) {
   const [mod, setMod] = useState('kayit');
   const [ad, setAd] = useState('');
   const [email, setEmail] = useState('');
@@ -67,8 +63,6 @@ export function AuthEkrani({
   const [kayitBolge, setKayitBolge] = useState('');
   const [kayitBrans, setKayitBrans] = useState('');
   const [davetKodu, setDavetKodu] = useState('');
-  const [kvkkKabul, setKvkkKabul] = useState(false);
-  const [sozlesmeKabul, setSozlesmeKabul] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(false);
 
   const islemiTamamla = async () => {
@@ -103,9 +97,7 @@ export function AuthEkrani({
 
         const yeniKul = {
           uid: data.localId,
-          ad,
-          email,
-          rol,
+          ad, email, rol,
           bolge: kayitBolge,
           telefon: '',
           meslek: rol === 'usta' ? kayitBrans : null,
@@ -123,7 +115,6 @@ export function AuthEkrani({
           body: JSON.stringify(yeniKul),
         });
 
-        // Davet kodu işlemi
         if (davetKodu.trim()) {
           try {
             const tumKulRes = await fetch(`${DB_URL}/kullanicilar.json`);
@@ -148,14 +139,11 @@ export function AuthEkrani({
                 Alert.alert('Davet Bonusu! 🎁', 'Davet kodunu kullandın, sana ve arkadaşına birer hak eklendi usta!');
               }
             }
-          } catch (e) {
-            console.log('Davet kodu hatası gari:', e);
-          }
+          } catch (e) { console.log('Davet kodu hatası gari:', e); }
         }
 
         setKullanici({ ...yeniKul, uid: data.localId });
       } else {
-        // Giriş modu
         const res = await fetch(
           `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`,
           {
@@ -168,6 +156,19 @@ export function AuthEkrani({
         if (data.error) return Alert.alert('Hata', 'E-posta veya şifre hatalı usta!');
 
         setToken(data.idToken);
+
+        // Giriş yapınca push token güncelle
+        try {
+          const cihazToken = await pushTokenAl();
+          if (cihazToken) {
+            await fetch(`${DB_URL}/kullanicilar/${data.localId}.json?auth=${data.idToken}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pushToken: cihazToken }),
+            });
+          }
+        } catch (e) {}
+
         const kulRes = await fetch(`${DB_URL}/kullanicilar/${data.localId}.json`);
         const kulData = await kulRes.json();
 
@@ -242,11 +243,7 @@ export function AuthEkrani({
             <Text style={s.inputBaslik}>Bulunduğunuz İlçe</Text>
             <View style={s.chipAlan}>
               {BOLGELER.map(b => (
-                <TouchableOpacity
-                  key={b}
-                  style={[s.chip, kayitBolge === b && s.chipAktif]}
-                  onPress={() => setKayitBolge(b)}
-                >
+                <TouchableOpacity key={b} style={[s.chip, kayitBolge === b && s.chipAktif]} onPress={() => setKayitBolge(b)}>
                   <Text style={[s.chipY, kayitBolge === b && s.chipYAktif]}>{b}</Text>
                 </TouchableOpacity>
               ))}
@@ -257,11 +254,7 @@ export function AuthEkrani({
                 <Text style={s.inputBaslik}>Branşınız</Text>
                 <View style={s.chipAlan}>
                   {KATEGORILER.filter(k => k !== 'Tümü').map(b => (
-                    <TouchableOpacity
-                      key={b}
-                      style={[s.chip, kayitBrans === b && s.chipAktif]}
-                      onPress={() => setKayitBrans(b)}
-                    >
+                    <TouchableOpacity key={b} style={[s.chip, kayitBrans === b && s.chipAktif]} onPress={() => setKayitBrans(b)}>
                       <Text style={[s.chipY, kayitBrans === b && s.chipYAktif]}>{b}</Text>
                     </TouchableOpacity>
                   ))}
@@ -278,6 +271,7 @@ export function AuthEkrani({
               autoCapitalize="characters"
             />
 
+            {/* KVKK — switch + link. "Okudum" butonundan dönünce otomatik işaretlenir */}
             <View style={s.onayKutu}>
               <Switch value={kvkkKabul} onValueChange={setKvkkKabul} trackColor={{ false: '#D1D9E0', true: '#588157' }} thumbColor="#FFF" />
               <View style={{ flex: 1, marginLeft: 10 }}>
@@ -289,6 +283,7 @@ export function AuthEkrani({
               </View>
             </View>
 
+            {/* Hizmet Koşulları — switch + link. "Okudum" butonundan dönünce otomatik işaretlenir */}
             <View style={s.onayKutu}>
               <Switch value={sozlesmeKabul} onValueChange={setSozlesmeKabul} trackColor={{ false: '#D1D9E0', true: '#588157' }} thumbColor="#FFF" />
               <View style={{ flex: 1, marginLeft: 10 }}>
@@ -303,11 +298,7 @@ export function AuthEkrani({
         )}
 
         <TouchableOpacity style={[s.girisBtn, { opacity: yukleniyor ? 0.7 : 1 }]} onPress={islemiTamamla} disabled={yukleniyor}>
-          {yukleniyor ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={s.anaBtnY}>DEVAM ET</Text>
-          )}
+          {yukleniyor ? <ActivityIndicator color="#FFF" /> : <Text style={s.anaBtnY}>DEVAM ET</Text>}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setEkran('karsilama')}>
           <Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>← Geri</Text>
@@ -381,10 +372,11 @@ export function SifremiUnuttumEkrani({ setEkran, s }) {
 // ============================================================
 // KVKK EKRANI
 // ============================================================
-export function KvkkEkrani({ setEkran, s }) {
+export function KvkkEkrani({ setEkran, setKvkkKabul, s }) {
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
+        {/* Geri tuşu — auth ekranına döner, anasayfaya değil */}
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('auth')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
@@ -395,38 +387,35 @@ export function KvkkEkrani({ setEkran, s }) {
         <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15, textAlign: 'center' }}>
           GAYİT KİŞİSEL VERİLERİN KORUNMASI AYDINLATMA METNİ
         </Text>
-
         <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#1B4965', marginBottom: 5 }}>1. Veri Sorumlusu</Text>
         <Text style={{ color: '#526E7F', marginBottom: 15, lineHeight: 22 }}>
           6698 sayılı KVKK uyarınca, GAYİT Platformu olarak kişisel verilerinizi aşağıda açıklanan amaçlar kapsamında işlemekteyiz.
         </Text>
-
         <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#1B4965', marginBottom: 5 }}>2. İşlenen Kişisel Verileriniz</Text>
         <Text style={{ color: '#526E7F', marginBottom: 3, lineHeight: 22 }}>• Kimlik Verisi: Ad, soyad.</Text>
         <Text style={{ color: '#526E7F', marginBottom: 3, lineHeight: 22 }}>• İletişim Verisi: E-posta, telefon numarası.</Text>
         <Text style={{ color: '#526E7F', marginBottom: 3, lineHeight: 22 }}>• Konum Verisi: İlçe ve mahalle bilgisi.</Text>
         <Text style={{ color: '#526E7F', marginBottom: 15, lineHeight: 22 }}>• Mesleki Veri: (Ustalar için) Branş, teklifler, ilan detayları, puanlamalar.</Text>
-
         <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#1B4965', marginBottom: 5 }}>3. İşlenme Amacı</Text>
         <Text style={{ color: '#526E7F', marginBottom: 15, lineHeight: 22 }}>
           Müşteri ile Usta arasındaki iletişimin sağlanması, üyelik işlemlerinin yapılması, sistem güvenliğinin sağlanması ve yasal yükümlülüklerin yerine getirilmesi.
         </Text>
-
         <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#1B4965', marginBottom: 5 }}>4. Veri Aktarımı</Text>
         <Text style={{ color: '#526E7F', marginBottom: 15, lineHeight: 22 }}>
           Telefon numaranız yalnızca "ANLAŞMA SAĞLANDI" butonuna basıldığında karşı tarafa gösterilir. Verileriniz üçüncü şahıslara veya reklam şirketlerine satılmaz.
         </Text>
-
         <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#1B4965', marginBottom: 5 }}>5. Kullanıcı Hakları</Text>
         <Text style={{ color: '#526E7F', marginBottom: 20, lineHeight: 22 }}>
           Verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini isteme ve "Hesabı Sil" özelliğini kullanarak tamamen silinmesini talep etme haklarına sahipsiniz.
         </Text>
-
         <View style={{ backgroundColor: '#E8F5E9', padding: 15, borderRadius: 12, marginBottom: 20 }}>
           <Text style={{ color: '#588157', fontWeight: 'bold', textAlign: 'center' }}>Kayıt olarak bu metni onaylıyorsunuz.</Text>
         </View>
-
-        <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => setEkran('auth')}>
+        {/* Butona basınca kvkkKabul true olur, auth'a döner, switch otomatik işaretli gelir */}
+        <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => {
+          if (setKvkkKabul) setKvkkKabul(true);
+          setEkran('auth');
+        }}>
           <Text style={s.anaBtnY}>✅ OKUDUM VE ONAYLIYORUM</Text>
         </TouchableOpacity>
       </ScrollView>
