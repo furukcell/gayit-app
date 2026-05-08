@@ -8,7 +8,7 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Image, Switch, ActivityIndicator, Modal
 } from 'react-native';
-import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur } from './constants';
+import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur, MAHALLE_HIYERARSISI } from './constants';
 import { pushTokenAl } from './notifications';
 
 // ============================================================
