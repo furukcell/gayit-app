@@ -248,7 +248,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
               onPress={() => { setSecimTipi('bolge'); setSecimModalAcik(true); }}
             >
               <Text style={{ color: kayitBolge ? s.yaziBas : s.yaziSoluk }}>
-                {kayitBolge || "İlçe Seçiniz gari..."}
+                {kayitBolge || "İlçe Seçiniz..."}
               </Text>
             </TouchableOpacity>
 
@@ -261,7 +261,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                   onPress={() => { setSecimTipi('brans'); setSecimModalAcik(true); }}
                 >
                   <Text style={{ color: kayitBrans ? s.yaziBas : s.yaziSoluk }}>
-                    {kayitBrans || "Branş Seçiniz gari..."}
+                    {kayitBrans || "Branş Seçiniz..."}
                   </Text>
                 </TouchableOpacity>
               </>
