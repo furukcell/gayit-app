@@ -271,7 +271,7 @@ export function AnasayfaEkrani({
           {/* 1. Kısım: Logo ve AYIT Yan Yana */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 15 }}>
             <Image
-              source={require('./logo.png')}
+              source={require('./Logo.png')}
               style={{ width: 75, height: 75 }} // Logo 2x'e yakın büyüdü
               resizeMode="contain"
             />
