@@ -65,6 +65,9 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [davetKodu, setDavetKodu] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
   const [secimModalAcik, setSecimModalAcik] = useState(false);
+  const [kayitMahalle, setKayitMahalle] = useState('');
+  const [mahalleGrubu, setMahalleGrubu] = useState(''); 
+  const [asama, setAsama] = useState(1);
   const [secimTipi, setSecimTipi] = useState('');
   const islemiTamamla = async () => {
     if (!email || !sifre || (mod === 'kayit' && !ad))
@@ -312,21 +315,52 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           <Modal visible={secimModalAcik} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={[s.modalKutu, { maxHeight: '70%' }]}>
-            <Text style={s.modalBaslik}>{secimTipi === 'bolge' ? 'İlçe Seçin' : 'Branş Seçin'}</Text>
+            {/* 318. SATIRDAN İTİBAREN BURAYI YAPIŞTIR */}
+            <Text style={s.modalBaslik}>
+              {secimTipi === 'bolge' ? 'İlçe Seçin' : secimTipi === 'brans' ? 'Branş Seçin' : (asama === 1 ? 'Seçim Yapın' : 'Mahalle Seçin')}
+            </Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {(secimTipi === 'bolge' ? BOLGELER : KATEGORILER.filter(k => k !== 'Tümü')).map((item, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  style={{ paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: s.sinir, alignItems: 'center' }}
-                  onPress={() => {
-                    if (secimTipi === 'bolge') setKayitBolge(item);
-                    else setKayitBrans(item);
-                    setSecimModalAcik(false);
-                  }}
-                >
-                  <Text style={{ fontSize: 16, color: s.yaziBas, fontWeight: '500' }}>{item}</Text>
-                </TouchableOpacity>
-              ))}
+              {secimTipi === 'bolge' ? (
+                BOLGELER.map((item, index) => (
+                  <TouchableOpacity key={index} style={s.modalSatir} onPress={() => { setKayitBolge(item); setSecimModalAcik(false); }}>
+                    <Text style={s.modalSatirYazi}>{item}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : secimTipi === 'brans' ? (
+                KATEGORILER.filter(k => k !== 'Tümü').map((item, index) => (
+                  <TouchableOpacity key={index} style={s.modalSatir} onPress={() => { setKayitBrans(item); setSecimModalAcik(false); }}>
+                    <Text style={s.modalSatirYazi}>{item}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                // MAHALLE SEÇİMİ (İKİ AŞAMALI)
+                asama === 1 ? (
+                  Object.keys(MAHALLE_HIYERARSISI[kayitBolge] || {}).map((grup, index) => (
+                    <TouchableOpacity 
+                      key={index} 
+                      style={[s.modalSatir, { backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10 }]} 
+                      onPress={() => { setMahalleGrubu(grup); setAsama(2); }}
+                    >
+                      <Text style={[s.modalSatirYazi, { fontWeight: 'bold', color: '#1B4965' }]}>{grup} ❯</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <>
+                    <TouchableOpacity onPress={() => setAsama(1)} style={{ padding: 10 }}>
+                      <Text style={{ color: '#E67E22', fontWeight: 'bold' }}>❮ Geri Dön</Text>
+                    </TouchableOpacity>
+                    {MAHALLE_HIYERARSISI[kayitBolge][mahalleGrubu].map((mahalle, index) => (
+                      <TouchableOpacity 
+                        key={index} 
+                        style={s.modalSatir} 
+                        onPress={() => { setKayitMahalle(mahalle); setSecimModalAcik(false); }}
+                      >
+                        <Text style={s.modalSatirYazi}>{mahalle}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )
+              )}
             </ScrollView>
             <TouchableOpacity style={[s.girisBtn, { marginTop: 15, backgroundColor: '#FF4444' }]} onPress={() => setSecimModalAcik(false)}>
               <Text style={s.anaBtnY}>VAZGEÇ</Text>
