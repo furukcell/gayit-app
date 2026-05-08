@@ -1,16 +1,15 @@
 // ============================================================
 // ADIM 9 — PackageScreens.js
 // Ödeme, Paket, Kupon, Davet, Ayarlar, Hakkımızda,
-// Hizmet Koşulları, İletişim ekranları
+// Hizmet Koşulları, İletişim, Bildirim ekranları
 // ============================================================
 
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Switch, Linking, Share, Clipboard, Platform
+  ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import { DB_URL, referansKoduOlustur, zamanFarki } from './constants';
+import { DB_URL, API_KEY, referansKoduOlustur, zamanFarki } from './constants';
 
 // ============================================================
 // ÖDEME & PAKET EKRANI
@@ -18,23 +17,82 @@ import { DB_URL, referansKoduOlustur, zamanFarki } from './constants';
 export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }) {
   const [odemeAdim, setOdemeAdim] = useState('secim');
   const [kuponKod, setKuponKod] = useState('');
-  const [kuponMesaj, setKuponMesaj] = useState(null); // { tip: 'basarili'|'hata', metin: '' }
+  const [kuponMesaj, setKuponMesaj] = useState(null);
+  const [iptalModalAcik, setIptalModalAcik] = useState(false);
+  const [iptalSifre, setIptalSifre] = useState('');
+  const [iptalYukleniyor, setIptalYukleniyor] = useState(false);
 
   const kuponUygula = async () => {
-    if (kuponKod.toUpperCase() === 'BAYRAM2026') {
-      const haziranBirTarihi = 1748908800000;
-      setKullanici({ ...kullanici, abonelik: true, abonelikBitis: haziranBirTarihi });
-      if (token) {
+    if (!kuponKod.trim()) return;
+    try {
+      // Firebase'deki tüm kuponları çek
+      const res = await fetch(`${DB_URL}/kuponlar.json`);
+      const data = await res.json();
+
+      if (!data) {
+        setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
+        setTimeout(() => setKuponMesaj(null), 2500);
+        return;
+      }
+
+      // Kodu bul
+      const kuponEntry = Object.entries(data).find(
+        ([, k]) => k.ad === kuponKod.trim().toUpperCase() && k.aktif
+      );
+
+      if (!kuponEntry) {
+        setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz veya pasif kupon kodu.' });
+        setTimeout(() => setKuponMesaj(null), 2500);
+        return;
+      }
+
+      const [kuponId, kupon] = kuponEntry;
+
+      // Bitiş tarihi kontrolü
+      if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) {
+        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun süresi dolmuş.' });
+        setTimeout(() => setKuponMesaj(null), 2500);
+        return;
+      }
+
+      // Kullanım adedi kontrolü
+      if (kupon.kullanilanAdet >= kupon.adet) {
+        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun kullanım hakkı dolmuş.' });
+        setTimeout(() => setKuponMesaj(null), 2500);
+        return;
+      }
+
+      // Hedef kitle kontrolü
+      if (kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
+        setKuponMesaj({ tip: 'hata', metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.` });
+        setTimeout(() => setKuponMesaj(null), 2500);
+        return;
+      }
+
+      // Kuponu uygula — hak ekle
+      const yeniHak = (kullanici?.hak || 0) + (kupon.icerik || 1);
+      setKullanici({ ...kullanici, hak: yeniHak });
+
+      if (token && kullanici?.uid) {
         await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ abonelik: true, abonelikBitis: haziranBirTarihi }),
+          body: JSON.stringify({ hak: yeniHak }),
         });
       }
-      setKuponMesaj({ tip: 'basarili', metin: '🎉 Kupon uygulandı! 1 Haziran\'a kadar sınırsız.' });
+
+      // Kullanım adedini artır
+      await fetch(`${DB_URL}/kuponlar/${kuponId}.json`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kullanilanAdet: (kupon.kullanilanAdet || 0) + 1 }),
+      });
+
+      setKuponMesaj({ tip: 'basarili', metin: `🎉 Kupon uygulandı! ${kupon.icerik} hak eklendi.` });
       setTimeout(() => setEkran('anasayfa'), 2000);
-    } else {
-      setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
+
+    } catch (e) {
+      setKuponMesaj({ tip: 'hata', metin: '❌ Bağlantı hatası, tekrar dene.' });
       setTimeout(() => setKuponMesaj(null), 2500);
     }
   };
@@ -50,10 +108,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         body: JSON.stringify({ hak: yeniHak }),
       });
     }
-    Alert.alert(
-      'Başarılı! ✅',
-      rol === 'usta' ? '3 adet teklif verme hakkı tanımlandı!' : '1 adet ilan verme hakkı tanımlandı!'
-    );
+    Alert.alert('Başarılı! ✅', rol === 'usta' ? '3 adet teklif verme hakkı tanımlandı!' : '1 adet ilan verme hakkı tanımlandı!');
     setEkran('anasayfa');
   };
 
@@ -70,6 +125,114 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     Alert.alert('Başarılı! 🎉', 'Aylık sınırsız abonelik aktifleştirildi!');
     setEkran('anasayfa');
   };
+
+  // Abonelik iptali — şifre doğrulama ile
+  const abonelikIptalEt = async () => {
+    if (!iptalSifre.trim()) {
+      Alert.alert('Hata', 'Şifreni gir gari!');
+      return;
+    }
+    setIptalYukleniyor(true);
+    try {
+      // Firebase ile şifre doğrula
+      const res = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: kullanici.email, password: iptalSifre, returnSecureToken: false }),
+        }
+      );
+      const data = await res.json();
+      if (data.error) {
+        Alert.alert('Hata', 'Şifre yanlış usta!');
+        return;
+      }
+      // Şifre doğru — aboneliği iptal et
+      setKullanici({ ...kullanici, abonelik: false, abonelikBitis: null });
+      if (token && kullanici?.uid) {
+        await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ abonelik: false, abonelikBitis: null }),
+        });
+      }
+      setIptalModalAcik(false);
+      setIptalSifre('');
+      Alert.alert('İptal Edildi', 'Aboneliğin iptal edildi usta.');
+      setEkran('anasayfa');
+    } catch (e) {
+      Alert.alert('Hata', 'Bağlantı hatası!');
+    } finally {
+      setIptalYukleniyor(false);
+    }
+  };
+
+  // Abone ise özel ekran göster
+  if (kullanici?.abonelik) {
+    const bitisStr = kullanici?.abonelikBitis
+      ? new Date(kullanici.abonelikBitis).toLocaleDateString('tr-TR')
+      : '—';
+    return (
+      <SafeAreaView style={s.con}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+            <Text style={s.menuSimge}>←</Text>
+          </TouchableOpacity>
+          <Text style={s.headerBaslik}>Paket & Kupon</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={{ flex: 1, padding: 20 }}>
+          <View style={{ backgroundColor: '#1B4965', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 }}>
+            <Text style={{ fontSize: 48, marginBottom: 8 }}>👑</Text>
+            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>VIP Abone</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Abonelik bitiş: {bitisStr}</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+              Sınırsız ilan ve teklif hakkındasın usta!
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[s.girisBtn, { backgroundColor: '#FF4444' }]}
+            onPress={() => setIptalModalAcik(true)}
+          >
+            <Text style={s.anaBtnY}>🚫 ABONELİĞİ İPTAL ET</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Şifre Doğrulama Modali */}
+        <Modal visible={iptalModalAcik} transparent animationType="slide">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FF4444', textAlign: 'center', marginBottom: 5 }}>
+                🚫 Aboneliği İptal Et
+              </Text>
+              <Text style={{ color: '#526E7F', textAlign: 'center', marginBottom: 20 }}>
+                Onaylamak için hesap şifreni gir.
+              </Text>
+              <TextInput
+                style={s.inp}
+                placeholder="Şifreniz"
+                value={iptalSifre}
+                onChangeText={setIptalSifre}
+                secureTextEntry
+              />
+              <TouchableOpacity
+                style={[s.girisBtn, { backgroundColor: '#FF4444', opacity: iptalYukleniyor ? 0.7 : 1 }]}
+                onPress={abonelikIptalEt}
+                disabled={iptalYukleniyor}
+              >
+                <Text style={s.anaBtnY}>{iptalYukleniyor ? 'İşleniyor...' : 'ONAYLA, İPTAL ET'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setIptalModalAcik(false); setIptalSifre(''); }} style={{ marginTop: 15, alignItems: 'center' }}>
+                <Text style={{ color: '#526E7F' }}>Vazgeç</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.con}>
@@ -178,7 +341,6 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
           <TouchableOpacity
             style={{ backgroundColor: '#588157', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 }}
             onPress={kopyala}
-            onLongPress={kopyala}
           >
             <Text style={{ color: '#FFF', fontWeight: 'bold' }}>📋 Kodu Kopyala</Text>
           </TouchableOpacity>
@@ -230,9 +392,7 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
           onPress: async () => {
             try {
               if (token && kullanici?.uid) {
-                await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
-                  method: 'DELETE',
-                });
+                await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, { method: 'DELETE' });
               }
               setKullanici(null);
               setEkran('karsilama');
@@ -261,23 +421,15 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
             <Switch value={bildirimAcik} onValueChange={setBildirimAcik} trackColor={{ false: '#D1D9E0', true: '#588157' }} thumbColor="#FFF" />
           </View>
         </View>
-
         <View style={[s.kart, { marginBottom: 10 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ color: s.kartBaslik?.color || '#1B4965', fontWeight: 'bold' }}>🌙 Karanlık Mod</Text>
-            <Switch
-              value={karanlikMod}
-              onValueChange={setKaranlikMod}
-              trackColor={{ false: '#D1D9E0', true: '#1B4965' }}
-              thumbColor="#FFF"
-            />
+            <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>🌙 Karanlık Mod</Text>
+            <Switch value={karanlikMod} onValueChange={setKaranlikMod} trackColor={{ false: '#D1D9E0', true: '#1B4965' }} thumbColor="#FFF" />
           </View>
         </View>
-
         <TouchableOpacity style={[s.kart, { marginBottom: 10 }]} onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}>
           <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>✉️ Destek: info@gayit.com.tr</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[s.girisBtn, { backgroundColor: '#FF4444', marginTop: 20, marginHorizontal: 15, marginBottom: 40 }]}
           onPress={hesabiSil}
@@ -376,26 +528,19 @@ export function HakkimizdaEkrani({ setEkran, s }) {
           <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1B4965', marginTop: 10 }}>GAYİT</Text>
           <Text style={{ color: '#8B7355', fontStyle: 'italic', marginTop: 5 }}>Muğla'nın bütün işi gaydı artık burada</Text>
         </View>
-            <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 2 }}>
-      <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Biz Kimiz?</Text>
-      <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15 }}>
-        GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur. Bizler, "Muğla’da işi ehline teslim etmek" geleneğini dijital çağa taşıyoruz.
-      </Text>
-
-      <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Amacımız</Text>
-      <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15 }}>
-        Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri ustayı tek tıkla bulmanızı sağlıyoruz. Milaslı bir hemşehrinizin emeğiyle yükselen bu platformda, yerel esnafımızın dijital dünyada hak ettiği yeri almasını hedefliyoruz.
-      </Text>
-
-      <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Neden GAYIT?</Text>
-      <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 20 }}>
-        Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz. GAYIT, "Muğla’nın bütün işi gaydı artık burada" sloganıyla yola çıkarken; sadece bir uygulama olmayı değil, Muğla genelinde yardımlaşma kültürünü büyütmeyi amaçlıyor.
-      </Text>
-
-      <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#e67e22', textAlign: 'center', fontStyle: 'italic' }}>
-        Gullanın Gari!!
-      </Text>
-    </View>
+        <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 2 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Biz Kimiz?</Text>
+          <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15 }}>
+            GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur.
+          </Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Amacımız</Text>
+          <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15 }}>
+            Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. En yakın, en güvenilir ustayı tek tıkla bulmanızı sağlıyoruz.
+          </Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#e67e22', textAlign: 'center', fontStyle: 'italic' }}>
+            Gullanın Gari!!
+          </Text>
+        </View>
         <View style={{ backgroundColor: '#E8F5E9', borderRadius: 16, padding: 20, marginBottom: 30 }}>
           <Text style={{ color: '#588157', fontWeight: 'bold', textAlign: 'center' }}>📧 info@gayit.com.tr</Text>
           <Text style={{ color: '#588157', textAlign: 'center', marginTop: 5 }}>🌐 gayit.com.tr</Text>
@@ -408,10 +553,11 @@ export function HakkimizdaEkrani({ setEkran, s }) {
 // ============================================================
 // HİZMET KOŞULLARI EKRANI
 // ============================================================
-export function HizmetKosullariEkrani({ setEkran, kayittan, s }) {
+export function HizmetKosullariEkrani({ setEkran, setSozlesmeKabul, kayittan, s }) {
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
+        {/* Geri tuşu — kayıt ekranından geldiyse auth'a döner */}
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran(kayittan ? 'auth' : 'anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
@@ -419,25 +565,29 @@ export function HizmetKosullariEkrani({ setEkran, kayittan, s }) {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-     <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15, textAlign: 'center' }}>
-        GAYIT KULLANIM VE HİZMET KOŞULLARI
-      </Text>
-      {[
-        { baslik: '1. Hizmetin Kapsamı', icerik: 'GAYIT, Muğla ve ilçelerinde hizmet veren ustalar ile hizmet almak isteyen kullanıcıları buluşturan bir dijital platformdur. GAYIT, taraflar arasında sadece bir aracı konumundadır; verilen hizmetin kalitesinden, tamamlanmasından veya usta-müşteri arasındaki fiyatsal anlaşmazlıklardan doğrudan sorumlu tutulamaz.' },
-        { baslik: '2. Üyelik ve Güvenlik', icerik: 'Sisteme kayıt olurken beyan edilen isim, soyisim ve telefon numarası gibi bilgilerin doğruluğundan kullanıcı sorumludur. Başkasına ait bilgilerle hesap açılması veya yanıltıcı ilan/teklif verilmesi durumunda hesabınız süresiz olarak askıya alınır.' },
-        { baslik: '3. Teklif ve Anlaşma Süreci', icerik: 'Ustalar: Verilen teklifler bağlayıcıdır. Gereksiz veya alakasız tekliflerle sistemi meşgul etmek "Hak" iadesi yapılmaksızın kısıtlama sebebidir. Müşteriler: İlanların detaylı ve doğru açıklanması usta memnuniyeti için esastır. Anlaşma sağlandığı anda tarafların iletişim bilgileri (telefon numarası) karşılıklı olarak erişime açılır.' },
-        { baslik: '4. Ödeme, Haklar ve İade Politikası', icerik: 'Uygulama üzerinden satın alınan ilan verme hakları, usta teklif hakları veya VIP abonelikler dijital içerik kapsamında olduğu için iade edilemez. Satın alınan paketler sadece hesap sahibi tarafından kullanılabilir, devredilemez.' },
-        { baslik: '5. Sorumluluk Sınırları', icerik: 'GAYIT, platform üzerindeki kullanıcıların davranışlarından, iş sahasındaki olası kazalardan veya tarafların birbirine verdiği zararlardan hukuki olarak sorumlu değildir. Bizim görevimiz; doğru ustayı, doğru müşteriyle en hızlı şekilde buluşturmaktır.' },
-        { baslik: '6. Kişisel Verilerin Korunması (KVKK)', icerik: 'Verileriniz Milas merkezli yerel sunucularımızda ve güvenli altyapılarda saklanır. Telefon numaranız, siz onay verip bir iş için "Anlaşma" butonuna basana kadar kesinlikle üçüncü taraflarla paylaşılmaz.' },
-        { baslik: '7. Değişiklik Hakkı', icerik: 'GAYIT yönetimi, hizmet bedellerini, paket içeriklerini ve bu koşulları önceden haber vermeksizin güncelleme hakkını saklı tutar.' }
-      ].map((madde, i) => (
+        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15, textAlign: 'center' }}>
+          GAYIT KULLANIM VE HİZMET KOŞULLARI
+        </Text>
+        {[
+          { baslik: '1. Hizmetin Kapsamı', icerik: 'GAYIT, Muğla ve ilçelerinde hizmet veren ustalar ile hizmet almak isteyen kullanıcıları buluşturan bir dijital platformdur.' },
+          { baslik: '2. Üyelik ve Güvenlik', icerik: 'Sisteme kayıt olurken beyan edilen bilgilerin doğruluğundan kullanıcı sorumludur.' },
+          { baslik: '3. Teklif ve Anlaşma Süreci', icerik: 'Verilen teklifler bağlayıcıdır. Anlaşma sağlandığında tarafların iletişim bilgileri karşılıklı açılır.' },
+          { baslik: '4. Ödeme ve İade Politikası', icerik: 'Satın alınan dijital içerikler iade edilemez.' },
+          { baslik: '5. Sorumluluk Sınırları', icerik: 'GAYIT, platform kullanıcılarının davranışlarından hukuki olarak sorumlu değildir.' },
+          { baslik: '6. Kişisel Verilerin Korunması', icerik: 'Telefon numaranız, "Anlaşma" butonuna basana kadar üçüncü taraflarla paylaşılmaz.' },
+          { baslik: '7. Değişiklik Hakkı', icerik: 'GAYIT yönetimi, hizmet bedellerini ve koşulları güncelleme hakkını saklı tutar.' },
+        ].map((madde, i) => (
           <View key={i} style={{ marginBottom: 20 }}>
             <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#1B4965', marginBottom: 5 }}>{madde.baslik}</Text>
             <Text style={{ color: '#526E7F', lineHeight: 22 }}>{madde.icerik}</Text>
           </View>
         ))}
         {kayittan && (
-          <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => setEkran('auth')}>
+          // "Okudum" butonu sozlesmeKabul'ü true yapar, auth'a döner
+          <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => {
+            if (setSozlesmeKabul) setSozlesmeKabul(true);
+            setEkran('auth');
+          }}>
             <Text style={s.anaBtnY}>✅ OKUDUM, ANLADIM</Text>
           </TouchableOpacity>
         )}
@@ -453,9 +603,7 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
   const [bildirimler, setBildirimler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
-  useEffect(() => {
-    bildirimYukle();
-  }, []);
+  useEffect(() => { bildirimYukle(); }, []);
 
   const bildirimYukle = async () => {
     if (!kullanici?.uid) return;
@@ -463,12 +611,8 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
       const res = await fetch(`${DB_URL}/bildirimler/${kullanici.uid}.json`);
       const data = await res.json();
       if (data) {
-        const liste = Object.keys(data)
-          .map(key => ({ id: key, ...data[key] }))
-          .sort((a, b) => b.tarih - a.tarih);
+        const liste = Object.keys(data).map(key => ({ id: key, ...data[key] })).sort((a, b) => b.tarih - a.tarih);
         setBildirimler(liste);
-
-        // Hepsini okundu yap
         const okunmamislar = liste.filter(b => !b.okundu);
         for (const b of okunmamislar) {
           await fetch(`${DB_URL}/bildirimler/${kullanici.uid}/${b.id}.json`, {
@@ -494,7 +638,6 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
         <Text style={s.headerBaslik}>🔔 Bildirimler</Text>
         <View style={{ width: 24 }} />
       </View>
-
       <ScrollView style={s.scroll}>
         {yukleniyor ? (
           <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 40 }}>Yükleniyor...</Text>
@@ -505,15 +648,11 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
           </View>
         ) : (
           bildirimler.map(b => (
-            <View
-              key={b.id}
-              style={{
-                backgroundColor: b.okundu ? '#FFF' : '#E1F2FE',
-                borderRadius: 12, padding: 15, marginBottom: 10,
-                borderLeftWidth: 4,
-                borderLeftColor: b.okundu ? '#D1D9E0' : '#1B4965',
-              }}
-            >
+            <View key={b.id} style={{
+              backgroundColor: b.okundu ? '#FFF' : '#E1F2FE',
+              borderRadius: 12, padding: 15, marginBottom: 10,
+              borderLeftWidth: 4, borderLeftColor: b.okundu ? '#D1D9E0' : '#1B4965',
+            }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Text style={{ fontWeight: 'bold', color: '#1B4965', flex: 1 }}>{b.baslik}</Text>
                 <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{zamanFarki(b.tarih)}</Text>

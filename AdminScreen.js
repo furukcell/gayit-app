@@ -3,16 +3,14 @@
 // Admin Paneli — sadece rol === 'admin' olan hesaplarda görünür
 // ============================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, TextInput, FlatList, Image, Linking
+  ScrollView, Alert, TextInput, Image, Linking,
+  Modal, KeyboardAvoidingView, Platform, FlatList
 } from 'react-native';
 import { DB_URL, damgaToTarih, zamanFarki } from './constants';
 
-// ============================================================
-// ADMIN EKRANI
-// ============================================================
 export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [aktifSekme, setAktifSekme] = useState('istatistik');
   const [kullanicilar, setKullanicilar] = useState([]);
@@ -24,36 +22,43 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [duyuruMesaj, setDuyuruMesajState] = useState('');
   const [aramaMetni, setAramaMetni] = useState('');
 
-  useEffect(() => {
-    veriYukle();
-  }, []);
+  // Mesaj yanıt modal state
+  const [yanıtModalAcik, setYanitModalAcik] = useState(false);
+  const [secilenMesaj, setSecilenMesaj] = useState(null);
+  const [adminYanit, setAdminYanit] = useState('');
+  const [sohbetMesajlari, setSohbetMesajlari] = useState([]);
+  const flatListRef = useRef(null);
+
+  // Kupon state
+  const [kuponAd, setKuponAd] = useState('');
+  const [kuponHedef, setKuponHedef] = useState('hepsi'); // hepsi | usta | musteri
+  const [kuponAdet, setKuponAdet] = useState('');
+  const [kuponGun, setKuponGun] = useState('');
+  const [kuponIcerik, setKuponIcerik] = useState(''); // ilan veya teklif adedi
+  const [kuponyukleniyor, setKuponyukleniyor] = useState(false);
+  const [mevcutKuponlar, setMevcutKuponlar] = useState([]);
+
+  useEffect(() => { veriYukle(); }, []);
 
   const veriYukle = async () => {
     setYukleniyor(true);
     try {
-      const [kulRes, ilanRes, sikRes, mesRes] = await Promise.all([
+      const [kulRes, ilanRes, sikRes, mesRes, kuponRes] = await Promise.all([
         fetch(`${DB_URL}/kullanicilar.json`),
         fetch(`${DB_URL}/ilanlar.json`),
         fetch(`${DB_URL}/sikayetler.json`),
         fetch(`${DB_URL}/iletisim.json`),
+        fetch(`${DB_URL}/kuponlar.json`),
+      ]);
+      const [kulData, ilanData, sikData, mesData, kuponData] = await Promise.all([
+        kulRes.json(), ilanRes.json(), sikRes.json(), mesRes.json(), kuponRes.json(),
       ]);
 
-      const [kulData, ilanData, sikData, mesData] = await Promise.all([
-        kulRes.json(), ilanRes.json(), sikRes.json(), mesRes.json(),
-      ]);
-
-      if (kulData) {
-        setKullanicilar(Object.entries(kulData).map(([uid, v]) => ({ uid, ...v })));
-      }
-      if (ilanData) {
-        setIlanlar(Object.entries(ilanData).map(([id, v]) => ({ id, ...v })));
-      }
-      if (sikData) {
-        setSikayetler(Object.entries(sikData).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.tarih - a.tarih));
-      }
-      if (mesData) {
-        setMesajlar(Object.entries(mesData).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.tarih - a.tarih));
-      }
+      if (kulData) setKullanicilar(Object.entries(kulData).map(([uid, v]) => ({ uid, ...v })));
+      if (ilanData) setIlanlar(Object.entries(ilanData).map(([id, v]) => ({ id, ...v })));
+      if (sikData) setSikayetler(Object.entries(sikData).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.tarih - a.tarih));
+      if (mesData) setMesajlar(Object.entries(mesData).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.tarih - a.tarih));
+      if (kuponData) setMevcutKuponlar(Object.entries(kuponData).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.olusturmaTarihi - a.olusturmaTarihi));
     } catch (e) {
       Alert.alert('Hata', 'Veriler yüklenemedi!');
     } finally {
@@ -61,7 +66,6 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     }
   };
 
-  // İstatistikler
   const istatistikler = {
     toplamKullanici: kullanicilar.length,
     toplamUsta: kullanicilar.filter(k => k.rol === 'usta').length,
@@ -75,7 +79,6 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     vipUye: kullanicilar.filter(k => k.abonelik).length,
   };
 
-  // Kullanıcı dondur / aktifleştir
   const kullaniciyiDondur = async (uid, mevcutDurum) => {
     const yeniDurum = !mevcutDurum;
     try {
@@ -86,30 +89,21 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
       });
       setKullanicilar(prev => prev.map(k => k.uid === uid ? { ...k, donduruldu: yeniDurum } : k));
       Alert.alert('Başarılı', yeniDurum ? 'Hesap donduruldu.' : 'Hesap aktifleştirildi.');
-    } catch (e) {
-      Alert.alert('Hata', 'İşlem gerçekleştirilemedi!');
-    }
+    } catch (e) { Alert.alert('Hata', 'İşlem gerçekleştirilemedi!'); }
   };
 
-  // Kullanıcı sil
   const kullaniciyiSil = async (uid) => {
     Alert.alert('Emin misin?', 'Bu kullanıcı kalıcı olarak silinecek!', [
       { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil', style: 'destructive',
-        onPress: async () => {
-          try {
-            await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`, { method: 'DELETE' });
-            setKullanicilar(prev => prev.filter(k => k.uid !== uid));
-          } catch (e) {
-            Alert.alert('Hata', 'Silinemedi!');
-          }
-        },
-      },
+      { text: 'Sil', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`, { method: 'DELETE' });
+          setKullanicilar(prev => prev.filter(k => k.uid !== uid));
+        } catch (e) { Alert.alert('Hata', 'Silinemedi!'); }
+      }},
     ]);
   };
 
-  // Onay ver / reddet
   const onayKarari = async (uid, karar) => {
     try {
       await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`, {
@@ -119,30 +113,21 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
       });
       setKullanicilar(prev => prev.map(k => k.uid === uid ? { ...k, onayDurumu: karar } : k));
       Alert.alert('Başarılı', karar === 'onayli' ? '✅ Usta onaylandı!' : '❌ Başvuru reddedildi.');
-    } catch (e) {
-      Alert.alert('Hata', 'İşlem yapılamadı!');
-    }
+    } catch (e) { Alert.alert('Hata', 'İşlem yapılamadı!'); }
   };
 
-  // İlan sil
   const ilanSil = async (ilanId) => {
     Alert.alert('Emin misin?', 'Bu ilan kalıcı olarak silinecek!', [
       { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil', style: 'destructive',
-        onPress: async () => {
-          try {
-            await fetch(`${DB_URL}/ilanlar/${ilanId}.json?auth=${token}`, { method: 'DELETE' });
-            setIlanlar(prev => prev.filter(i => i.id !== ilanId));
-          } catch (e) {
-            Alert.alert('Hata', 'İlan silinemedi!');
-          }
-        },
-      },
+      { text: 'Sil', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${DB_URL}/ilanlar/${ilanId}.json?auth=${token}`, { method: 'DELETE' });
+          setIlanlar(prev => prev.filter(i => i.id !== ilanId));
+        } catch (e) { Alert.alert('Hata', 'İlan silinemedi!'); }
+      }},
     ]);
   };
 
-  // Şikayet güncelle
   const sikayetGuncelle = async (sikayetId, durum) => {
     try {
       await fetch(`${DB_URL}/sikayetler/${sikayetId}.json?auth=${token}`, {
@@ -151,55 +136,117 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         body: JSON.stringify({ durum }),
       });
       setSikayetler(prev => prev.map(s => s.id === sikayetId ? { ...s, durum } : s));
-    } catch (e) {
-      Alert.alert('Hata', 'Güncellenemedi!');
-    }
+    } catch (e) { Alert.alert('Hata', 'Güncellenemedi!'); }
   };
 
-  // İletişim mesajı okundu işaretle
-  const mesajOkundu = async (mesajId) => {
-    try {
-      await fetch(`${DB_URL}/iletisim/${mesajId}.json?auth=${token}`, {
+  // Mesaj tıklanınca sohbet penceresini aç
+  const mesajAc = async (mesaj) => {
+    setSecilenMesaj(mesaj);
+    setYanitModalAcik(true);
+
+    // Okundu işaretle
+    if (!mesaj.okundu) {
+      await fetch(`${DB_URL}/iletisim/${mesaj.id}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ okundu: true }),
-      });
-      setMesajlar(prev => prev.map(m => m.id === mesajId ? { ...m, okundu: true } : m));
-    } catch (e) {
-      console.log('Okundu işareti yapılamadı:', e);
+      }).catch(() => {});
+      setMesajlar(prev => prev.map(m => m.id === mesaj.id ? { ...m, okundu: true } : m));
     }
+
+    // Mevcut yanıtları yükle
+    try {
+      const res = await fetch(`${DB_URL}/iletisim/${mesaj.id}/yanıtlar.json`);
+      const data = await res.json();
+      if (data) {
+        const liste = Object.entries(data).map(([id, v]) => ({ id, ...v })).sort((a, b) => a.tarih - b.tarih);
+        setSohbetMesajlari(liste);
+      } else {
+        setSohbetMesajlari([]);
+      }
+    } catch (e) { setSohbetMesajlari([]); }
+
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 200);
   };
 
-  // Duyuru gönder
-  const duyuruGonder = async () => {
-    if (!duyuruBaslik || !duyuruMesaj) {
-      Alert.alert('Eksik', 'Başlık ve mesaj gerekli!');
+  // Admin yanıt gönder
+  const adminYanitGonder = async () => {
+    if (!adminYanit.trim() || !secilenMesaj) return;
+    const yeniYanit = {
+      metin: adminYanit.trim(),
+      gonderen: 'admin',
+      gonderenAd: 'GAYİT Yönetimi',
+      tarih: Date.now(),
+    };
+    try {
+      await fetch(`${DB_URL}/iletisim/${secilenMesaj.id}/yanıtlar.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(yeniYanit),
+      });
+      setSohbetMesajlari(prev => [...prev, { id: Date.now().toString(), ...yeniYanit }]);
+      setAdminYanit('');
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (e) { Alert.alert('Hata', 'Yanıt gönderilemedi!'); }
+  };
+
+  // Kupon oluştur
+  const kuponOlustur = async () => {
+    if (!kuponAd.trim() || !kuponAdet || !kuponGun || !kuponIcerik) {
+      Alert.alert('Eksik', 'Tüm alanları doldur!');
       return;
     }
+    setKuponyukleniyor(true);
     try {
-      const pushPromises = kullanicilar
-        .filter(k => k.pushToken)
-        .map(k =>
-          fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: k.pushToken,
-              title: duyuruBaslik,
-              body: duyuruMesaj,
-            }),
-          })
-        );
-      await Promise.all(pushPromises);
-      Alert.alert('Duyuru Gönderildi! 📣', `${pushPromises.length} kullanıcıya bildirim uçuruldu.`);
-      setDuyuruBaslik('');
-      setDuyuruMesajState('');
-    } catch (e) {
-      Alert.alert('Hata', 'Duyuru gönderilemedi!');
-    }
+      const yeniKupon = {
+        ad: kuponAd.trim().toUpperCase(),
+        hedef: kuponHedef,
+        adet: parseInt(kuponAdet),
+        kullanilanAdet: 0,
+        gecerliGun: parseInt(kuponGun),
+        icerik: parseInt(kuponIcerik),
+        olusturmaTarihi: Date.now(),
+        bitisTarihi: Date.now() + parseInt(kuponGun) * 86400000,
+        aktif: true,
+      };
+      await fetch(`${DB_URL}/kuponlar.json?auth=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(yeniKupon),
+      });
+      setMevcutKuponlar(prev => [{ id: Date.now().toString(), ...yeniKupon }, ...prev]);
+      Alert.alert('✅ Kupon Oluşturuldu!', `"${yeniKupon.ad}" kodu oluşturuldu.`);
+      setKuponAd(''); setKuponAdet(''); setKuponGun(''); setKuponIcerik('');
+    } catch (e) { Alert.alert('Hata', 'Kupon oluşturulamadı!'); }
+    finally { setKuponyukleniyor(false); }
   };
 
-  // Filtrelenmiş kullanıcılar
+  const kuponSil = async (kuponId) => {
+    Alert.alert('Kuponu Sil', 'Bu kupon silinecek!', [
+      { text: 'Vazgeç', style: 'cancel' },
+      { text: 'Sil', style: 'destructive', onPress: async () => {
+        await fetch(`${DB_URL}/kuponlar/${kuponId}.json?auth=${token}`, { method: 'DELETE' }).catch(() => {});
+        setMevcutKuponlar(prev => prev.filter(k => k.id !== kuponId));
+      }},
+    ]);
+  };
+
+  const duyuruGonder = async () => {
+    if (!duyuruBaslik || !duyuruMesaj) { Alert.alert('Eksik', 'Başlık ve mesaj gerekli!'); return; }
+    try {
+      const pushPromises = kullanicilar.filter(k => k.pushToken).map(k =>
+        fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: k.pushToken, title: duyuruBaslik, body: duyuruMesaj }),
+        })
+      );
+      await Promise.all(pushPromises);
+      Alert.alert('Duyuru Gönderildi! 📣', `${pushPromises.length} kullanıcıya bildirim uçuruldu.`);
+      setDuyuruBaslik(''); setDuyuruMesajState('');
+    } catch (e) { Alert.alert('Hata', 'Duyuru gönderilemedi!'); }
+  };
+
   const filtreliKullanicilar = kullanicilar.filter(k =>
     k.ad?.toLowerCase().includes(aramaMetni.toLowerCase()) ||
     k.email?.toLowerCase().includes(aramaMetni.toLowerCase())
@@ -212,6 +259,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     { key: 'ilanlar', label: '📋' },
     { key: 'sikayetler', label: '⚠️' },
     { key: 'mesajlar', label: '✉️' },
+    { key: 'kuponlar', label: '🎫' },
     { key: 'duyuru', label: '📣' },
   ];
 
@@ -227,17 +275,12 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         </TouchableOpacity>
       </View>
 
-      {/* Sekme Barı */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: '#1B4965', maxHeight: 48 }}>
         {SEKMELER.map(sekme => (
           <TouchableOpacity
             key={sekme.key}
             onPress={() => setAktifSekme(sekme.key)}
-            style={{
-              paddingHorizontal: 18, paddingVertical: 12,
-              borderBottomWidth: aktifSekme === sekme.key ? 3 : 0,
-              borderBottomColor: '#F39C12',
-            }}
+            style={{ paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: aktifSekme === sekme.key ? 3 : 0, borderBottomColor: '#F39C12' }}
           >
             <Text style={{ color: '#FFF', fontSize: 18 }}>
               {sekme.label}
@@ -268,10 +311,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
                 { label: 'Okunmamış Mesaj', deger: istatistikler.okunmamisMesaj, renk: '#9B59B6' },
                 { label: 'VIP Üye', deger: istatistikler.vipUye, renk: '#F39C12' },
               ].map((stat, i) => (
-                <View key={i} style={{
-                  backgroundColor: stat.renk, borderRadius: 12, padding: 15,
-                  width: '47%', alignItems: 'center',
-                }}>
+                <View key={i} style={{ backgroundColor: stat.renk, borderRadius: 12, padding: 15, width: '47%', alignItems: 'center' }}>
                   <Text style={{ color: '#FFF', fontSize: 28, fontWeight: 'bold' }}>{stat.deger}</Text>
                   <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4 }}>{stat.label}</Text>
                 </View>
@@ -283,40 +323,21 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         {/* ---- KULLANICILAR ---- */}
         {aktifSekme === 'kullanicilar' && (
           <View style={{ padding: 15 }}>
-            <TextInput
-              style={[s.inp, { marginBottom: 15 }]}
-              placeholder="Ad veya e-posta ara..."
-              value={aramaMetni}
-              onChangeText={setAramaMetni}
-            />
+            <TextInput style={[s.inp, { marginBottom: 15 }]} placeholder="Ad veya e-posta ara..." value={aramaMetni} onChangeText={setAramaMetni} />
             {filtreliKullanicilar.map(k => (
               <View key={k.uid} style={[s.kart, { marginBottom: 10 }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>{k.ad}</Text>
-                    <Text style={{ color: '#526E7F', fontSize: 12 }}>{k.email}</Text>
-                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
-                      {k.rol === 'usta' ? '🛠️ Usta' : '👤 Müşteri'} • {k.bolge} • Hak: {k.hak || 0}
-                      {k.abonelik ? ' • 👑 VIP' : ''}
-                      {k.onayDurumu === 'onayli' ? ' • ✅ Onaylı' : ''}
-                      {k.donduruldu ? ' • ❄️ Donduruldu' : ''}
-                    </Text>
-                    <Text style={{ color: '#A3B1B9', fontSize: 10 }}>Kayıt: {damgaToTarih(k.kayitTarihi)}</Text>
-                  </View>
-                </View>
+                <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>{k.ad}</Text>
+                <Text style={{ color: '#526E7F', fontSize: 12 }}>{k.email}</Text>
+                <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
+                  {k.rol === 'usta' ? '🛠️ Usta' : '👤 Müşteri'} • {k.bolge} • Hak: {k.hak || 0}
+                  {k.abonelik ? ' • 👑 VIP' : ''}{k.donduruldu ? ' • ❄️ Donduruldu' : ''}
+                </Text>
+                <Text style={{ color: '#A3B1B9', fontSize: 10 }}>Kayıt: {damgaToTarih(k.kayitTarihi)}</Text>
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                  <TouchableOpacity
-                    style={{ backgroundColor: k.donduruldu ? '#588157' : '#F39C12', padding: 8, borderRadius: 8, flex: 1 }}
-                    onPress={() => kullaniciyiDondur(k.uid, k.donduruldu)}
-                  >
-                    <Text style={{ color: '#FFF', fontSize: 11, textAlign: 'center', fontWeight: 'bold' }}>
-                      {k.donduruldu ? '✅ Aktifleştir' : '❄️ Dondur'}
-                    </Text>
+                  <TouchableOpacity style={{ backgroundColor: k.donduruldu ? '#588157' : '#F39C12', padding: 8, borderRadius: 8, flex: 1 }} onPress={() => kullaniciyiDondur(k.uid, k.donduruldu)}>
+                    <Text style={{ color: '#FFF', fontSize: 11, textAlign: 'center', fontWeight: 'bold' }}>{k.donduruldu ? '✅ Aktifleştir' : '❄️ Dondur'}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{ backgroundColor: '#E74C3C', padding: 8, borderRadius: 8, flex: 1 }}
-                    onPress={() => kullaniciyiSil(k.uid)}
-                  >
+                  <TouchableOpacity style={{ backgroundColor: '#E74C3C', padding: 8, borderRadius: 8, flex: 1 }} onPress={() => kullaniciyiSil(k.uid)}>
                     <Text style={{ color: '#FFF', fontSize: 11, textAlign: 'center', fontWeight: 'bold' }}>🗑️ Sil</Text>
                   </TouchableOpacity>
                 </View>
@@ -325,12 +346,10 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
           </View>
         )}
 
-        {/* ---- ONAY BEKLEYENLERx ---- */}
+        {/* ---- ONAY ---- */}
         {aktifSekme === 'onay' && (
           <View style={{ padding: 15 }}>
-            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>
-              Onay Bekleyen Ustalar ({istatistikler.bekleyenOnay})
-            </Text>
+            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>Onay Bekleyen Ustalar ({istatistikler.bekleyenOnay})</Text>
             {kullanicilar.filter(k => k.onayDurumu === 'beklemede').length === 0 ? (
               <Text style={{ color: '#A3B1B9', textAlign: 'center', marginTop: 20 }}>Bekleyen başvuru yok.</Text>
             ) : (
@@ -339,64 +358,11 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
                   <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>{k.ad}</Text>
                   <Text style={{ color: '#526E7F', fontSize: 12 }}>{k.email}</Text>
                   <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{k.meslek} • {k.bolge}</Text>
-                  <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
-                    Başvuru: {damgaToTarih(k.basvuruTarihi)}
-                  </Text>
-
-                  {/* Belge görüntüleme */}
-                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 12 }}>
-                    {k.kimlikUrl ? (
-                      <TouchableOpacity
-                        style={{ flex: 1 }}
-                        onPress={() => Linking.openURL(k.kimlikUrl)}
-                      >
-                        <Image
-                          source={{ uri: k.kimlikUrl }}
-                          style={{ width: '100%', height: 100, borderRadius: 8 }}
-                          resizeMode="cover"
-                        />
-                        <Text style={{ color: '#1B4965', fontSize: 11, textAlign: 'center', marginTop: 4 }}>
-                          🪪 Kimlik (Aç →)
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={{ flex: 1, backgroundColor: '#F5F5F0', height: 100, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-                        <Text style={{ color: '#A3B1B9', fontSize: 12 }}>Kimlik yüklenmedi</Text>
-                      </View>
-                    )}
-
-                    {k.ustaBelgeUrl ? (
-                      <TouchableOpacity
-                        style={{ flex: 1 }}
-                        onPress={() => Linking.openURL(k.ustaBelgeUrl)}
-                      >
-                        <Image
-                          source={{ uri: k.ustaBelgeUrl }}
-                          style={{ width: '100%', height: 100, borderRadius: 8 }}
-                          resizeMode="cover"
-                        />
-                        <Text style={{ color: '#1B4965', fontSize: 11, textAlign: 'center', marginTop: 4 }}>
-                          📄 Ustalık (Aç →)
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={{ flex: 1, backgroundColor: '#F5F5F0', height: 100, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-                        <Text style={{ color: '#A3B1B9', fontSize: 12 }}>Belge yüklenmedi</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                      style={{ backgroundColor: '#588157', padding: 10, borderRadius: 8, flex: 1 }}
-                      onPress={() => onayKarari(k.uid, 'onayli')}
-                    >
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                    <TouchableOpacity style={{ backgroundColor: '#588157', padding: 10, borderRadius: 8, flex: 1 }} onPress={() => onayKarari(k.uid, 'onayli')}>
                       <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>✅ Onayla</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{ backgroundColor: '#E74C3C', padding: 10, borderRadius: 8, flex: 1 }}
-                      onPress={() => onayKarari(k.uid, 'reddedildi')}
-                    >
+                    <TouchableOpacity style={{ backgroundColor: '#E74C3C', padding: 10, borderRadius: 8, flex: 1 }} onPress={() => onayKarari(k.uid, 'reddedildi')}>
                       <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>❌ Reddet</Text>
                     </TouchableOpacity>
                   </View>
@@ -409,25 +375,14 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         {/* ---- İLANLAR ---- */}
         {aktifSekme === 'ilanlar' && (
           <View style={{ padding: 15 }}>
-            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>
-              Tüm İlanlar ({ilanlar.length})
-            </Text>
+            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>Tüm İlanlar ({ilanlar.length})</Text>
             {ilanlar.map(ilan => (
               <View key={ilan.id} style={[s.kart, { marginBottom: 10 }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={s.kategoriBadge}>{ilan.kategori}</Text>
-                  {ilan.acil && <Text style={{ color: '#FF4444', fontWeight: 'bold', fontSize: 12 }}>🚨 ACİL</Text>}
-                </View>
+                <Text style={s.kategoriBadge}>{ilan.kategori}</Text>
                 <Text style={{ fontWeight: 'bold', color: '#1B4965', marginTop: 5 }}>{ilan.baslik}</Text>
                 <Text style={{ color: '#526E7F', fontSize: 12 }}>{ilan.bolge} • {ilan.sahip}</Text>
-                <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{zamanFarki(ilan.tarih)}</Text>
-                <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
-                  {ilan.anlasmaVar ? '✅ Anlaşma var' : `${ilan.teklifler?.length || 0} teklif`}
-                </Text>
-                <TouchableOpacity
-                  style={{ backgroundColor: '#E74C3C', padding: 8, borderRadius: 8, marginTop: 10 }}
-                  onPress={() => ilanSil(ilan.id)}
-                >
+                <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{zamanFarki(ilan.tarih)} • {ilan.anlasmaVar ? '✅ Anlaşma var' : `${ilan.teklifler?.length || 0} teklif`}</Text>
+                <TouchableOpacity style={{ backgroundColor: '#E74C3C', padding: 8, borderRadius: 8, marginTop: 10 }} onPress={() => ilanSil(ilan.id)}>
                   <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>🗑️ İlanı Sil</Text>
                 </TouchableOpacity>
               </View>
@@ -438,43 +393,24 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         {/* ---- ŞİKAYETLER ---- */}
         {aktifSekme === 'sikayetler' && (
           <View style={{ padding: 15 }}>
-            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>
-              Şikayetler ({sikayetler.length})
-            </Text>
+            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>Şikayetler ({sikayetler.length})</Text>
             {sikayetler.length === 0 ? (
               <Text style={{ color: '#A3B1B9', textAlign: 'center', marginTop: 20 }}>Şikayet yok.</Text>
             ) : (
-              sikayetler.map(s => (
-                <View key={s.id} style={[{
-                  ...s,
-                  backgroundColor: '#FFF', borderRadius: 12, padding: 15,
-                  marginBottom: 10, elevation: 2,
-                  borderLeftWidth: 4,
-                  borderLeftColor: s.durum === 'beklemede' ? '#E74C3C' : s.durum === 'inceleniyor' ? '#F39C12' : '#588157',
-                }]}>
+              sikayetler.map(sikayet => (
+                <View key={sikayet.id} style={{ backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, elevation: 2, borderLeftWidth: 4, borderLeftColor: sikayet.durum === 'beklemede' ? '#E74C3C' : sikayet.durum === 'inceleniyor' ? '#F39C12' : '#588157' }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>{s.tip}</Text>
-                    <Text style={{ fontSize: 11, color: '#A3B1B9' }}>{zamanFarki(s.tarih)}</Text>
+                    <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>{sikayet.tip}</Text>
+                    <Text style={{ fontSize: 11, color: '#A3B1B9' }}>{zamanFarki(sikayet.tarih)}</Text>
                   </View>
-                  <Text style={{ color: '#E74C3C', fontSize: 12, marginTop: 4 }}>Hedef: {s.hedef}</Text>
-                  <Text style={{ color: '#526E7F', fontSize: 12 }}>Şikayet eden: {s.gonderen}</Text>
-                  <Text style={{ color: '#526E7F', marginTop: 6, fontStyle: 'italic' }}>{s.mesaj}</Text>
+                  <Text style={{ color: '#E74C3C', fontSize: 12, marginTop: 4 }}>Hedef: {sikayet.hedef}</Text>
+                  <Text style={{ color: '#526E7F', fontSize: 12 }}>Şikayet eden: {sikayet.gonderen}</Text>
+                  <Text style={{ color: '#526E7F', marginTop: 6, fontStyle: 'italic' }}>{sikayet.mesaj}</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                     {['beklemede', 'inceleniyor', 'cozuldu'].map(durum => (
-                      <TouchableOpacity
-                        key={durum}
-                        style={{
-                          flex: 1, padding: 7, borderRadius: 8,
-                          backgroundColor: s.durum === durum ? '#1B4965' : '#F5F5F0',
-                        }}
-                        onPress={() => sikayetGuncelle(s.id, durum)}
-                      >
-                        <Text style={{
-                          color: s.durum === durum ? '#FFF' : '#526E7F',
-                          fontSize: 10, textAlign: 'center', fontWeight: 'bold',
-                        }}>
-                          {durum === 'beklemede' ? '⏳' : durum === 'inceleniyor' ? '🔍' : '✅'}
-                          {' '}{durum}
+                      <TouchableOpacity key={durum} style={{ flex: 1, padding: 7, borderRadius: 8, backgroundColor: sikayet.durum === durum ? '#1B4965' : '#F5F5F0' }} onPress={() => sikayetGuncelle(sikayet.id, durum)}>
+                        <Text style={{ color: sikayet.durum === durum ? '#FFF' : '#526E7F', fontSize: 10, textAlign: 'center', fontWeight: 'bold' }}>
+                          {durum === 'beklemede' ? '⏳' : durum === 'inceleniyor' ? '🔍' : '✅'} {durum}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -497,25 +433,80 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
               mesajlar.map(m => (
                 <TouchableOpacity
                   key={m.id}
-                  style={{
-                    backgroundColor: m.okundu ? '#F5F5F0' : '#E1F2FE',
-                    borderRadius: 12, padding: 15, marginBottom: 10,
-                    borderLeftWidth: 4, borderLeftColor: m.okundu ? '#D1D9E0' : '#1B4965',
-                  }}
-                  onPress={() => mesajOkundu(m.id)}
+                  style={{ backgroundColor: m.okundu ? '#F5F5F0' : '#E1F2FE', borderRadius: 12, padding: 15, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: m.okundu ? '#D1D9E0' : '#1B4965' }}
+                  onPress={() => mesajAc(m)}
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>{m.konu}</Text>
                     <Text style={{ fontSize: 11, color: '#A3B1B9' }}>{zamanFarki(m.tarih)}</Text>
                   </View>
                   <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 4 }}>{m.gonderen}</Text>
-                  <Text style={{ color: '#526E7F', marginTop: 6 }}>{m.mesaj}</Text>
-                  {!m.okundu && (
-                    <Text style={{ color: '#1B4965', fontSize: 11, marginTop: 6, fontWeight: 'bold' }}>
-                      👆 Okundu olarak işaretle
-                    </Text>
-                  )}
+                  <Text style={{ color: '#526E7F', marginTop: 6 }} numberOfLines={2}>{m.mesaj}</Text>
+                  <Text style={{ color: '#1B4965', fontSize: 12, marginTop: 6, fontWeight: 'bold' }}>
+                    💬 {m.okundu ? 'Yanıtla / Görüntüle' : 'Yeni mesaj — Yanıtla'}
+                  </Text>
                 </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* ---- KUPONLAR ---- */}
+        {aktifSekme === 'kuponlar' && (
+          <View style={{ padding: 15 }}>
+            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>🎫 Kupon Oluştur</Text>
+
+            <Text style={s.inputBaslik}>Kupon Adı / Kodu</Text>
+            <TextInput style={s.inp} placeholder="Örn: BAYRAM2026" value={kuponAd} onChangeText={setKuponAd} autoCapitalize="characters" />
+
+            <Text style={s.inputBaslik}>Hedef Kitle</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 15 }}>
+              {[{ key: 'hepsi', label: 'Hepsi' }, { key: 'usta', label: 'Usta' }, { key: 'musteri', label: 'Müşteri' }].map(h => (
+                <TouchableOpacity key={h.key} style={[s.chip, kuponHedef === h.key && s.chipAktif]} onPress={() => setKuponHedef(h.key)}>
+                  <Text style={[s.chipY, kuponHedef === h.key && s.chipYAktif]}>{h.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={s.inputBaslik}>Toplam Kullanım Adedi</Text>
+            <TextInput style={s.inp} placeholder="Örn: 50" value={kuponAdet} onChangeText={setKuponAdet} keyboardType="numeric" />
+
+            <Text style={s.inputBaslik}>Geçerlilik Süresi (Gün)</Text>
+            <TextInput style={s.inp} placeholder="Örn: 30" value={kuponGun} onChangeText={setKuponGun} keyboardType="numeric" />
+
+            <Text style={s.inputBaslik}>Kupon İçeriği (İlan / Teklif Adedi)</Text>
+            <TextInput style={s.inp} placeholder="Örn: 3 (3 ilan/teklif hakkı)" value={kuponIcerik} onChangeText={setKuponIcerik} keyboardType="numeric" />
+
+            <TouchableOpacity
+              style={[s.girisBtn, { backgroundColor: '#F39C12', opacity: kuponyukleniyor ? 0.7 : 1, marginBottom: 25 }]}
+              onPress={kuponOlustur}
+              disabled={kuponyukleniyor}
+            >
+              <Text style={s.anaBtnY}>{kuponyukleniyor ? 'Oluşturuluyor...' : '🎫 KUPONU OLUŞTUR'}</Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 15, marginBottom: 10 }}>Mevcut Kuponlar</Text>
+            {mevcutKuponlar.length === 0 ? (
+              <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>Henüz kupon yok.</Text>
+            ) : (
+              mevcutKuponlar.map(k => (
+                <View key={k.id} style={{ backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, elevation: 2, borderLeftWidth: 4, borderLeftColor: k.aktif ? '#588157' : '#E74C3C' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, letterSpacing: 2 }}>{k.ad}</Text>
+                    <Text style={{ color: k.aktif ? '#588157' : '#E74C3C', fontWeight: 'bold', fontSize: 12 }}>{k.aktif ? '✅ Aktif' : '❌ Pasif'}</Text>
+                  </View>
+                  <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 4 }}>
+                    Hedef: {k.hedef === 'hepsi' ? 'Herkes' : k.hedef === 'usta' ? 'Usta' : 'Müşteri'} •
+                    Kullanım: {k.kullanilanAdet || 0}/{k.adet} •
+                    İçerik: {k.icerik} hak
+                  </Text>
+                  <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 3 }}>
+                    Bitiş: {new Date(k.bitisTarihi).toLocaleDateString('tr-TR')}
+                  </Text>
+                  <TouchableOpacity style={{ backgroundColor: '#E74C3C', padding: 8, borderRadius: 8, marginTop: 10 }} onPress={() => kuponSil(k.id)}>
+                    <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>🗑️ Kuponu Sil</Text>
+                  </TouchableOpacity>
+                </View>
               ))
             )}
           </View>
@@ -524,39 +515,88 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         {/* ---- DUYURU ---- */}
         {aktifSekme === 'duyuru' && (
           <View style={{ padding: 15 }}>
-            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>
-              Tüm Kullanıcılara Duyuru Gönder
-            </Text>
+            <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>Tüm Kullanıcılara Duyuru Gönder</Text>
             <View style={{ backgroundColor: '#FFF8E1', padding: 12, borderRadius: 10, marginBottom: 15 }}>
-              <Text style={{ color: '#F39C12', fontSize: 12 }}>
-                📣 Bu duyuru push token'ı olan tüm kullanıcılara gönderilir ({kullanicilar.filter(k => k.pushToken).length} kullanıcı).
-              </Text>
+              <Text style={{ color: '#F39C12', fontSize: 12 }}>📣 Push token'ı olan tüm kullanıcılara gönderilir ({kullanicilar.filter(k => k.pushToken).length} kullanıcı).</Text>
             </View>
             <Text style={s.inputBaslik}>Başlık</Text>
-            <TextInput
-              style={s.inp}
-              placeholder="Duyuru başlığı..."
-              value={duyuruBaslik}
-              onChangeText={setDuyuruBaslik}
-            />
+            <TextInput style={s.inp} placeholder="Duyuru başlığı..." value={duyuruBaslik} onChangeText={setDuyuruBaslik} />
             <Text style={s.inputBaslik}>Mesaj</Text>
-            <TextInput
-              style={[s.inp, { height: 100, textAlignVertical: 'top' }]}
-              placeholder="Duyuru mesajı..."
-              value={duyuruMesaj}
-              onChangeText={setDuyuruMesajState}
-              multiline
-            />
-            <TouchableOpacity
-              style={[s.girisBtn, { backgroundColor: '#F39C12', marginBottom: 40 }]}
-              onPress={duyuruGonder}
-            >
+            <TextInput style={[s.inp, { height: 100, textAlignVertical: 'top' }]} placeholder="Duyuru mesajı..." value={duyuruMesaj} onChangeText={setDuyuruMesajState} multiline />
+            <TouchableOpacity style={[s.girisBtn, { backgroundColor: '#F39C12', marginBottom: 40 }]} onPress={duyuruGonder}>
               <Text style={s.anaBtnY}>📣 DUYURUYU GÖNDER</Text>
             </TouchableOpacity>
           </View>
         )}
 
       </ScrollView>
+
+      {/* ---- MESAJ YANIT MODALI ---- */}
+      <Modal visible={yanıtModalAcik} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F0' }}>
+          <View style={[s.header, { backgroundColor: '#1B4965' }]}>
+            <TouchableOpacity style={s.headerGeriBtn} onPress={() => { setYanitModalAcik(false); setSecilenMesaj(null); setAdminYanit(''); setSohbetMesajlari([]); }}>
+              <Text style={[s.menuSimge, { color: '#FFF' }]}>←</Text>
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.headerBaslik, { color: '#FFF' }]} numberOfLines={1}>{secilenMesaj?.konu}</Text>
+              <Text style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>{secilenMesaj?.gonderen}</Text>
+            </View>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {/* Orijinal mesaj */}
+          <View style={{ backgroundColor: '#E1F2FE', margin: 15, borderRadius: 12, padding: 15 }}>
+            <Text style={{ color: '#1B4965', fontWeight: 'bold', marginBottom: 5 }}>📩 Kullanıcı Mesajı</Text>
+            <Text style={{ color: '#526E7F' }}>{secilenMesaj?.mesaj}</Text>
+          </View>
+
+          {/* Sohbet alanı */}
+          <FlatList
+            ref={flatListRef}
+            data={sohbetMesajlari}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 10 }}
+            ListEmptyComponent={<Text style={{ color: '#A3B1B9', textAlign: 'center', marginTop: 10 }}>Henüz yanıt yok.</Text>}
+            renderItem={({ item }) => (
+              <View style={{
+                alignSelf: item.gonderen === 'admin' ? 'flex-end' : 'flex-start',
+                backgroundColor: item.gonderen === 'admin' ? '#1B4965' : '#FFF',
+                borderRadius: 12, padding: 12, marginBottom: 8, maxWidth: '80%',
+              }}>
+                <Text style={{ color: item.gonderen === 'admin' ? '#FFF' : '#1B4965', fontWeight: 'bold', fontSize: 11, marginBottom: 3 }}>
+                  {item.gonderenAd}
+                </Text>
+                <Text style={{ color: item.gonderen === 'admin' ? '#FFF' : '#526E7F' }}>{item.metin}</Text>
+                <Text style={{ color: item.gonderen === 'admin' ? 'rgba(255,255,255,0.5)' : '#A3B1B9', fontSize: 10, marginTop: 4, textAlign: 'right' }}>
+                  {new Date(item.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+            )}
+          />
+
+          {/* Yanıt giriş alanı */}
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+            <View style={{ flexDirection: 'row', padding: 10, paddingBottom: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'flex-end' }}>
+              <TextInput
+                style={{ flex: 1, backgroundColor: '#F5F5F0', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100, color: '#1B4965' }}
+                placeholder="Yanıt yaz..."
+                value={adminYanit}
+                onChangeText={setAdminYanit}
+                multiline
+              />
+              <TouchableOpacity
+                onPress={adminYanitGonder}
+                style={{ backgroundColor: adminYanit.trim() ? '#1B4965' : '#D1D9E0', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginLeft: 8 }}
+                disabled={!adminYanit.trim()}
+              >
+                <Text style={{ color: '#FFF', fontSize: 18 }}>➤</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 }
