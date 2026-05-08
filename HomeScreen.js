@@ -314,28 +314,6 @@ export function AnasayfaEkrani({
             </Text>
           </View>
         </View>
-
-
-          {/* 2. Kısım: Alt Çizgili İLANLAR */}
-          <View style={{
-            borderBottomWidth: 2, // Çizgiyi zarifleştirdik
-            borderBottomColor: '#1B4965',
-            paddingBottom: 2,
-            marginTop: -5, // Logoyla arasını dengelemek için
-            paddingHorizontal: 10 // Çizgi yanlara doğru biraz daha uzun dursun
-          }}>
-            <Text style={{
-              fontSize: 11,
-              color: '#1B4965',
-              letterSpacing: 3, // O darmadağınık boşluğu kıstık, derli toplu oldu
-              fontWeight: '700',
-            }}>
-              İLANLAR
-            </Text>
-          </View>
-        </View>
-
-
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity onPress={setBildirimEkrani}>
             <Text style={{ fontSize: 22 }}>🔔</Text>
