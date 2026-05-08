@@ -1,8 +1,3 @@
-// ============================================================
-// ADIM 5 — HomeScreen.js
-// Anasayfa, Sol Menü (Drawer), İlan Kartları, Filtreleme
-// ============================================================
-
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView, FlatList,
@@ -259,22 +254,32 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-        {/* Logo + AYIT → birlikte "Gayıt" okunur */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          <Image
-            source={require('./icon.png')}
-            style={{ width: 36, height: 36 }}
-            resizeMode="contain"
-          />
+        {/* Orta: Logo + AYIT üstte, İLANLAR altta */}
+        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image
+              source={require('./icon.png')}
+              style={{ width: 44, height: 44 }}
+              resizeMode="contain"
+            />
+            <Text style={{
+              fontSize: 26,
+              fontWeight: '600',
+              color: '#1B4965',
+              letterSpacing: 3,
+              marginLeft: 1,
+              fontFamily: 'serif',
+            }}>
+              AYIT
+            </Text>
+          </View>
           <Text style={{
-            fontSize: 20,
-            fontWeight: '600',
-            color: '#1B4965',
+            fontSize: 10,
+            color: '#999',
             letterSpacing: 3,
-            marginLeft: 2,
-            fontFamily: 'serif',
+            marginTop: 1,
           }}>
-            AYIT
+            İLANLAR
           </Text>
         </View>
 
