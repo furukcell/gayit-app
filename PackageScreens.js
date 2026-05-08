@@ -112,27 +112,36 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         mesaj = 'Aylık VIP (Sınırsız Teklif) aboneliğiniz aktifleştirildi!';
       }
     } else {
-      // Müşteri
+      // Müşteri Tarafı GÜNCEL
+      let yeniAcilHak = kullanici?.acilHak || 0; // Mevcut acil hakları koru
+
       if (paketTipi === 'tekli') {
         yeniHak += 1;
         mesaj = '1 adet ilan verme hakkı tanımlandı!';
       } else if (paketTipi === 'acil') {
-         // Acil ilan mantığını mevcut veritabanınıza göre uyarlamalısınız.
-         // Şimdilik sadece bildirim gösteriyoruz.
-         mesaj = 'Acil ilan hakkınız tanımlandı!';
+        yeniAcilHak += 1; // ARTIK VERİTABANINA İŞLENİYOR
+        mesaj = '1 adet ACİL ilan hakkınız tanımlandı!';
       } else if (paketTipi === 'premium') {
         yeniHak += 10;
+        yeniAcilHak += 2; // PREMIUM ALANA 2 ACİL HAK
         abonelikAyarla = true;
         otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'Aylık Premium (10 Normal + 2 Acil) aboneliğiniz aktifleştirildi!';
+        mesaj = 'Premium paket (10 İlan + 2 Acil) aktifleştirildi!';
       } else if (paketTipi === 'vip') {
+        yeniHak += 999; // Sınırsız
+        yeniAcilHak += 4; // VIP ALANA 4 ACİL HAK
         abonelikAyarla = true;
         otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'Aylık VIP (Sınırsız İlan + 4 Acil) aboneliğiniz aktifleştirildi!';
+        mesaj = 'VIP paket (Sınırsız İlan + 4 Acil) aktifleştirildi!';
       }
-    }
-
-    setKullanici({ ...kullanici, hak: yeniHak, ...(abonelikAyarla && { abonelik: true, abonelikBitis: otuzGunSonra }) });
+      
+      // State'i güncellemek için bu değişkeni de eklemiş oluyoruz
+      setKullanici({ 
+        ...kullanici, 
+        hak: yeniHak, 
+        acilHak: yeniAcilHak, 
+        ...(abonelikAyarla && { abonelik: true, abonelikBitis: otuzGunSonra }) 
+      });
 
     if (token && kullanici?.uid) {
       let guncellenecekVeri = { hak: yeniHak };
