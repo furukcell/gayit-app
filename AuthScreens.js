@@ -315,7 +315,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           <Modal visible={secimModalAcik} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={[s.modalKutu, { maxHeight: '70%' }]}>
-            {/* 318. SATIRDAN İTİBAREN BURAYI YAPIŞTIR */}
             <Text style={s.modalBaslik}>
               {secimTipi === 'bolge' ? 'İlçe Seçin' : secimTipi === 'brans' ? 'Branş Seçin' : (asama === 1 ? 'Seçim Yapın' : 'Mahalle Seçin')}
             </Text>
