@@ -15,7 +15,7 @@ import { bildirimGonderVeKaydet } from './notifications';
 // ============================================================
 // İLAN VER EKRANI
 // ============================================================
-export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle, s }) {
+export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle, setKullanici, s }) {
   const [ilanKategori, setIlanKategori] = useState('Tesisat (Sucu)');
   const [ilanBaslik, setIlanBaslik] = useState('');
   const [ilanDetay, setIlanDetay] = useState('');
@@ -28,31 +28,32 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
   const [takvimAcik, setTakvimAcik] = useState(false);
   const [takvimDegeri, setTakvimDegeri] = useState(new Date());
 
-  // === YENİ: Acil Switch Kontrolü ===
+  // === GÜNCELLENMİŞ: Acil Switch Kontrolü ===
   const handleAcilSwitch = (deger) => {
     if (deger === true) {
-      // Eğer kullanıcının aboneliği yoksa uyarı ver ve ödeme/paket ekranına yönlendir
-      if (!kullanici?.abonelik) {
+      // Hem abonelik hem de tekil acil ilan hakkını kontrol et
+      const acilHakVar = kullanici?.abonelik || (kullanici?.acilHak > 0);
+      
+      if (!acilHakVar) {
         Alert.alert(
           'Acil İlan Hakkı Yok',
-          'İlanınızı ACİL kategorisinde yayınlamak için 100 TL ödeme yapabilir veya Premium/VIP paket satın alarak avantajlı fiyatlardan yararlanabilirsiniz.',
+          'İlanınızı ACİL kategorisinde yayınlamak için acil ilan hakkınız bulunmuyor. Hemen bir paket alarak ilanınızı en üste taşıyabilirsiniz!',
           [
             { text: 'Vazgeç', style: 'cancel', onPress: () => setIlanAcil(false) },
             { 
-              text: 'Paketlere Göz At', 
+              text: 'Paket Al', 
               onPress: () => {
-                setIlanAcil(false); // Switch'i geri kapat
-                setEkran('odeme'); // Paketler ekranına fırlat
+                setIlanAcil(false);
+                setEkran('odeme');
               } 
             }
           ]
         );
-        return; // Switch'i açma
+        return;
       }
     }
-    setIlanAcil(deger); // VIP ise sorunsuz aç/kapat
+    setIlanAcil(deger);
   };
-  // ====================================
 
   const ilanOlustur = async () => {
     if (!ilanBaslik || !ilanDetay || !ilanIlce || !ilanMahalle) {
@@ -72,18 +73,19 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       return;
     }
 
+    // Normal ilan hakkı kontrolü
     const hakVar = kullanici?.abonelik || kullanici?.yeniKullaniciHakki > 0 || kullanici?.hak > 0;
     if (!hakVar && !ilanAcil) {
       setEkran('odeme');
       return;
     }
-    // İlan kaydedilirken ikinci kez abonelik kontrolü
-    if (ilanAcil && !kullanici?.abonelik) {
+    
+    // Acil ilan yayınlama kontrolü
+    if (ilanAcil && !kullanici?.abonelik && !(kullanici?.acilHak > 0)) {
       setEkran('odeme');
       return;
     }
 
-    // tarihHesapla ile tarih sorununu çözdük
     const kaydedilecekTarih = tarihHesapla(isTarihiTip, ozelTarih);
 
     const yeniIlan = {
@@ -108,26 +110,33 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
         body: JSON.stringify(yeniIlan),
       });
 
-      // Hak eksilt
+      // Hakları güncelleme
+      let gYH = kullanici?.yeniKullaniciHakki || 0;
+      let gH = kullanici?.hak || 0;
+      let gAH = kullanici?.acilHak || 0;
+
       if (!kullanici?.abonelik) {
-        let gYH = kullanici?.yeniKullaniciHakki || 0;
-        let gH = kullanici?.hak || 0;
-        if (gYH > 0) gYH -= 1;
-        else if (gH > 0) gH -= 1;
+        if (ilanAcil) {
+          if (gAH > 0) gAH -= 1; // Acil haktan düş
+        } else {
+          if (gYH > 0) gYH -= 1;
+          else if (gH > 0) gH -= 1;
+        }
 
         if (token) {
           await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ yeniKullaniciHakki: gYH, hak: gH }),
+            body: JSON.stringify({ yeniKullaniciHakki: gYH, hak: gH, acilHak: gAH }),
           });
         }
+        // State'i güncelle
+        setKullanici({...kullanici, yeniKullaniciHakki: gYH, hak: gH, acilHak: gAH});
       }
 
       await onVeriYukle();
       Alert.alert('Başarılı! 🎉', `İlanınız ${ilanAcil ? 'ACİL olarak ' : ''}yayınlandı usta!`);
 
-      // Aynı kategoride aynı bölgedeki ustalara bildirim gönder
       try {
         const kulRes = await fetch(`${DB_URL}/kullanicilar.json`);
         const kulData = await kulRes.json();
@@ -231,7 +240,6 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           <Text style={{ color: '#A3B1B9' }}>▼</Text>
         </TouchableOpacity>
 
-        {/* Mahalle Seçici Modal */}
         <Modal visible={mahalleModalAcik} transparent animationType="slide">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
             <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '70%' }}>
@@ -288,7 +296,6 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           </TouchableOpacity>
         </View>
 
-        {/* TAKVİM */}
         {takvimAcik && (
           Platform.OS === 'web' ? (
             <View style={{ marginBottom: 15 }}>
@@ -327,11 +334,10 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           )
         )}
 
-        {/* ACİL İLAN YENİ GÖRÜNÜM VE KONTROL */}
         <View style={[s.onayKutu, { backgroundColor: ilanAcil ? '#FFEBEE' : '#FFF', borderColor: ilanAcil ? '#FF4444' : '#D1D9E0' }]}>
           <Switch
             value={ilanAcil}
-            onValueChange={handleAcilSwitch} // === YENİ KONTROL FONKSİYONUMUZ ===
+            onValueChange={handleAcilSwitch}
             trackColor={{ false: '#D1D9E0', true: '#FF4444' }}
             thumbColor="#FFF"
           />
@@ -398,7 +404,6 @@ export function IlanlarimEkrani({ kullanici, rol, ilanlar, setEkran, setSecilenI
               {item.isTarihi && <Text style={s.kartAlt}>📅 {item.isTarihi}</Text>}
               <View style={s.kartIstatistikler}>
                 <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
-                {/* Unique view sayacı — müşteri kendi ilanında görür */}
                 {rol === 'musteri' && item.goruntuleyen && (
                   <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
                     👁️ {Object.keys(item.goruntuleyen).length} usta gördü
@@ -424,13 +429,11 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
   const [teklifNot, setTeklifNot] = useState('');
   const [gonderildi, setGonderildi] = useState(false);
 
-  // Daha önce teklif verilmiş mi kontrol et — acil ve normal ilan için
   const mevcutTeklif = secilenIlan?.teklifler?.find(
     t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid
   );
   const revizeModu = !!mevcutTeklif && !secilenIlan?.anlasmaVar;
 
-  // Revize modunda eski fiyatı doldur
   useEffect(() => {
     if (mevcutTeklif) {
       setTeklifFiyat(mevcutTeklif.fiyat?.replace(' TL', '') || '');
@@ -438,14 +441,12 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
     }
   }, [secilenIlan?.id]);
 
-  // Usta ilana girince unique view sayacı (kullanıcı bazlı — aynı usta tekrar sayılmaz)
   useEffect(() => {
     if (secilenIlan?.id && kullanici?.uid) {
       fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json`)
         .then(r => r.json())
         .then(data => {
           if (!data) {
-            // Bu usta daha önce bakmamış — kaydet
             fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -463,13 +464,11 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
       return;
     }
 
-    // Aynı fiyatta revize kontrolü
     if (revizeModu && mevcutTeklif?.fiyat === teklifFiyat + ' TL') {
       Alert.alert('Aynı Fiyat', 'Zaten bu fiyatı verdin usta! Değiştirmek istiyorsan farklı bir fiyat gir.');
       return;
     }
 
-    // Hak kontrolü — sadece ilk teklif için hak düş, revizede düşme
     if (!revizeModu && !kullanici?.abonelik) {
       let gYH = kullanici?.yeniKullaniciHakki ?? 0;
       let gH = kullanici?.hak ?? 0;
@@ -491,7 +490,6 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
 
     try {
       if (revizeModu) {
-        // Mevcut teklifi güncelle (PATCH)
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler/${mevcutTeklif.id}.json`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -508,7 +506,6 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
           `${kullanici.ad} usta teklifini güncelledi: ${teklifFiyat} TL`
         );
       } else {
-        // Yeni teklif (POST)
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler.json`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -559,7 +556,6 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
           <Text style={s.kartAlt}>📍 {secilenIlan?.mahalle} - {secilenIlan?.bolge}</Text>
           {secilenIlan?.isTarihi && <Text style={s.kartAlt}>📅 {secilenIlan.isTarihi}</Text>}
           <Text style={s.kartAlt}>{secilenIlan?.teklifler?.length || 0} teklif var</Text>
-          {/* Unique view sayacı — ilan detayında göster */}
           {secilenIlan?.goruntuleyen && (
             <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 4 }}>
               👁️ {Object.keys(secilenIlan.goruntuleyen).length} usta gördü
@@ -652,7 +648,6 @@ export function TekliflerEkrani({
               setAnlasmaSaglandi(true);
               setSecilenIlan(ilanlar.find(i => i.id === ilanId));
 
-              // Sohbet ekranına geç — artık sohbet üzerinden pazarlık yapılacak
               setEkran('sohbet');
 
               await bildirimGonderVeKaydet(
@@ -683,7 +678,6 @@ export function TekliflerEkrani({
           <Text style={s.kartBaslik}>{ilan?.baslik}</Text>
           {ilan?.isTarihi && <Text style={s.kartAlt}>📅 {ilan.isTarihi}</Text>}
           <Text style={s.kartAlt}>{ilan?.anlasmaVar ? '✅ ANLAŞMA SAĞLANDI' : '🟢 Aktif İlan'}</Text>
-          {/* Unique view sayacı — müşteri teklifler ekranında da görür */}
           {ilan?.goruntuleyen && (
             <Text style={{ color: '#A3B1B9', fontSize: 12, marginTop: 4 }}>
               👁️ {Object.keys(ilan.goruntuleyen).length} usta gördü
@@ -717,7 +711,6 @@ export function TekliflerEkrani({
                 <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>{teklif.fiyat}</Text>
               </View>
 
-              {/* Teklif notu — kullanıcı görebilsin */}
               {teklif.not ? (
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 8, padding: 10, marginTop: 8 }}>
                   <Text style={{ color: '#526E7F', fontSize: 13 }}>💬 {teklif.not}</Text>
@@ -749,7 +742,6 @@ export function TekliflerEkrani({
                 </TouchableOpacity>
               ) : !ilan.anlasmaVar ? (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                  {/* Anlaşmadan önce sohbet et butonu */}
                   <TouchableOpacity
                     style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
                     onPress={() => {
