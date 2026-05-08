@@ -553,6 +553,14 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
           )}
           <Text style={s.kategoriBadge}>{secilenIlan?.kategori}</Text>
           <Text style={s.kartBaslik}>{secilenIlan?.baslik}</Text>
+
+          {/* === EKLEDİĞİMİZ İLAN DETAY BLOĞU === */}
+          <View style={{ backgroundColor: '#F0F4F8', padding: 12, borderRadius: 10, marginVertical: 10, borderLeftWidth: 4, borderLeftColor: '#1B4965' }}>
+            <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>İŞİN DETAYI:</Text>
+            <Text style={{ color: '#526E7F', fontSize: 14, lineHeight: 20 }}>{secilenIlan?.detay || "Detay belirtilmemiş."}</Text>
+          </View>
+          {/* =================================== */}
+
           <Text style={s.kartAlt}>📍 {secilenIlan?.mahalle} - {secilenIlan?.bolge}</Text>
           {secilenIlan?.isTarihi && <Text style={s.kartAlt}>📅 {secilenIlan.isTarihi}</Text>}
           <Text style={s.kartAlt}>{secilenIlan?.teklifler?.length || 0} teklif var</Text>
