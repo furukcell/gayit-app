@@ -684,6 +684,25 @@ export function TekliflerEkrani({
       <ScrollView style={s.scroll}>
         <View style={[s.kart, { marginBottom: 20 }]}>
           <Text style={s.kartBaslik}>{ilan?.baslik}</Text>
+
+          {/* === EKLEDİĞİMİZ İLAN DETAY BLOĞU (MÜŞTERİ İÇİN) === */}
+          <View style={{ 
+            backgroundColor: '#F0F9F0', 
+            padding: 12, 
+            borderRadius: 10, 
+            marginVertical: 10, 
+            borderLeftWidth: 4, 
+            borderLeftColor: '#588157' 
+          }}>
+            <Text style={{ color: '#588157', fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>
+              İLAN AÇIKLAMANIZ:
+            </Text>
+            <Text style={{ color: '#526E7F', fontSize: 14, lineHeight: 20 }}>
+              {ilan?.detay || "Açıklama belirtilmemiş."}
+            </Text>
+          </View>
+          {/* ================================================ */}
+
           {ilan?.isTarihi && <Text style={s.kartAlt}>📅 {ilan.isTarihi}</Text>}
           <Text style={s.kartAlt}>{ilan?.anlasmaVar ? '✅ ANLAŞMA SAĞLANDI' : '🟢 Aktif İlan'}</Text>
           {ilan?.goruntuleyen && (
