@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal
+  ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal, StyleSheet
 } from 'react-native';
 import { DB_URL, API_KEY, referansKoduOlustur, zamanFarki } from './constants';
 
@@ -25,7 +25,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   const kuponUygula = async () => {
     if (!kuponKod.trim()) return;
     try {
-      // Firebase'deki tüm kuponları çek
       const res = await fetch(`${DB_URL}/kuponlar.json`);
       const data = await res.json();
 
@@ -35,7 +34,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         return;
       }
 
-      // Kodu bul
       const kuponEntry = Object.entries(data).find(
         ([, k]) => k.ad === kuponKod.trim().toUpperCase() && k.aktif
       );
@@ -48,28 +46,24 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
 
       const [kuponId, kupon] = kuponEntry;
 
-      // Bitiş tarihi kontrolü
       if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) {
         setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun süresi dolmuş.' });
         setTimeout(() => setKuponMesaj(null), 2500);
         return;
       }
 
-      // Kullanım adedi kontrolü
       if (kupon.kullanilanAdet >= kupon.adet) {
         setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun kullanım hakkı dolmuş.' });
         setTimeout(() => setKuponMesaj(null), 2500);
         return;
       }
 
-      // Hedef kitle kontrolü
       if (kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
         setKuponMesaj({ tip: 'hata', metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.` });
         setTimeout(() => setKuponMesaj(null), 2500);
         return;
       }
 
-      // Kuponu uygula — hak ekle
       const yeniHak = (kullanici?.hak || 0) + (kupon.icerik || 1);
       setKullanici({ ...kullanici, hak: yeniHak });
 
@@ -81,7 +75,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         });
       }
 
-      // Kullanım adedini artır
       await fetch(`${DB_URL}/kuponlar/${kuponId}.json`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -97,36 +90,68 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
   };
 
-  const hakSatin = async () => {
-    const eklenecekHak = rol === 'usta' ? 3 : 1;
-    const yeniHak = (kullanici?.hak || 0) + eklenecekHak;
-    setKullanici({ ...kullanici, hak: yeniHak });
+  // Yeni paket satın alma fonksiyonu (Müşteri ve Usta için)
+  const paketSatinAl = async (paketTipi) => {
+    let yeniHak = kullanici?.hak || 0;
+    let abonelikAyarla = false;
+    let otuzGunSonra = null;
+    let mesaj = '';
+
+    if (rol === 'usta') {
+      if (paketTipi === 'baslangic') {
+        yeniHak += 3;
+        mesaj = '3 adet teklif verme hakkı tanımlandı!';
+      } else if (paketTipi === 'premium') {
+        yeniHak += 30;
+        abonelikAyarla = true;
+        otuzGunSonra = Date.now() + 2592000000;
+        mesaj = 'Aylık 30 teklif hakkı ve reklamsız aboneliğiniz aktifleştirildi!';
+      } else if (paketTipi === 'vip') {
+        abonelikAyarla = true;
+        otuzGunSonra = Date.now() + 2592000000;
+        mesaj = 'Aylık VIP (Sınırsız Teklif) aboneliğiniz aktifleştirildi!';
+      }
+    } else {
+      // Müşteri
+      if (paketTipi === 'tekli') {
+        yeniHak += 1;
+        mesaj = '1 adet ilan verme hakkı tanımlandı!';
+      } else if (paketTipi === 'acil') {
+         // Acil ilan mantığını mevcut veritabanınıza göre uyarlamalısınız.
+         // Şimdilik sadece bildirim gösteriyoruz.
+         mesaj = 'Acil ilan hakkınız tanımlandı!';
+      } else if (paketTipi === 'premium') {
+        yeniHak += 10;
+        abonelikAyarla = true;
+        otuzGunSonra = Date.now() + 2592000000;
+        mesaj = 'Aylık Premium (10 Normal + 2 Acil) aboneliğiniz aktifleştirildi!';
+      } else if (paketTipi === 'vip') {
+        abonelikAyarla = true;
+        otuzGunSonra = Date.now() + 2592000000;
+        mesaj = 'Aylık VIP (Sınırsız İlan + 4 Acil) aboneliğiniz aktifleştirildi!';
+      }
+    }
+
+    setKullanici({ ...kullanici, hak: yeniHak, ...(abonelikAyarla && { abonelik: true, abonelikBitis: otuzGunSonra }) });
+
     if (token && kullanici?.uid) {
+      let guncellenecekVeri = { hak: yeniHak };
+      if (abonelikAyarla) {
+        guncellenecekVeri.abonelik = true;
+        guncellenecekVeri.abonelikBitis = otuzGunSonra;
+      }
+
       await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hak: yeniHak }),
+        body: JSON.stringify(guncellenecekVeri),
       });
     }
-    Alert.alert('Başarılı! ✅', rol === 'usta' ? '3 adet teklif verme hakkı tanımlandı!' : '1 adet ilan verme hakkı tanımlandı!');
+
+    Alert.alert('Başarılı! ✅', mesaj);
     setEkran('anasayfa');
   };
 
-  const abonelikAl = async () => {
-    const otuzGunSonra = Date.now() + 2592000000;
-    setKullanici({ ...kullanici, abonelik: true, abonelikBitis: otuzGunSonra });
-    if (token && kullanici?.uid) {
-      await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ abonelik: true, abonelikBitis: otuzGunSonra }),
-      });
-    }
-    Alert.alert('Başarılı! 🎉', 'Aylık sınırsız abonelik aktifleştirildi!');
-    setEkran('anasayfa');
-  };
-
-  // Abonelik iptali — şifre doğrulama ile
   const abonelikIptalEt = async () => {
     if (!iptalSifre.trim()) {
       Alert.alert('Hata', 'Şifreni gir gari!');
@@ -134,7 +159,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
     setIptalYukleniyor(true);
     try {
-      // Firebase ile şifre doğrula
       const res = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`,
         {
@@ -148,7 +172,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         Alert.alert('Hata', 'Şifre yanlış usta!');
         return;
       }
-      // Şifre doğru — aboneliği iptal et
       setKullanici({ ...kullanici, abonelik: false, abonelikBitis: null });
       if (token && kullanici?.uid) {
         await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
@@ -168,7 +191,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
   };
 
-  // Abone ise özel ekran göster
   if (kullanici?.abonelik) {
     const bitisStr = kullanici?.abonelikBitis
       ? new Date(kullanici.abonelikBitis).toLocaleDateString('tr-TR')
@@ -179,16 +201,16 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
             <Text style={s.menuSimge}>←</Text>
           </TouchableOpacity>
-          <Text style={s.headerBaslik}>Paket & Kupon</Text>
+          <Text style={s.headerBaslik}>Aboneliğim</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={{ flex: 1, padding: 20 }}>
           <View style={{ backgroundColor: '#1B4965', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 }}>
             <Text style={{ fontSize: 48, marginBottom: 8 }}>👑</Text>
-            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>VIP Abone</Text>
+            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>VIP / Premium Abone</Text>
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Abonelik bitiş: {bitisStr}</Text>
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-              Sınırsız ilan ve teklif hakkındasın usta!
+              Aboneliğin avantajlarını kullanıyorsun usta!
             </Text>
           </View>
 
@@ -200,7 +222,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           </TouchableOpacity>
         </View>
 
-        {/* Şifre Doğrulama Modali */}
         <Modal visible={iptalModalAcik} transparent animationType="slide">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
             <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
@@ -243,24 +264,21 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         <Text style={s.headerBaslik}>Paket & Kupon</Text>
         <View style={{ width: 24 }} />
       </View>
-      <View style={s.authIc}>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
         {odemeAdim === 'secim' && (
           <>
             <TouchableOpacity style={[s.anaBtn, { marginBottom: 15 }]} onPress={() => setOdemeAdim('kupon')}>
               <Text style={s.anaBtnY}>🎫 Kupon Kodu Kullan</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[s.anaBtn, { backgroundColor: '#1B4965' }]} onPress={() => setOdemeAdim('paket')}>
-              <Text style={s.anaBtnY}>💳 Ödeme Yap</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setEkran('anasayfa')}>
-              <Text style={s.vazgec}>Vazgeç</Text>
+              <Text style={s.anaBtnY}>💳 Fiyatlar ve Paketler</Text>
             </TouchableOpacity>
           </>
         )}
 
         {odemeAdim === 'kupon' && (
           <>
-            <Text style={s.alt}>Kupon Kodunu Girin</Text>
+            <Text style={[s.bas, { marginBottom: 10, textAlign: 'center' }]}>Kupon Kodunu Girin</Text>
             {kuponMesaj && (
               <View style={{
                 backgroundColor: kuponMesaj.tip === 'basarili' ? '#588157' : '#E74C3C',
@@ -280,31 +298,215 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                 <Text style={{ color: '#FFF', fontWeight: 'bold' }}>UYGULA</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => setOdemeAdim('secim')}>
-              <Text style={s.vazgec}>Geri Dön</Text>
+            <TouchableOpacity onPress={() => setOdemeAdim('secim')} style={{ marginTop: 20 }}>
+              <Text style={[s.vazgec, { textAlign: 'center' }]}>Geri Dön</Text>
             </TouchableOpacity>
           </>
         )}
 
         {odemeAdim === 'paket' && (
-          <>
-            <TouchableOpacity style={[s.anaBtn, { backgroundColor: '#588157', marginTop: 15 }]} onPress={hakSatin}>
-              <Text style={s.anaBtnY}>
-                {rol === 'usta' ? '3 Teklif Verme Hakkı (50 TL)' : '1 Adet İlan Hakkı (50 TL)'}
-              </Text>
+          <View>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1B4965', marginBottom: 20, textAlign: 'center' }}>
+              İhtiyacınıza Uygun Paketi Seçin
+            </Text>
+
+            {/* MÜŞTERİ PAKETLERİ */}
+            {rol !== 'usta' && (
+              <>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Tekli İlan</Text>
+                  <Text style={styles.cardPrice}>50 TL</Text>
+                  <Text style={styles.cardDesc}>Sadece tek seferlik normal ilan ücreti.</Text>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('tekli')}>
+                    <Text style={styles.cardBtnText}>Satın Al</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Acil İlan</Text>
+                  <Text style={styles.cardPrice}>100 TL</Text>
+                  <Text style={styles.cardDesc}>İlanınız 'Acil İlan' kategorisinde listelensin ve en üstte yer alsın.</Text>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('acil')}>
+                    <Text style={styles.cardBtnText}>Satın Al</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* PREMIUM - POPÜLER */}
+                <View style={[styles.card, styles.premiumCard]}>
+                  <View style={styles.popularBadge}>
+                    <Text style={styles.popularBadgeText}>🌟 EN ÇOK TERCİH EDİLEN</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Premium Abonelik</Text>
+                  <Text style={styles.cardPrice}>200 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <View style={styles.listContainer}>
+                    <Text style={styles.listItem}>• Ayda 10 normal ilan hakkı</Text>
+                    <Text style={styles.listItem}>• Ayda 2 acil ilan hakkı</Text>
+                    <Text style={styles.listItem}>• Reklamsız erişim</Text>
+                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                  </View>
+                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => paketSatinAl('premium')}>
+                    <Text style={styles.cardBtnText}>Abone Ol</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>VIP Abonelik</Text>
+                  <Text style={styles.cardPrice}>400 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <View style={styles.listContainer}>
+                    <Text style={styles.listItem}>• Sınırsız ilan hakkı</Text>
+                    <Text style={styles.listItem}>• 4 acil ilan hakkı</Text>
+                    <Text style={styles.listItem}>• Reklamsız erişim</Text>
+                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                  </View>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('vip')}>
+                    <Text style={styles.cardBtnText}>Abone Ol</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {/* USTA PAKETLERİ */}
+            {rol === 'usta' && (
+              <>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Başlangıç Paketi</Text>
+                  <Text style={styles.cardPrice}>50 TL</Text>
+                  <View style={styles.listContainer}>
+                    <Text style={styles.listItem}>• 3 Adet Teklif Verme Hakkı</Text>
+                    <Text style={styles.listItem}>• Sistemi denemek ve ilk işlerini kapmak isteyen ustalar için ideal.</Text>
+                  </View>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('baslangic')}>
+                    <Text style={styles.cardBtnText}>Satın Al</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* PREMIUM - POPÜLER */}
+                <View style={[styles.card, styles.premiumCard]}>
+                  <View style={styles.popularBadge}>
+                    <Text style={styles.popularBadgeText}>🌟 EN ÇOK TERCİH EDİLEN</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Premium Usta</Text>
+                  <Text style={styles.cardPrice}>200 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <View style={styles.listContainer}>
+                    <Text style={styles.listItem}>• 30 Adet Teklif Verme Hakkı</Text>
+                    <Text style={styles.listItem}>• Reklamsız kullanım</Text>
+                    <Text style={styles.listItem}>• İşlerini büyütmek isteyen profesyonel ustalar için (Teklif başı maliyet sadece ~6.6 TL!)</Text>
+                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                  </View>
+                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => paketSatinAl('premium')}>
+                    <Text style={styles.cardBtnText}>Abone Ol</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>VIP Usta</Text>
+                  <Text style={styles.cardPrice}>400 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <View style={styles.listContainer}>
+                    <Text style={styles.listItem}>• Sınırsız Teklif Verme Hakkı</Text>
+                    <Text style={styles.listItem}>• Reklamsız kullanım</Text>
+                    <Text style={styles.listItem}>• Muğla piyasasını domine et, hiçbir işi kaçırma!</Text>
+                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                  </View>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('vip')}>
+                    <Text style={styles.cardBtnText}>Abone Ol</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            <TouchableOpacity onPress={() => setOdemeAdim('secim')} style={{ marginTop: 20, marginBottom: 40 }}>
+              <Text style={[s.vazgec, { textAlign: 'center', fontSize: 16 }]}>← Geri Dön</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.anaBtn, { backgroundColor: '#1B4965', marginTop: 15 }]} onPress={abonelikAl}>
-              <Text style={s.anaBtnY}>Aylık Sınırsız Abonelik (100 TL)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setOdemeAdim('secim')}>
-              <Text style={s.vazgec}>Geri Dön</Text>
-            </TouchableOpacity>
-          </>
+          </View>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0'
+  },
+  premiumCard: {
+    borderColor: '#588157',
+    borderWidth: 2,
+    position: 'relative',
+    marginTop: 15,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -15,
+    alignSelf: 'center',
+    backgroundColor: '#FF9F1C',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 20,
+    zIndex: 1,
+  },
+  popularBadgeText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1B4965',
+    marginBottom: 5,
+    textAlign: 'center'
+  },
+  cardPrice: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#1B4965',
+    marginBottom: 15,
+    textAlign: 'center'
+  },
+  cardDesc: {
+    color: '#526E7F',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  listContainer: {
+    marginBottom: 20,
+  },
+  listItem: {
+    color: '#526E7F',
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  listItemItalic: {
+    color: '#888',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 5,
+  },
+  cardBtn: {
+    backgroundColor: '#1B4965',
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
+  cardBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  }
+});
 
 // ============================================================
 // DAVET ET KAZAN EKRANI
@@ -557,7 +759,6 @@ export function HizmetKosullariEkrani({ setEkran, setSozlesmeKabul, kayittan, s 
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
-        {/* Geri tuşu — kayıt ekranından geldiyse auth'a döner */}
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran(kayittan ? 'auth' : 'anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
@@ -583,7 +784,6 @@ export function HizmetKosullariEkrani({ setEkran, setSozlesmeKabul, kayittan, s 
           </View>
         ))}
         {kayittan && (
-          // "Okudum" butonu sozlesmeKabul'ü true yapar, auth'a döner
           <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => {
             if (setSozlesmeKabul) setSozlesmeKabul(true);
             setEkran('auth');
