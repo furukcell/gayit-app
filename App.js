@@ -5,7 +5,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 // Ekranlar
@@ -307,11 +307,13 @@ export default function App() {
     );
 
     if (ekran === 'sohbetlerim') {
-      // ÇÖKMEYE KARŞI GÜVENLİ FİLTRELEME
+      // GÜVENLİ FİLTRELEME: ilanlar veya kullanıcı yoksa boş dizi döndür, çökme!
       const aktifSohbetler = (ilanlar || []).filter(i => {
-        const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
-        const benUsta = i.teklifler?.some(t => t.ustaUid === kullanici?.uid) && i.anlasmaVar;
-        return benMusteri || benUsta;
+        try {
+          const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
+          const benUsta = i.teklifler?.some(t => t.ustaUid === kullanici?.uid) && i.anlasmaVar;
+          return benMusteri || benUsta;
+        } catch(e) { return false; }
       });
 
       return (
@@ -325,30 +327,29 @@ export default function App() {
           </View>
           <ScrollView style={st.scroll}>
             
-            {/* ADMİN DESTEK YANITI (Turuncu Kart) */}
+            {/* ADMİN / DESTEK YANITI */}
             {(adminMesajlari || []).length > 0 && (
               <TouchableOpacity 
                 style={[st.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
                 onPress={() => setEkran('iletisim')}
               >
                 <Text style={{ fontWeight: 'bold', color: '#E67E22' }}>🛡️ GAYİT Destek Yanıtı</Text>
-                <Text style={st.kartAlt}>Yönetimden bir mesajınız var, görmek için tıklayın.</Text>
+                <Text style={st.kartAlt}>Yönetimden yeni bir mesajınız var.</Text>
               </TouchableOpacity>
             )}
 
-            {/* NORMAL SOHBETLER */}
+            {/* NORMAL İŞ SOHBETLERİ */}
             {aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
               <View style={{alignItems: 'center', marginTop: 50}}>
                 <Text style={{ textAlign: 'center', color: '#A3B1B9' }}>Henüz aktif bir sohbet yok gari.</Text>
               </View>
             ) : (
               aktifSohbetler.map(ilan => {
-                // Eğer müşteriysem anlaşan ustayı bul, ustaysam kendi teklifimi bul
                 const hedefTeklif = ilan.sahipUid === kullanici?.uid 
                   ? ilan.anlasilanUsta 
                   : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
 
-                if (!hedefTeklif) return null; // Veri hatası varsa render etme, çökme!
+                if (!hedefTeklif) return null;
 
                 return (
                   <TouchableOpacity
@@ -364,12 +365,8 @@ export default function App() {
                     <Text style={st.kategoriBadge}>{ilan.kategori}</Text>
                     <Text style={st.kartBaslik}>{ilan.baslik}</Text>
                     <Text style={st.kartAlt}>
-                      {kullanici.rol === 'usta' ? `👤 Müşteri: ${ilan.sahip}` : `👤 Usta: ${hedefTeklif.ustaAd}`}
+                      {kullanici?.rol === 'usta' ? `👤 Müşteri: ${ilan.sahip}` : `👤 Usta: ${hedefTeklif.ustaAd}`}
                     </Text>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 5}}>
-                       <Text style={{ color: '#588157', fontWeight: 'bold', fontSize: 12 }}>✅ Anlaşıldı</Text>
-                       <Text style={{ color: '#1B4965', fontSize: 12 }}>Sohbete Git →</Text>
-                    </View>
                   </TouchableOpacity>
                 );
               })
