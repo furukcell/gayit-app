@@ -27,71 +27,59 @@ export const YENI_ILAN_KATEGORILER = [
   'Marangoz', 'İnşaat', 'Bahçe/Peyzaj', 'Dijital Hizmetler', 'Diğer'
 ];
 
-// --- İlçe-Mahalle Haritası ---
-export const ILCE_MAHALLELER = {
-  'Menteşe (Merkez)': [
-    'Akıncı', 'Balıbey', 'Camikebir', 'Cumhuriyet', 'Düğerek',
-    'Emirbeyazıt', 'Hacıali', 'Hacırüstem', 'Karamehmet', 'Karşıyaka',
-    'Kötekli', 'Menteşe', 'Muslihittin', 'Müştakbey', 'Orhaniye',
-    'Orta', 'Ömerağa', 'Pınarbaşı', 'Şeyh', 'Yayla',
-    'Yeniçeşme', 'Yumaklı'
-  ],
-  'Bodrum': [
-    'Bitez', 'Yalıkavak', 'Turgutreis', 'Bahçelievler', 'Kumbahçe',
-    'Cevat Şakir', 'Eskiçeşme', 'Konacık', 'Akyarlar', 'Gündoğan',
-    'Yokuşbaşı', 'İslamhaneleri', 'Gümüşlük', 'Yeniköy', 'Çarşı',
-    'Gümbet', 'Torba', 'Cumhuriyet', 'Türkkuyusu', 'Güvercinlik',
-    'Mumcular', 'Tepecik', 'Peksimet'
-  ],
-  'Dalaman': [
-    'Cumhuriyet', 'Karaçalı', 'Merkez', 'Muratbağı', 'Kapıkargın',
-    'Karacaağaç', 'Sütlügen', 'Gürköy', 'Elcik', 'Bozbel'
-  ],
-  'Datça': [
-    'Cumhuriyet', 'Hükümet', 'İskele', 'Palamutbükü', 'Knidos',
-    'Mesudiye', 'Yazıköy', 'Karaköy', 'Emecik', 'Kızlan'
-  ],
-  'Fethiye': [
-    'Tuzla', 'Karaçulha', 'Patlangıç', 'Taşyaka', 'Foça',
-    'Pazaryeri', 'Babataşı', 'Menteşeoğlu', 'Akarca', 'Yeni',
-    'Çamköy', 'Esenköy', 'Ölüdeniz', 'Göcek', 'Çatalarık',
-    'Çiftlik', 'Kesikkapı', 'Cumhuriyet', 'Karagedik'
-  ],
-  'Kavaklıdere': [
-    'Cumhuriyet', 'Kavaklıdere Merkez', 'Çamköy', 'Göktepe',
-    'Horzum', 'Kocaköy', 'Söğütlüdere'
-  ],
-  'Köyceğiz': [
-    'Cumhuriyet', 'Hamitköy', 'Merkez', 'Beyobası', 'Döğüşbelen',
-    'Sultaniye', 'Toparlar', 'Yangı', 'Zeytinalanı'
-  ],
-  'Marmaris': [
-    'Armutalan', 'Beldibi', 'Tepe', 'Kemeraltı', 'Çıldır',
-    'İçmeler', 'Sarıana', 'Adaköy', 'Çamdibi', 'Hatipirimi',
-    'Siteler', 'Atatürk', 'Birgi', 'Çetibeli', 'Turunç'
-  ],
-  'Milas': [
-    'İsmet Paşa', 'Ahmetçavuş-Hayıtlı', 'Cumhuriyet', 'Aydınlıkevler',
-    'Burgaz', 'Güllük', 'Selimiye', 'Hacıabti', 'Beçin',
-    'Emek', 'Hacı İlyas', 'Gümüşlük', 'Şevketiye', 'Ören',
-    'Boğaziçi', 'Meşelik', 'Koru'
-  ],
-  'Ortaca': [
-    'Cumhuriyet', 'Merkez', 'Dalyan', 'Ekincik', 'İztuzu',
-    'Gökbel', 'Köyceğiz', 'Sarıgerme'
-  ],
-  'Seydikemer': [
-    'Cumhuriyet', 'Merkez', 'Eşen', 'Kınık', 'Pınara',
-    'Üzümlü', 'Yakaköy', 'Boğaziçi', 'Dereköy'
-  ],
-  'Ula': [
-    'Cumhuriyet', 'Merkez', 'Gökova', 'Muğla', 'Çamlıköy',
-    'Çökertme', 'Turgut', 'Yerkesik'
-  ],
-  'Yatağan': [
-    'Cumhuriyet', 'Merkez', 'Eskihisar', 'Milas', 'Selçuk',
-    'Turgut', 'Bozüyük', 'Çerçin', 'Kayaköy'
-  ],
+export const MAHALLE_HIYERARSISI = {
+  "Milas": {
+    "Merkez Mahalleler": ["Hacı İlyas", "Hisarbaşı", "Gümüşlük", "İsmet Paşa", "Burgaz", "Aydınlıkevler", "Emek", "Güneş"],
+    "Köyler / Beldeler": ["Güllük", "Ören", "Selimiye", "Bafa", "Kıyıkışlacık", "Beçin", "Dörttepe", "Meşelik"]
+  },
+  "Menteşe": {
+    "Merkez Mahalleler": ["Emirbeyazıt", "Muslihittin", "Orhaniye", "Karameğmet", "Şeyh", "Kiramettin"],
+    "Köyler / Beldeler": ["Yenice", "Yerkesik", "Bayır", "Kafaca", "Yeşilyurt", "Akçaova", "Düğerek"]
+  },
+  "Bodrum": {
+    "Merkez Mahalleler": ["Çarşı", "Kumbahçe", "Umurça", "Tepecik", "Eskiçeşme"],
+    "Köyler / Beldeler": ["Turgutreis", "Yalıkavak", "Gümüşlük", "Bitez", "Ortakent", "Mumcular", "Gündoğan", "Konacık"]
+  },
+  "Fethiye": {
+    "Merkez Mahalleler": ["Cumhuriyet", "Akarca", "Babataşı", "Foça", "Tuzla"],
+    "Köyler / Beldeler": ["Ölüdeniz", "Göcek", "Karaçulha", "Çiftlik", "Yanıklar"]
+  },
+  "Marmaris": {
+    "Merkez Mahalleler": ["Tepe", "Hatipirimi", "Kemeraltı", "Sarıana", "Armutalan"],
+    "Köyler / Beldeler": ["İçmeler", "Bozburun", "Turunç", "Selimiye", "Hisarönü"]
+  },
+  "Yatağan": {
+    "Merkez Mahalleler": ["Konak", "Yeni Mahalle", "Cumhuriyet"],
+    "Köyler / Beldeler": ["Bencik", "Bozüyük", "Turgut", "Yeşilbağcılar", "Madenler"]
+  },
+  "Ortaca": {
+    "Merkez Mahalleler": ["Beşköprü", "Cumhuriyet", "Terzialiler"],
+    "Köyler / Beldeler": ["Dalyan", "Ekşiliyurt", "Güzelyurt", "Yeşilyurt"]
+  },
+  "Dalaman": {
+    "Merkez Mahalleler": ["Atakent", "Karaçalı", "Merkez"],
+    "Köyler / Beldeler": ["Sarsala", "Kille", "Gürleyik", "Narlı"]
+  },
+  "Köyceğiz": {
+    "Merkez Mahalleler": ["Gülpınar", "Uluerpınar", "Gelişim"],
+    "Köyler / Beldeler": ["Beyobası", "Toparlar", "Zeytinalanı", "Pınar"]
+  },
+  "Datça": {
+    "Merkez Mahalleler": ["İskele", "Reşadiye", "Eski Datça"],
+    "Köyler / Beldeler": ["Knidos", "Palamutbükü", "Mesudiye", "Hızırşah"]
+  },
+  "Ula": {
+    "Merkez Mahalleler": ["Ayazma", "Köprübaşı", "Alparslan"],
+    "Köyler / Beldeler": ["Akyaka", "Gökova", "Akçapınar", "Kızılağaç"]
+  },
+  "Seydikemer": {
+    "Merkez Mahalleler": ["Cumhuriyet", "Gerişburnu", "Menekşe"],
+    "Köyler / Beldeler": ["Seki", "Eşen", "Karamuar", "Kadıköy"]
+  },
+  "Kavaklıdere": {
+    "Merkez Mahalleler": ["Cumhuriyet", "Yeni Mahalle"],
+    "Köyler / Beldeler": ["Çayboyu", "Menteşe (Kavaklıdere)", "Salkım"]
+  }
 };
 
 // Referans kodu üretici
