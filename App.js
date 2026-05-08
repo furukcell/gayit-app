@@ -200,7 +200,11 @@ export default function App() {
         ]);
         return true;
       }
-      // Diğer ekranlarda anasayfaya dön
+      // KVKK, Sözleşme veya Şifremi Unuttum'dan geri basınca kayıt formuna dön
+    if (['kvkk', 'hizmet_kosullari', 'sifremi_unuttum'].includes(ekran)) {
+      setEkran('auth');
+      return true;
+    }
       if (ekran !== 'karsilama' && ekran !== 'auth') {
         setEkran('anasayfa');
         return true;
