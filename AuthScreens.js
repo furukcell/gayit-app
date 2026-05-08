@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Image, Switch, ActivityIndicator
+  ScrollView, Alert, Image, Switch, ActivityIndicator, Modal
 } from 'react-native';
 import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur } from './constants';
 import { pushTokenAl } from './notifications';
@@ -64,7 +64,8 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [kayitBrans, setKayitBrans] = useState('');
   const [davetKodu, setDavetKodu] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
-
+  const [secimModalAcik, setSecimModalAcik] = useState(false);
+  const [secimTipi, setSecimTipi] = useState('');
   const islemiTamamla = async () => {
     if (!email || !sifre || (mod === 'kayit' && !ad))
       return Alert.alert('Hata', 'Eksik bilgi girdiniz usta!');
@@ -240,25 +241,29 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         {mod === 'kayit' && (
           <>
+            {/* İLÇE SEÇİMİ */}
             <Text style={s.inputBaslik}>Bulunduğunuz İlçe</Text>
-            <View style={s.chipAlan}>
-              {BOLGELER.map(b => (
-                <TouchableOpacity key={b} style={[s.chip, kayitBolge === b && s.chipAktif]} onPress={() => setKayitBolge(b)}>
-                  <Text style={[s.chipY, kayitBolge === b && s.chipYAktif]}>{b}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <TouchableOpacity 
+              style={s.inp} 
+              onPress={() => { setSecimTipi('bolge'); setSecimModalAcik(true); }}
+            >
+              <Text style={{ color: kayitBolge ? s.yaziBas : s.yaziSoluk }}>
+                {kayitBolge || "İlçe Seçiniz gari..."}
+              </Text>
+            </TouchableOpacity>
 
+            {/* BRANŞ SEÇİMİ (Sadece Ustaya) */}
             {rol === 'usta' && (
               <>
                 <Text style={s.inputBaslik}>Branşınız</Text>
-                <View style={s.chipAlan}>
-                  {KATEGORILER.filter(k => k !== 'Tümü').map(b => (
-                    <TouchableOpacity key={b} style={[s.chip, kayitBrans === b && s.chipAktif]} onPress={() => setKayitBrans(b)}>
-                      <Text style={[s.chipY, kayitBrans === b && s.chipYAktif]}>{b}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <TouchableOpacity 
+                  style={s.inp} 
+                  onPress={() => { setSecimTipi('brans'); setSecimModalAcik(true); }}
+                >
+                  <Text style={{ color: kayitBrans ? s.yaziBas : s.yaziSoluk }}>
+                    {kayitBrans || "Branş Seçiniz gari..."}
+                  </Text>
+                </TouchableOpacity>
               </>
             )}
 
@@ -304,6 +309,31 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           <Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>← Geri</Text>
         </TouchableOpacity>
       </ScrollView>
+          <Modal visible={secimModalAcik} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <View style={[s.modalKutu, { maxHeight: '70%' }]}>
+            <Text style={s.modalBaslik}>{secimTipi === 'bolge' ? 'İlçe Seçin' : 'Branş Seçin'}</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {(secimTipi === 'bolge' ? BOLGELER : KATEGORILER.filter(k => k !== 'Tümü')).map((item, index) => (
+                <TouchableOpacity 
+                  key={index} 
+                  style={{ paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: s.sinir, alignItems: 'center' }}
+                  onPress={() => {
+                    if (secimTipi === 'bolge') setKayitBolge(item);
+                    else setKayitBrans(item);
+                    setSecimModalAcik(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 16, color: s.yaziBas, fontWeight: '500' }}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={[s.girisBtn, { marginTop: 15, backgroundColor: '#FF4444' }]} onPress={() => setSecimModalAcik(false)}>
+              <Text style={s.anaBtnY}>VAZGEÇ</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
