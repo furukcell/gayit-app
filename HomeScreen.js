@@ -265,22 +265,27 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-                {/* Orta: Logo + AYIT + ILANLAR */}
+                        {/* Orta: Logo + AYIT + ILANLAR (MİLİMETRİK AYARLANDI) */}
         <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
           
-          {/* 1. Kısım: Logo ve AYIT Yan Yana */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 15 }}>
+          {/* 1. Kısım: Logo ve AYIT Yan Yana — Hafif Yukarı, Hafif Sağa Alındı */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginLeft: 25, // Sağa kaydırma (15'ten 25'e çıkarıldı)
+            marginTop: -12, // Yukarı kaydırma (Hafif nefes alsın diye)
+          }}>
             <Image
-              source={require('./Logo.png')}
-              style={{ width: 75, height: 75 }} // Logo 2x'e yakın büyüdü
+              source={require('./Logo.png')} // Büyük L ile basliyodu düzelttin
+              style={{ width: 75, height: 75 }} 
               resizeMode="contain"
             />
             <Text style={{
-              fontSize: 26, // Yazıyı hafif kıstık ki logo çok daha büyük dursun
+              fontSize: 26, 
               fontWeight: '800',
               color: '#1B4965',
               letterSpacing: 2,
-              marginLeft: -2, // Logoyla tam bitsin diye hafif sola çektik
+              marginLeft: -2, 
               fontFamily: 'serif',
               textShadowColor: 'rgba(27,73,101,0.15)',
               textShadowOffset: { width: 1, height: 1 },
@@ -289,6 +294,27 @@ export function AnasayfaEkrani({
               AYIT
             </Text>
           </View>
+
+          {/* 2. Kısım: Alt Çizgili İLANLAR — Aşağı ve Sağa Kaydırılıp Ortaladı */}
+          <View style={{
+            borderBottomWidth: 2, 
+            borderBottomColor: '#1B4965',
+            paddingBottom: 2,
+            marginTop: 8, // Aşağı kaydırma (-5'ten 8'e alındı, logo altına hizalandı)
+            paddingHorizontal: 10,
+            marginLeft: 25 // Logonun sağa kaymasına paralel sağa alındı (Nokta atışı ortalama)
+          }}>
+            <Text style={{
+              fontSize: 11,
+              color: '#1B4965',
+              letterSpacing: 3, 
+              fontWeight: '700',
+            }}>
+              İLANLAR
+            </Text>
+          </View>
+        </View>
+
 
           {/* 2. Kısım: Alt Çizgili İLANLAR */}
           <View style={{
