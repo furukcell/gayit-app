@@ -27,60 +27,6 @@ export const YENI_ILAN_KATEGORILER = [
   'Marangoz', 'İnşaat', 'Bahçe/Peyzaj', 'Dijital Hizmetler', 'Diğer'
 ];
 
-export const MAHALLE_HIYERARSISI = {
-  "Milas": {
-    "Merkez Mahalleler": ["Hacı İlyas", "Hisarbaşı", "Gümüşlük", "İsmet Paşa", "Burgaz", "Aydınlıkevler", "Emek", "Güneş"],
-    "Köyler / Beldeler": ["Güllük", "Ören", "Selimiye", "Bafa", "Kıyıkışlacık", "Beçin", "Dörttepe", "Meşelik"]
-  },
-  "Menteşe": {
-    "Merkez Mahalleler": ["Emirbeyazıt", "Muslihittin", "Orhaniye", "Karameğmet", "Şeyh", "Kiramettin"],
-    "Köyler / Beldeler": ["Yenice", "Yerkesik", "Bayır", "Kafaca", "Yeşilyurt", "Akçaova", "Düğerek"]
-  },
-  "Bodrum": {
-    "Merkez Mahalleler": ["Çarşı", "Kumbahçe", "Umurça", "Tepecik", "Eskiçeşme"],
-    "Köyler / Beldeler": ["Turgutreis", "Yalıkavak", "Gümüşlük", "Bitez", "Ortakent", "Mumcular", "Gündoğan", "Konacık"]
-  },
-  "Fethiye": {
-    "Merkez Mahalleler": ["Cumhuriyet", "Akarca", "Babataşı", "Foça", "Tuzla"],
-    "Köyler / Beldeler": ["Ölüdeniz", "Göcek", "Karaçulha", "Çiftlik", "Yanıklar"]
-  },
-  "Marmaris": {
-    "Merkez Mahalleler": ["Tepe", "Hatipirimi", "Kemeraltı", "Sarıana", "Armutalan"],
-    "Köyler / Beldeler": ["İçmeler", "Bozburun", "Turunç", "Selimiye", "Hisarönü"]
-  },
-  "Yatağan": {
-    "Merkez Mahalleler": ["Konak", "Yeni Mahalle", "Cumhuriyet"],
-    "Köyler / Beldeler": ["Bencik", "Bozüyük", "Turgut", "Yeşilbağcılar", "Madenler"]
-  },
-  "Ortaca": {
-    "Merkez Mahalleler": ["Beşköprü", "Cumhuriyet", "Terzialiler"],
-    "Köyler / Beldeler": ["Dalyan", "Ekşiliyurt", "Güzelyurt", "Yeşilyurt"]
-  },
-  "Dalaman": {
-    "Merkez Mahalleler": ["Atakent", "Karaçalı", "Merkez"],
-    "Köyler / Beldeler": ["Sarsala", "Kille", "Gürleyik", "Narlı"]
-  },
-  "Köyceğiz": {
-    "Merkez Mahalleler": ["Gülpınar", "Uluerpınar", "Gelişim"],
-    "Köyler / Beldeler": ["Beyobası", "Toparlar", "Zeytinalanı", "Pınar"]
-  },
-  "Datça": {
-    "Merkez Mahalleler": ["İskele", "Reşadiye", "Eski Datça"],
-    "Köyler / Beldeler": ["Knidos", "Palamutbükü", "Mesudiye", "Hızırşah"]
-  },
-  "Ula": {
-    "Merkez Mahalleler": ["Ayazma", "Köprübaşı", "Alparslan"],
-    "Köyler / Beldeler": ["Akyaka", "Gökova", "Akçapınar", "Kızılağaç"]
-  },
-  "Seydikemer": {
-    "Merkez Mahalleler": ["Cumhuriyet", "Gerişburnu", "Menekşe"],
-    "Köyler / Beldeler": ["Seki", "Eşen", "Karamuar", "Kadıköy"]
-  },
-  "Kavaklıdere": {
-    "Merkez Mahalleler": ["Cumhuriyet", "Yeni Mahalle"],
-    "Köyler / Beldeler": ["Çayboyu", "Menteşe (Kavaklıdere)", "Salkım"]
-  }
-};
 
 // Referans kodu üretici
 export const referansKoduOlustur = () => {
