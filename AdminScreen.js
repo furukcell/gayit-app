@@ -10,6 +10,7 @@ import {
   Modal, KeyboardAvoidingView, Platform, FlatList
 } from 'react-native';
 import { DB_URL, damgaToTarih, zamanFarki } from './constants';
+import { bildirimGonderVeKaydet } from './notifications';
 
 export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [aktifSekme, setAktifSekme] = useState('istatistik');
@@ -185,10 +186,18 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         body: JSON.stringify(yeniYanit),
       });
       setSohbetMesajlari(prev => [...prev, { id: Date.now().toString(), ...yeniYanit }]);
-      setAdminYanit('');
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch (e) { Alert.alert('Hata', 'Yanıt gönderilemedi!'); }
-  };
+setAdminYanit('');
+setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+// Kullanıcıya bildirim gönder
+const gonderen = kullanicilar.find(k => k.email === secilenMesaj?.gonderen);
+if (gonderen?.uid) {
+  await bildirimGonderVeKaydet(
+    gonderen.uid,
+    '📩 GAYİT Destek Yanıtladı',
+    adminYanit.trim()
+  );
+}
 
   // Kupon oluştur
   const kuponOlustur = async () => {
