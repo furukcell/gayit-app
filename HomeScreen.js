@@ -355,7 +355,7 @@ export function AnasayfaEkrani({
                 width: 80, 
                 height: 80, 
                 marginRight: -15,
-                marginTop: -12 // Logoyu yazıya göre yukarı kaldıran ayar (Aynı kaldı)
+                marginTop: -14 // Logoyu yazıya göre yukarı kaldıran ayar (Aynı kaldı)
               }} 
               resizeMode="contain"
             />
