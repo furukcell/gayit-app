@@ -378,7 +378,7 @@ export function AnasayfaEkrani({
             borderBottomWidth: 2, 
             borderBottomColor: '#1B4965',
             paddingBottom: 2,
-            marginTop: -5, 
+            marginTop: -3, 
             paddingHorizontal: 12,
             marginLeft: 25 // İŞTE BURASI DİREKSİYONU SAĞA KIRDI (-15 yerine 25 yaptık)
           }}>
