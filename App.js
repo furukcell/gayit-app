@@ -33,8 +33,7 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
-  // --- Temel State ---
-    // --- GÜNCELLEME KONTROLÜ ---
+  // --- GÜNCELLEME KONTROLÜ ---
   useEffect(() => {
     async function checkUpdate() {
       if (__DEV__) return;
@@ -51,7 +50,7 @@ export default function App() {
     }
     checkUpdate();
   }, []);
-  
+
   const [ekran, setEkran] = useState('karsilama');
   const [kullanici, setKullanici] = useState(null);
   const [token, setToken] = useState(null);
@@ -87,6 +86,7 @@ export default function App() {
   // --- Sistem İstatistikleri ---
   const [sistemIst, setSistemIst] = useState(null);
   const bildirimDinleyici = useRef();
+
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener(() => {});
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
@@ -97,7 +97,6 @@ export default function App() {
     if (kullanici) {
       veriYukle();
       sistemIstatistikleriniGuncelle();
-      // Push token al ve Firebase'e kaydet
       pushTokenAl().then(pToken => {
         if (pToken && kullanici.uid && token) {
           fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
@@ -133,6 +132,7 @@ export default function App() {
           return b.tarih - a.tarih;
         })
       );
+
       if (kullanici?.uid) {
         fetch(`${DB_URL}/adminMesajlari/${kullanici.uid}.json`)
           .then(r => r.json())
@@ -200,11 +200,17 @@ export default function App() {
         ]);
         return true;
       }
-      // KVKK, Sözleşme veya Şifremi Unuttum'dan geri basınca kayıt formuna dön
-    if (['kvkk', 'hizmet_kosullari', 'sifremi_unuttum'].includes(ekran)) {
-      setEkran('auth');
-      return true;
-    }
+      // KVKK ve Şifremi Unuttum'dan geri basınca kayıt formuna dön
+      if (['kvkk', 'sifremi_unuttum'].includes(ekran)) {
+        setEkran('auth');
+        return true;
+      }
+      // DÜZELTİLDİ: Hizmet koşullarından geri basınca;
+      // giriş yapmışsa anasayfaya, yapmamışsa auth'a git
+      if (ekran === 'hizmet_kosullari') {
+        setEkran(kullanici ? 'anasayfa' : 'auth');
+        return true;
+      }
       if (ekran !== 'karsilama' && ekran !== 'auth') {
         setEkran('anasayfa');
         return true;
@@ -212,19 +218,17 @@ export default function App() {
       return false;
     });
     return () => geriHandler.remove();
-  }, [ekran, menuAcik]);
+  }, [ekran, menuAcik, kullanici]);
 
   // ============================================================
   // EKRAN YÖNLENDİRME
   // ============================================================
   const ekraniGoster = () => {
-    // Auth ekranları
     if (ekran === 'karsilama') return <KarsilamaEkrani setRol={setRol} setMod={() => {}} setEkran={setEkran} s={st} />;
     if (ekran === 'auth') return <AuthEkrani rol={rol} setRol={setRol} setEkran={setEkran} setKullanici={setKullanici} setToken={setToken} kvkkKabul={kvkkKabul} setKvkkKabul={setKvkkKabul} sozlesmeKabul={sozlesmeKabul} setSozlesmeKabul={setSozlesmeKabul} s={st} />;
     if (ekran === 'sifremi_unuttum') return <SifremiUnuttumEkrani setEkran={setEkran} s={st} />;
     if (ekran === 'kvkk') return <KvkkEkrani setEkran={setEkran} setKvkkKabul={setKvkkKabul} s={st} />;
 
-    // Ana ekranlar
     if (ekran === 'anasayfa') return (
       <AnasayfaEkrani
         kullanici={kullanici}
@@ -311,7 +315,6 @@ export default function App() {
     );
 
     if (ekran === 'sohbetlerim') {
-      // GÜVENLİ FİLTRELEME: ilanlar veya kullanıcı yoksa boş dizi döndür, çökme!
       const aktifSohbetler = (ilanlar || []).filter(i => {
         try {
           const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
@@ -330,10 +333,8 @@ export default function App() {
             <View style={{ width: 24 }} />
           </View>
           <ScrollView style={st.scroll}>
-            
-            {/* ADMİN / DESTEK YANITI */}
             {(adminMesajlari || []).length > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[st.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
                 onPress={() => setEkran('iletisim')}
               >
@@ -342,15 +343,14 @@ export default function App() {
               </TouchableOpacity>
             )}
 
-            {/* NORMAL İŞ SOHBETLERİ */}
             {aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
-              <View style={{alignItems: 'center', marginTop: 50}}>
+              <View style={{ alignItems: 'center', marginTop: 50 }}>
                 <Text style={{ textAlign: 'center', color: '#A3B1B9' }}>Henüz aktif bir sohbet yok gari.</Text>
               </View>
             ) : (
               aktifSohbetler.map(ilan => {
-                const hedefTeklif = ilan.sahipUid === kullanici?.uid 
-                  ? ilan.anlasilanUsta 
+                const hedefTeklif = ilan.sahipUid === kullanici?.uid
+                  ? ilan.anlasilanUsta
                   : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
 
                 if (!hedefTeklif) return null;
@@ -430,10 +430,8 @@ export default function App() {
         backgroundColor={karanlikMod ? '#121212' : '#F5F5F0'}
       />
 
-      {/* Ana içerik */}
       {ekraniGoster()}
 
-      {/* Sol Menü — anasayfada ve giriş yapılmışken göster */}
       {menuAcik && kullanici && (
         <SolMenu
           kullanici={kullanici}
@@ -449,7 +447,6 @@ export default function App() {
         />
       )}
 
-      {/* Modaller */}
       <PuanModali
         gorunur={puanModalAcik}
         setGorunur={setPuanModalAcik}
@@ -475,15 +472,12 @@ export default function App() {
 // ============================================================
 function stilOlustur(karanlik) {
   const r = {
-    // Arka plan renkleri
     bg: karanlik ? '#121212' : '#F5F5F0',
     bgKart: karanlik ? '#1E1E1E' : '#FFF',
     bgInput: karanlik ? '#2A2A2A' : '#FFF',
     bgChip: karanlik ? '#2A2A2A' : '#FFF',
     bgModal: karanlik ? '#1E1E1E' : '#F5F5F0',
     bgOnay: karanlik ? '#2A2A2A' : '#FFF',
-
-    // Yazı renkleri
     anaRenk: '#1B4965',
     yaziBas: karanlik ? '#E0E0E0' : '#1B4965',
     yaziAlt: karanlik ? '#A0A0A0' : '#526E7F',
@@ -500,7 +494,6 @@ function stilOlustur(karanlik) {
     ic: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
     authIc: { padding: 25, paddingTop: 10 },
 
-    // Header
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 15, paddingVertical: 12,
@@ -512,7 +505,6 @@ function stilOlustur(karanlik) {
     menuBtn: { padding: 5 },
     menuSimge: { fontSize: 22, color: r.anaRenk },
 
-    // Kartlar
     kart: {
       backgroundColor: r.bgKart, borderRadius: 16, padding: 16,
       marginBottom: 12, elevation: 2,
@@ -536,7 +528,6 @@ function stilOlustur(karanlik) {
     },
     acilRozetYazi: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
 
-    // Butonlar
     anaBtn: {
       backgroundColor: '#588157', borderRadius: 14, paddingVertical: 16,
       paddingHorizontal: 24, alignItems: 'center', width: '100%', marginBottom: 12,
@@ -549,7 +540,6 @@ function stilOlustur(karanlik) {
     btnAlan: { width: '100%', gap: 12 },
     vazgec: { textAlign: 'center', color: r.yaziSoluk, marginTop: 20, fontSize: 14 },
 
-    // Input
     inp: {
       backgroundColor: r.bgInput, borderRadius: 12, padding: 14,
       marginBottom: 12, borderWidth: 1, borderColor: r.sinir,
@@ -557,7 +547,6 @@ function stilOlustur(karanlik) {
     },
     inputBaslik: { color: r.yaziAlt, fontWeight: '600', marginBottom: 8, fontSize: 13 },
 
-    // Chip
     chipAlan: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 },
     chip: {
       borderWidth: 1.5, borderColor: r.chipSinir, borderRadius: 20,
@@ -567,14 +556,12 @@ function stilOlustur(karanlik) {
     chipY: { color: r.chipYazi, fontSize: 13, fontWeight: '500' },
     chipYAktif: { color: '#FFF' },
 
-    // Tab
     tabBar: { flexDirection: 'row', marginBottom: 20 },
     tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: r.sinir },
     tabAktif: { borderBottomColor: '#1B4965' },
     tabY: { color: r.yaziSoluk, fontWeight: '600' },
     tabYA: { color: r.yaziBas },
 
-    // Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalKutu: {
       backgroundColor: r.bgModal, borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -582,7 +569,6 @@ function stilOlustur(karanlik) {
     },
     modalBaslik: { fontSize: 20, fontWeight: '700', color: r.yaziBas, textAlign: 'center', marginBottom: 15 },
 
-    // Profil
     profilResimSec: {
       width: 100, height: 100, borderRadius: 50, backgroundColor: karanlik ? '#1B3A52' : '#E1F2FE',
       alignSelf: 'center', justifyContent: 'center', alignItems: 'center',
@@ -597,7 +583,6 @@ function stilOlustur(karanlik) {
     profilAd: { color: '#FFF', fontWeight: 'bold', fontSize: 18, marginBottom: 4 },
     profilDuzenleText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
 
-    // Drawer (Sol Menü)
     drawerContainer: {
       position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999,
@@ -619,7 +604,6 @@ function stilOlustur(karanlik) {
     ilceDetayAlan: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 10, marginBottom: 5 },
     detaySatir: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 3 },
 
-    // Diğer
     bas: { fontSize: 22, fontWeight: '700', color: r.yaziBas, marginBottom: 5 },
     alt: { color: r.yaziAlt, fontSize: 14, marginBottom: 20, textAlign: 'center' },
     onayKutu: {
