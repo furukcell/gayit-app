@@ -16,7 +16,7 @@ workflows:
         script: npm install
       - name: Expo Prebuild (Android Klasörünü Oluştur)
         script: npx expo prebuild --platform android
-     - name: Android AAB Üret (Release)
+      - name: Android AAB Üret (Release)
         script: |
           cd android
           chmod +x gradlew
