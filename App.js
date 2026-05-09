@@ -5,7 +5,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing, Image } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 // Ekranlar
@@ -33,6 +33,28 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
+  // --- SPLASH SCREEN ---
+  const [isLoading, setIsLoading] = useState(true);
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+    const timer = setTimeout(() => setIsLoading(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   // --- GÜNCELLEME KONTROLÜ ---
   useEffect(() => {
     async function checkUpdate() {
@@ -219,6 +241,37 @@ export default function App() {
     });
     return () => geriHandler.remove();
   }, [ekran, menuAcik, kullanici]);
+
+  // ============================================================
+  // SPLASH SCREEN
+  // ============================================================
+  if (isLoading) {
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: '#F5F5F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Image
+          source={require('./icon.png')}
+          style={{ width: 110, height: 110, borderRadius: 22 }}
+        />
+        <Animated.View style={{
+          position: 'absolute',
+          width: 155,
+          height: 155,
+          borderRadius: 78,
+          borderWidth: 4,
+          borderColor: '#2E86AB',
+          borderTopColor: '#588157',
+          borderRightColor: '#588157',
+          borderBottomColor: 'transparent',
+          transform: [{ rotate: spin }],
+        }} />
+      </View>
+    );
+  }
 
   // ============================================================
   // EKRAN YÖNLENDİRME
