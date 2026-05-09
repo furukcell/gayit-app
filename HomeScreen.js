@@ -111,47 +111,80 @@ export function SolMenu({
             </Text>
           </TouchableOpacity>
 
-          {/* HAK ÖZETİ — sadece premium veya vip üyelerde göster */}
-          {(kullanici?.abonelik === 'premium' || kullanici?.abonelik === 'vip') && (
-            <View style={{
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 8,
-            }}>
-              {rol === 'usta' ? (
-                <>
-                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
-                    {kullanici?.abonelik === 'vip' ? '👑 VIP — Sınırsız Teklif' : '⭐ Premium Teklif Hakları'}
-                  </Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🔨 Kalan Teklif Hakkı</Text>
-                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
-                      {kullanici?.abonelik === 'vip' ? '∞' : (kullanici?.hak ?? 0)}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
-                    {kullanici?.abonelik === 'vip' ? '👑 VIP — Aylık Haklar' : '⭐ Premium — Aylık Haklar'}
-                  </Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>📋 Kalan İlan Hakkı</Text>
-                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
-                      {kullanici?.abonelik === 'vip' ? '∞' : (kullanici?.hak ?? 0)}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🚨 Kalan Acil İlan Hakkı</Text>
-                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
-                      {kullanici?.acilHak ?? 0}
-                    </Text>
-                  </View>
-                </>
+          {/* HAK ÖZETİ */}
+{(() => {
+  const abonelik = kullanici?.abonelik;
+  const hak = kullanici?.hak ?? 0;
+  const acilHak = kullanici?.acilHak ?? 0;
+  const yeniHak = kullanici?.yeniKullaniciHakki ?? 0;
+  const isPremium = abonelik === 'premium';
+  const isVip = abonelik === 'vip';
+  const ekstraHakVar = hak > 0;
+  const yeniHakVar = yeniHak > 0;
+
+  if (!isPremium && !isVip && !ekstraHakVar && !yeniHakVar) return null;
+
+  return (
+    <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 8 }}>
+      {(isPremium || isVip) && (
+        <>
+          <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
+            {isVip ? '👑 VIP Hakları' : '⭐ Premium Hakları'}
+          </Text>
+          {rol === 'usta' ? (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🔨 Teklif Hakkı</Text>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{isVip ? '∞' : hak}</Text>
+            </View>
+          ) : (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>📋 İlan Hakkı</Text>
+                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{isVip ? '∞' : hak}</Text>
+              </View>
+              {acilHak > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🚨 Acil İlan Hakkı</Text>
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{acilHak}</Text>
+                </View>
               )}
+            </>
+          )}
+          {ekstraHakVar && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Ekstra Hak</Text>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
             </View>
           )}
+          {yeniHakVar && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
+            </View>
+          )}
+        </>
+      )}
+
+      {!isPremium && !isVip && (
+        <>
+          <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>📦 Mevcut Haklar</Text>
+          {yeniHakVar && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
+            </View>
+          )}
+          {ekstraHakVar && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Kupon / Davet Hakkı</Text>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+})()}
 
           <View style={s.ayrac} />
 
