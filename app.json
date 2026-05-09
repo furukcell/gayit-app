@@ -30,9 +30,6 @@
         "backgroundColor": "#F5F5F0"
       }
     },
-    "plugins": [
-      "react-native-purchases"
-    ],
     "web": {
       "favicon": "./icon.png",
       "pwa": {
