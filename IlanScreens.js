@@ -9,7 +9,7 @@ import {
   ScrollView, Alert, Switch, Platform, Modal, FlatList
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla, MAHALLE_HIYERARSISI } from './constants';
+import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla, MAHALLE_HIYERARSISI } from './Mahalleler';
 import { bildirimGonderVeKaydet } from './notifications';
 
 // ============================================================
