@@ -1,5 +1,6 @@
 // ============================================================
 // ADIM 9 — PackageScreens.js
+// Google Play In-App Purchases entegrasyonu eklenmiştir.
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,19 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal, StyleSheet
 } from 'react-native';
+import * as InAppPurchases from 'expo-in-app-purchases';
 import { DB_URL, API_KEY, referansKoduOlustur, zamanFarki } from './constants';
+
+// Ürün ID → paket tipi eşleşmesi
+const URUN_ID_MAP = {
+  'musteri_ilan_teksefer': 'tekli',
+  'musteri_acil_ilan': 'acil',
+  'musteri_premium_aylik': 'premium',
+  'musteri_vip_aylik': 'vip',
+  'usta_teklif_3': 'baslangic',
+  'usta_premium_aylik': 'premium',
+  'usta_vip_aylik': 'vip',
+};
 
 // ============================================================
 // ÖDEME & PAKET EKRANI
@@ -19,7 +32,69 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   const [iptalModalAcik, setIptalModalAcik] = useState(false);
   const [iptalSifre, setIptalSifre] = useState('');
   const [iptalYukleniyor, setIptalYukleniyor] = useState(false);
+  const [iapHazir, setIapHazir] = useState(false);
 
+  // ============================================================
+  // Google Play Billing bağlantısı
+  // ============================================================
+  useEffect(() => {
+    const iapBaslat = async () => {
+      try {
+        await InAppPurchases.connectAsync();
+        setIapHazir(true);
+
+        InAppPurchases.setPurchaseListener(({ responseCode, results, errorCode }) => {
+          if (responseCode === InAppPurchases.IAPResponseCode.OK) {
+            results.forEach(async (purchase) => {
+              if (!purchase.acknowledged) {
+                const paketTipi = URUN_ID_MAP[purchase.productId];
+                if (paketTipi) {
+                  try {
+                    await InAppPurchases.finishTransactionAsync(purchase, true);
+                    await paketSatinAl(paketTipi);
+                  } catch (e) {
+                    Alert.alert('Hata', 'Ödeme doğrulanamadı. Destek ile iletişime geçin.');
+                  }
+                }
+              }
+            });
+          } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
+            // Kullanıcı iptal etti, sessizce geç
+          } else {
+            Alert.alert('Ödeme Hatası', 'Bir sorun oluştu, tekrar dene.');
+          }
+        });
+      } catch (e) {
+        // Play Store bağlantısı kurulamadı (emülatör veya test cihazında olabilir)
+        console.log('IAP bağlantı hatası:', e);
+      }
+    };
+
+    iapBaslat();
+
+    return () => {
+      InAppPurchases.disconnectAsync().catch(() => {});
+    };
+  }, []);
+
+  // ============================================================
+  // Satın alma tetikleyici
+  // ============================================================
+  const odemeBaslat = async (urunId) => {
+    if (!iapHazir) {
+      Alert.alert('Hata', 'Ödeme sistemi hazır değil, lütfen tekrar dene.');
+      return;
+    }
+    try {
+      await InAppPurchases.purchaseItemAsync(urunId);
+    } catch (e) {
+      Alert.alert('Hata', 'Ödeme başlatılamadı. İnternet bağlantını kontrol et.');
+    }
+  };
+
+  // ============================================================
+  // Kupon uygulama
+  // ============================================================
   const kuponUygula = async () => {
     if (!kuponKod.trim()) return;
     try {
@@ -89,12 +164,12 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   };
 
   // ============================================================
-  // PAKET SATIN ALMA — abonelik artık string ('premium' / 'vip')
+  // PAKET SATIN ALMA — ödeme onayı sonrası çağrılır
   // ============================================================
   const paketSatinAl = async (paketTipi) => {
     let yeniHak = kullanici?.hak || 0;
     let yeniAcilHak = kullanici?.acilHak || 0;
-    let abonelikDegeri = null; // 'premium' veya 'vip' olacak
+    let abonelikDegeri = null;
     let otuzGunSonra = null;
     let mesaj = '';
 
@@ -113,7 +188,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         mesaj = 'Aylık VIP (Sınırsız Teklif) aboneliğiniz aktifleştirildi!';
       }
     } else {
-      // Müşteri
       if (paketTipi === 'tekli') {
         yeniHak += 1;
         mesaj = '1 adet ilan verme hakkı tanımlandı!';
@@ -135,7 +209,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       }
     }
 
-    // State güncelle
     setKullanici({
       ...kullanici,
       hak: yeniHak,
@@ -143,7 +216,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       ...(abonelikDegeri && { abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra }),
     });
 
-    // Firebase güncelle
     if (token && kullanici?.uid) {
       const guncelleVeri = {
         hak: yeniHak,
@@ -161,6 +233,9 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     setEkran('anasayfa');
   };
 
+  // ============================================================
+  // Abonelik iptal
+  // ============================================================
   const abonelikIptalEt = async () => {
     if (!iptalSifre.trim()) {
       Alert.alert('Hata', 'Şifreni gir gari!');
@@ -200,6 +275,9 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
   };
 
+  // ============================================================
+  // Aktif abonelik ekranı
+  // ============================================================
   if (kullanici?.abonelik === 'premium' || kullanici?.abonelik === 'vip') {
     const bitisStr = kullanici?.abonelikBitis
       ? new Date(kullanici.abonelikBitis).toLocaleDateString('tr-TR')
@@ -265,6 +343,9 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     );
   }
 
+  // ============================================================
+  // Ana ödeme ekranı
+  // ============================================================
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
@@ -327,7 +408,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   <Text style={styles.cardTitle}>Tekli İlan</Text>
                   <Text style={styles.cardPrice}>50 TL</Text>
                   <Text style={styles.cardDesc}>Sadece tek seferlik normal ilan ücreti.</Text>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('tekli')}>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('musteri_ilan_teksefer')}>
                     <Text style={styles.cardBtnText}>Satın Al</Text>
                   </TouchableOpacity>
                 </View>
@@ -336,7 +417,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   <Text style={styles.cardTitle}>Acil İlan</Text>
                   <Text style={styles.cardPrice}>100 TL</Text>
                   <Text style={styles.cardDesc}>İlanınız 'Acil İlan' kategorisinde listelensin ve en üstte yer alsın.</Text>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('acil')}>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('musteri_acil_ilan')}>
                     <Text style={styles.cardBtnText}>Satın Al</Text>
                   </TouchableOpacity>
                 </View>
@@ -353,7 +434,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.listItem}>• Reklamsız erişim</Text>
                     <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
                   </View>
-                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => paketSatinAl('premium')}>
+                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => odemeBaslat('musteri_premium_aylik')}>
                     <Text style={styles.cardBtnText}>Abone Ol</Text>
                   </TouchableOpacity>
                 </View>
@@ -367,7 +448,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.listItem}>• Reklamsız erişim</Text>
                     <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
                   </View>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('vip')}>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('musteri_vip_aylik')}>
                     <Text style={styles.cardBtnText}>Abone Ol</Text>
                   </TouchableOpacity>
                 </View>
@@ -384,7 +465,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.listItem}>• 3 Adet Teklif Verme Hakkı</Text>
                     <Text style={styles.listItem}>• Sistemi denemek ve ilk işlerini kapmak isteyen ustalar için ideal.</Text>
                   </View>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('baslangic')}>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('usta_teklif_3')}>
                     <Text style={styles.cardBtnText}>Satın Al</Text>
                   </TouchableOpacity>
                 </View>
@@ -401,7 +482,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.listItem}>• İşlerini büyütmek isteyen profesyonel ustalar için</Text>
                     <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
                   </View>
-                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => paketSatinAl('premium')}>
+                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => odemeBaslat('usta_premium_aylik')}>
                     <Text style={styles.cardBtnText}>Abone Ol</Text>
                   </TouchableOpacity>
                 </View>
@@ -415,7 +496,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.listItem}>• Muğla piyasasını domine et, hiçbir işi kaçırma!</Text>
                     <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
                   </View>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => paketSatinAl('vip')}>
+                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('usta_vip_aylik')}>
                     <Text style={styles.cardBtnText}>Abone Ol</Text>
                   </TouchableOpacity>
                 </View>
