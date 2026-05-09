@@ -131,50 +131,56 @@ export function SohbetEkrani({
   };
 
   const konumGonder = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('İzin Gerekli', 'Konum paylaşmak için izin vermelisiniz.');
-        return;
+  Alert.alert(
+    '📍 Konum Paylaş',
+    'Anlık konumunuzu karşı tarafa göndermek istiyor musunuz?',
+    [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Gönder',
+        onPress: async () => {
+          try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('İzin Gerekli', 'Konum paylaşmak için izin vermelisiniz.');
+              return;
+            }
+            const konum = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+            const { latitude, longitude } = konum.coords;
+            const haritaLinki = `https://maps.google.com/?q=${latitude},${longitude}`;
+            const mesaj = {
+              metin: '📍 Konumunu paylaştı',
+              gonderen: kullanici.uid,
+              gonderenAd: kullanici.ad,
+              tarih: Date.now(),
+              durum: 'gonderildi',
+              tip: 'konum',
+              haritaLinki,
+            };
+            await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(mesaj),
+            });
+            let hedefUid = null;
+            if (rol === 'musteri') {
+              hedefUid = aktifSohbetTeklif?.ustaUid || null;
+            } else {
+              hedefUid = secilenIlan?.sahipUid || null;
+            }
+            if (hedefUid) {
+              await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
+            }
+            await mesajlariYukle();
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+          } catch (e) {
+            Alert.alert('Hata', 'Konum alınamadı gari!');
+          }
+        }
       }
-      const konum = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const { latitude, longitude } = konum.coords;
-      const haritaLinki = `https://maps.google.com/?q=${latitude},${longitude}`;
-
-      const mesaj = {
-        metin: `📍 Konumumu paylaştı`,
-        gonderen: kullanici.uid,
-        gonderenAd: kullanici.ad,
-        tarih: Date.now(),
-        durum: 'gonderildi',
-        tip: 'konum',
-        haritaLinki,
-      };
-
-      await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mesaj),
-      });
-
-      let hedefUid = null;
-      if (rol === 'musteri') {
-        hedefUid = aktifSohbetTeklif?.ustaUid || null;
-      } else {
-        hedefUid = secilenIlan?.sahipUid || null;
-      }
-
-      if (hedefUid) {
-        await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
-      }
-
-      await mesajlariYukle();
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch (e) {
-      Alert.alert('Hata', 'Konum alınamadı gari!');
-    }
-  };
-
+    ]
+  );
+};
   const anlasmayiTamamla = async () => {
     Alert.alert(
       '✅ Anlaşma Tamamlandı',
