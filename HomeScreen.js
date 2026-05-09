@@ -340,17 +340,19 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-        {/* Orta: Logo + AYIT + İLANLAR */}
-        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          {/* Logo + AYIT yan yana */}
+        {/* Logo + AYIT yan yana */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
               source={require('./Logo.png')}
-              style={{ width: 48, height: 48 }}
+              style={{ 
+                width: 75,       
+                height: 75,      
+                marginLeft: 15   
+              }}
               resizeMode="contain"
             />
             <Text style={{
-              fontSize: 28,
+              fontSize: 28,  
               fontWeight: '800',
               color: '#1B4965',
               letterSpacing: 4,
@@ -368,12 +370,12 @@ export function AnasayfaEkrani({
             borderBottomWidth: 3,
             borderBottomColor: '#1B4965',
             paddingBottom: 2,
-            marginTop: 1,
+            marginTop: 5,
           }}>
             <Text style={{
               fontSize: 9,
               color: '#1B4965',
-              letterSpacing: 5,
+              letterSpacing: 2,
               fontWeight: '700',
             }}>
               İ L A N L A R
