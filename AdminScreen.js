@@ -170,34 +170,44 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 200);
   };
 
-  // Admin yanıt gönder
+    // Admin yanıt gönder
   const adminYanitGonder = async () => {
     if (!adminYanit.trim() || !secilenMesaj) return;
+    
     const yeniYanit = {
       metin: adminYanit.trim(),
       gonderen: 'admin',
       gonderenAd: 'GAYİT Yönetimi',
       tarih: Date.now(),
     };
+
     try {
       await fetch(`${DB_URL}/iletisim/${secilenMesaj.id}/yanıtlar.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(yeniYanit),
       });
+      
       setSohbetMesajlari(prev => [...prev, { id: Date.now().toString(), ...yeniYanit }]);
-setAdminYanit('');
-setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      setAdminYanit('');
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
-// Kullanıcıya bildirim gönder
-const gonderen = kullanicilar.find(k => k.email === secilenMesaj?.gonderen);
-if (gonderen?.uid) {
-  await bildirimGonderVeKaydet(
-    gonderen.uid,
-    '📩 GAYİT Destek Yanıtladı',
-    adminYanit.trim()
-  );
-}
+      // Kullanıcıya bildirim gönder
+      const gonderen = kullanicilar.find(k => k.email === secilenMesaj?.gonderen);
+      if (gonderen?.uid) {
+        await bildirimGonderVeKaydet(
+          gonderen.uid,
+          '📩 GAYİT Destek Yanıtladı',
+          adminYanit.trim()
+        );
+      }
+      
+    } catch (error) {
+      console.error("Yanıt gönderilirken hata oluştu: ", error);
+      Alert.alert("Hata", "Yanıt gönderilirken bir sorun oluştu, lütfen tekrar deneyin.");
+    }
+  }; // Fonksiyonun eksik olan asıl kapanış parantezi
+
 
   // Kupon oluştur
   const kuponOlustur = async () => {
