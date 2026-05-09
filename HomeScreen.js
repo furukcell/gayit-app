@@ -340,49 +340,59 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-       {/* Orta: Logo + AYIT + İLANLAR */}
-          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-            
-            {/* Logo + AYIT yan yana */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 15 }}>
-              <Image
-                source={require('./Logo.png')}
-                style={{ width: 75, height: 75 }}
-                resizeMode="contain"
-              />
-              <Text style={{
-                fontSize: 28,  
-                fontWeight: '800',
-                color: '#1B4965',
-                letterSpacing: 4,
-                marginLeft: 3,
-                fontFamily: 'serif',
-                textShadowColor: 'rgba(27,73,101,0.15)',
-                textShadowOffset: { width: 1, height: 1 },
-                textShadowRadius: 2,
-              }}>
-                AYIT
-              </Text>
-            </View>
-
-            {/* Alt çizgili İLANLAR */}
-            <View style={{
-              borderBottomWidth: 3,
-              borderBottomColor: '#1B4965',
-              paddingBottom: 2,
-              marginTop: 5,
-              marginLeft: 15 // Logonun kaymasına uyumlu olması için ortalandı
+    {/* Orta: Logo + AYIT + ILANLAR (MERKEZİ VE BİTİŞİK) */}
+        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+          
+          {/* 1. Kısım: Logo ve AYIT Yan Yana — Logo Büyütüldü ve Yazıya Kenetlendi */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginTop: -10,
+            // Logonun büyüklüğünden kaynaklanan görsel kaymayı dengelemek için hafif sol boşluk
+            paddingLeft: 10 
+          }}>
+            <Image
+              source={require('./Logo.png')}
+              style={{ 
+                width: 100,  // Logoyu iyice büyüttük (90'dan 100'e)
+                height: 100, 
+                marginRight: -15 // LOGOYU SAĞA, YAZIYA DOĞRU YANAŞTIRAN KRİTİK AYAR
+              }} 
+              resizeMode="contain"
+            />
+            <Text style={{
+              fontSize: 28, // Yazıyı da logoya uyum sağlasın diye hafif büyüttük
+              fontWeight: '800',
+              color: '#1B4965',
+              letterSpacing: 1,
+              marginLeft: 0, // Aradaki boşluğu tamamen sıfırladık
+              fontFamily: 'serif',
+              textShadowColor: 'rgba(27,73,101,0.15)',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2,
             }}>
-              <Text style={{
-                fontSize: 9,
-                color: '#1B4965',
-                letterSpacing: 2,
-                fontWeight: '700',
-              }}>
-                İ L A N L A R
-              </Text>
-            </View>
+              AYIT
+            </Text>
           </View>
+
+          {/* 2. Kısım: Alt Çizgili İLANLAR — Tam Ortada */}
+          <View style={{
+            borderBottomWidth: 2, 
+            borderBottomColor: '#1B4965',
+            paddingBottom: 2,
+            marginTop: 2, // Logo ile yazı bitişince burayı biraz yukarı çektik
+            paddingHorizontal: 12,
+          }}>
+            <Text style={{
+              fontSize: 12,
+              color: '#1B4965',
+              letterSpacing: 4, 
+              fontWeight: '700',
+            }}>
+              İLANLAR
+            </Text>
+          </View>
+        </View>
 
           {/* Sağ İkonlar: Zil ve Ayarlar */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
