@@ -111,6 +111,48 @@ export function SolMenu({
             </Text>
           </TouchableOpacity>
 
+          {/* HAK ÖZETİ — sadece premium veya vip üyelerde göster */}
+          {(kullanici?.abonelik === 'premium' || kullanici?.abonelik === 'vip') && (
+            <View style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 8,
+            }}>
+              {rol === 'usta' ? (
+                <>
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
+                    {kullanici?.abonelik === 'vip' ? '👑 VIP — Sınırsız Teklif' : '⭐ Premium Teklif Hakları'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🔨 Kalan Teklif Hakkı</Text>
+                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
+                      {kullanici?.abonelik === 'vip' ? '∞' : (kullanici?.hak ?? 0)}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
+                    {kullanici?.abonelik === 'vip' ? '👑 VIP — Aylık Haklar' : '⭐ Premium — Aylık Haklar'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>📋 Kalan İlan Hakkı</Text>
+                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
+                      {kullanici?.abonelik === 'vip' ? '∞' : (kullanici?.hak ?? 0)}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🚨 Kalan Acil İlan Hakkı</Text>
+                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12 }}>
+                      {kullanici?.acilHak ?? 0}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+          )}
+
           <View style={s.ayrac} />
 
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('anasayfa'); }}>
@@ -265,27 +307,21 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-                        {/* Orta: Logo + AYIT + ILANLAR (MİLİMETRİK AYARLANDI) */}
+        {/* Orta: Logo + AYIT + İLANLAR */}
         <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          
-          {/* 1. Kısım: Logo ve AYIT Yan Yana — Hafif Yukarı, Hafif Sağa Alındı */}
-          <View style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            marginLeft: 25, // Sağa kaydırma (15'ten 25'e çıkarıldı)
-            marginTop: -12, // Yukarı kaydırma (Hafif nefes alsın diye)
-          }}>
+          {/* Logo + AYIT yan yana */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
-              source={require('./Logo.png')} // Büyük L ile basliyodu düzelttin
-              style={{ width: 75, height: 75 }} 
+              source={require('./Logo.png')}
+              style={{ width: 48, height: 48 }}
               resizeMode="contain"
             />
             <Text style={{
-              fontSize: 26, 
+              fontSize: 28,
               fontWeight: '800',
               color: '#1B4965',
-              letterSpacing: 2,
-              marginLeft: -2, 
+              letterSpacing: 4,
+              marginLeft: 3,
               fontFamily: 'serif',
               textShadowColor: 'rgba(27,73,101,0.15)',
               textShadowOffset: { width: 1, height: 1 },
@@ -294,26 +330,24 @@ export function AnasayfaEkrani({
               AYIT
             </Text>
           </View>
-
-          {/* 2. Kısım: Alt Çizgili İLANLAR — Aşağı ve Sağa Kaydırılıp Ortaladı */}
+          {/* Alt çizgili İLANLAR */}
           <View style={{
-            borderBottomWidth: 2, 
+            borderBottomWidth: 3,
             borderBottomColor: '#1B4965',
             paddingBottom: 2,
-            marginTop: 8, // Aşağı kaydırma (-5'ten 8'e alındı, logo altına hizalandı)
-            paddingHorizontal: 10,
-            marginLeft: 25 // Logonun sağa kaymasına paralel sağa alındı (Nokta atışı ortalama)
+            marginTop: 1,
           }}>
             <Text style={{
-              fontSize: 11,
+              fontSize: 9,
               color: '#1B4965',
-              letterSpacing: 3, 
+              letterSpacing: 5,
               fontWeight: '700',
             }}>
-              İLANLAR
+              İ L A N L A R
             </Text>
           </View>
         </View>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity onPress={setBildirimEkrani}>
             <Text style={{ fontSize: 22 }}>🔔</Text>
