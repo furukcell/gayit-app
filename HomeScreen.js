@@ -130,7 +130,8 @@ export function SolMenu({
           )}
 
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('ilanlarim'); }}>
-            <{/* HAK ÖZETİ */}
+            
+            {/* HAK ÖZETİ */}
 {(() => {
   const abonelik = kullanici?.abonelik;
   const hak = kullanici?.hak ?? 0;
