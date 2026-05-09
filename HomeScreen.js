@@ -352,10 +352,10 @@ export function AnasayfaEkrani({
             <Image
               source={require('./Logo.png')}
               style={{ 
-                width: 100, 
-                height: 100, 
+                width: 80, 
+                height: 80, 
                 marginRight: -15,
-                marginTop: -8 // Logoyu yazıya göre yukarı kaldıran ayar (Aynı kaldı)
+                marginTop: -10 // Logoyu yazıya göre yukarı kaldıran ayar (Aynı kaldı)
               }} 
               resizeMode="contain"
             />
