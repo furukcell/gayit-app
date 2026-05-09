@@ -8,7 +8,6 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal, StyleSheet
 } from 'react-native';
-import * as InAppPurchases from 'expo-in-app-purchases';
 import { DB_URL, API_KEY, referansKoduOlustur, zamanFarki } from './constants';
 
 // Ürün ID → paket tipi eşleşmesi
