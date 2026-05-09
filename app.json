@@ -30,9 +30,6 @@
         "backgroundColor": "#F5F5F0"
       }
     },
-    "plugins": [
-       "expo-in-app-purchases"
-],
     "web": {
       "favicon": "./icon.png",
       "pwa": {
