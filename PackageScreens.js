@@ -1,7 +1,5 @@
 // ============================================================
 // ADIM 9 — PackageScreens.js
-// Ödeme, Paket, Kupon, Davet, Ayarlar, Hakkımızda,
-// Hizmet Koşulları, İletişim, Bildirim ekranları
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -90,10 +88,13 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
   };
 
-  // Yeni paket satın alma fonksiyonu (Müşteri ve Usta için)
+  // ============================================================
+  // PAKET SATIN ALMA — abonelik artık string ('premium' / 'vip')
+  // ============================================================
   const paketSatinAl = async (paketTipi) => {
     let yeniHak = kullanici?.hak || 0;
-    let abonelikAyarla = false;
+    let yeniAcilHak = kullanici?.acilHak || 0;
+    let abonelikDegeri = null; // 'premium' veya 'vip' olacak
     let otuzGunSonra = null;
     let mesaj = '';
 
@@ -103,64 +104,56 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         mesaj = '3 adet teklif verme hakkı tanımlandı!';
       } else if (paketTipi === 'premium') {
         yeniHak += 30;
-        abonelikAyarla = true;
+        abonelikDegeri = 'premium';
         otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'Aylık 30 teklif hakkı ve reklamsız aboneliğiniz aktifleştirildi!';
+        mesaj = 'Aylık 30 teklif hakkı ve Premium aboneliğiniz aktifleştirildi!';
       } else if (paketTipi === 'vip') {
-        abonelikAyarla = true;
+        abonelikDegeri = 'vip';
         otuzGunSonra = Date.now() + 2592000000;
         mesaj = 'Aylık VIP (Sınırsız Teklif) aboneliğiniz aktifleştirildi!';
       }
     } else {
-      // Müşteri Tarafı GÜNCEL
-      let yeniAcilHak = kullanici?.acilHak || 0; // Mevcut acil hakları koru
-
+      // Müşteri
       if (paketTipi === 'tekli') {
         yeniHak += 1;
         mesaj = '1 adet ilan verme hakkı tanımlandı!';
       } else if (paketTipi === 'acil') {
-        yeniAcilHak += 1; // ARTIK VERİTABANINA İŞLENİYOR
+        yeniAcilHak += 1;
         mesaj = '1 adet ACİL ilan hakkınız tanımlandı!';
       } else if (paketTipi === 'premium') {
         yeniHak += 10;
-        yeniAcilHak += 2; // PREMIUM ALANA 2 ACİL HAK
-        abonelikAyarla = true;
+        yeniAcilHak += 2;
+        abonelikDegeri = 'premium';
         otuzGunSonra = Date.now() + 2592000000;
         mesaj = 'Premium paket (10 İlan + 2 Acil) aktifleştirildi!';
       } else if (paketTipi === 'vip') {
-        yeniHak += 999; // Sınırsız
-        yeniAcilHak += 4; // VIP ALANA 4 ACİL HAK
-        abonelikAyarla = true;
+        yeniHak += 999;
+        yeniAcilHak += 4;
+        abonelikDegeri = 'vip';
         otuzGunSonra = Date.now() + 2592000000;
         mesaj = 'VIP paket (Sınırsız İlan + 4 Acil) aktifleştirildi!';
       }
-      
-      // State'i güncellemek için bu değişkeni de eklemiş oluyoruz
-      setKullanici({ 
-        ...kullanici, 
-        hak: yeniHak, 
-        acilHak: yeniAcilHak, 
-        ...(abonelikAyarla && { abonelik: true, abonelikBitis: otuzGunSonra }) 
-      });
+    }
 
+    // State güncelle
+    setKullanici({
+      ...kullanici,
+      hak: yeniHak,
+      acilHak: yeniAcilHak,
+      ...(abonelikDegeri && { abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra }),
+    });
+
+    // Firebase güncelle
     if (token && kullanici?.uid) {
-      let guncelleVeri = { hak: yeniHak, acilHak: yeniAcilHak }; // acilHak buraya eklendi
-      if (abonelikAyarla) {
-        guncelleVeri.abonelik = true;
-        guncelleVeri.abonelikBitis = otuzGunSonra;
-      }
-
+      const guncelleVeri = {
+        hak: yeniHak,
+        acilHak: yeniAcilHak,
+        ...(abonelikDegeri && { abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra }),
+      };
       await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(guncelleVeri),
-      });
-    }
-
-      await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(guncellenecekVeri),
       });
     }
 
@@ -188,12 +181,12 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         Alert.alert('Hata', 'Şifre yanlış usta!');
         return;
       }
-      setKullanici({ ...kullanici, abonelik: false, abonelikBitis: null });
+      setKullanici({ ...kullanici, abonelik: null, abonelikBitis: null });
       if (token && kullanici?.uid) {
         await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ abonelik: false, abonelikBitis: null }),
+          body: JSON.stringify({ abonelik: null, abonelikBitis: null }),
         });
       }
       setIptalModalAcik(false);
@@ -207,10 +200,11 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     }
   };
 
-  if (kullanici?.abonelik) {
+  if (kullanici?.abonelik === 'premium' || kullanici?.abonelik === 'vip') {
     const bitisStr = kullanici?.abonelikBitis
       ? new Date(kullanici.abonelikBitis).toLocaleDateString('tr-TR')
       : '—';
+    const abonelikEtiketi = kullanici?.abonelik === 'vip' ? '👑 VIP Abone' : '⭐ Premium Üye';
     return (
       <SafeAreaView style={s.con}>
         <View style={s.header}>
@@ -222,8 +216,8 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         </View>
         <View style={{ flex: 1, padding: 20 }}>
           <View style={{ backgroundColor: '#1B4965', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 }}>
-            <Text style={{ fontSize: 48, marginBottom: 8 }}>👑</Text>
-            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>VIP / Premium Abone</Text>
+            <Text style={{ fontSize: 48, marginBottom: 8 }}>{kullanici?.abonelik === 'vip' ? '👑' : '⭐'}</Text>
+            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>{abonelikEtiketi}</Text>
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Abonelik bitiş: {bitisStr}</Text>
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
               Aboneliğin avantajlarını kullanıyorsun usta!
@@ -347,7 +341,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   </TouchableOpacity>
                 </View>
 
-                {/* PREMIUM - POPÜLER */}
                 <View style={[styles.card, styles.premiumCard]}>
                   <View style={styles.popularBadge}>
                     <Text style={styles.popularBadgeText}>🌟 EN ÇOK TERCİH EDİLEN</Text>
@@ -396,7 +389,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   </TouchableOpacity>
                 </View>
 
-                {/* PREMIUM - POPÜLER */}
                 <View style={[styles.card, styles.premiumCard]}>
                   <View style={styles.popularBadge}>
                     <Text style={styles.popularBadgeText}>🌟 EN ÇOK TERCİH EDİLEN</Text>
@@ -406,7 +398,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   <View style={styles.listContainer}>
                     <Text style={styles.listItem}>• 30 Adet Teklif Verme Hakkı</Text>
                     <Text style={styles.listItem}>• Reklamsız kullanım</Text>
-                    <Text style={styles.listItem}>• İşlerini büyütmek isteyen profesyonel ustalar için (Teklif başı maliyet sadece ~6.6 TL!)</Text>
+                    <Text style={styles.listItem}>• İşlerini büyütmek isteyen profesyonel ustalar için</Text>
                     <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
                   </View>
                   <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => paketSatinAl('premium')}>
@@ -733,7 +725,6 @@ export function IletisimEkrani({ kullanici, setEkran, s }) {
 export function HakkimizdaEkrani({ setEkran, s }) {
   return (
     <SafeAreaView style={s.con}>
-      {/* Üst Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('ayarlar')}>
           <Text style={s.menuSimge}>←</Text>
@@ -741,37 +732,28 @@ export function HakkimizdaEkrani({ setEkran, s }) {
         <Text style={s.headerBaslik}>Hakkımızda</Text>
         <View style={{ width: 24 }} />
       </View>
-      
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        
-        {/* Senin Yazdığın Efsane Metin Kartı */}
         <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 2 }}>
-          
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Biz Kimiz?</Text>
           <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15, textAlign: 'justify' }}>
-            GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur. Bizler, "Muğla’da işi ehline teslim etmek" geleneğini dijital çağa taşıyoruz.
+            GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur.
           </Text>
-
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Amacımız</Text>
           <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15, textAlign: 'justify' }}>
-            Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri ustayı tek tıkla bulmanızı sağlıyoruz. Milaslı bir hemşehrinizin emeğiyle yükselen bu platformda, yerel esnafımızın dijital dünyada hak ettiği yeri almasını hedefliyoruz.
+            Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri ustayı tek tıkla bulmanızı sağlıyoruz.
           </Text>
-
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Neden GAYIT?</Text>
           <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 20, textAlign: 'justify' }}>
-            Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz. GAYIT, "Muğla’nın bütün işi gaydı artık burada" sloganıyla yola çıkarken; sadece bir uygulama olmayı değil, Muğla genelinde yardımlaşma kültürünü büyütmeyi amaçlıyor.
+            Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz. GAYIT, "Muğla'nın bütün işi gaydı artık burada" sloganıyla yola çıktı.
           </Text>
-
           <Text style={{ fontWeight: 'bold', fontSize: 22, color: '#E67E22', textAlign: 'center', fontStyle: 'italic', marginTop: 10 }}>
             Gullanın Gari!!
           </Text>
-          
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
 
 // ============================================================
 // HİZMET KOŞULLARI EKRANI
