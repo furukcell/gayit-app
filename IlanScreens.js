@@ -477,17 +477,31 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
     }
   }, [secilenIlan?.id]);
 
-  const teklifGonder = async () => {
-    if (!teklifFiyat) {
+ const teklifGonder = async () => {
+    // 1. Boş fiyat kontrolü
+    if (!teklifFiyat || teklifFiyat.trim() === '') {
       Alert.alert('Hata', 'Usta, bir fiyat girmelisin gari!');
       return;
     }
 
-    if (revizeModu && mevcutTeklif?.fiyat === teklifFiyat + ' TL') {
-      Alert.alert('Aynı Fiyat', 'Zaten bu fiyatı verdin usta! Değiştirmek istiyorsan farklı bir fiyat gir.');
+    // 2. Sayısal temizlik (Nokta, virgül, boşluk hatasını önlemek için)
+    // Girilen fiyatı ve eski fiyatı saf sayıya çeviriyoruz ki karşılaştırma hatasız olsun
+    const girilenFiyatSayi = parseFloat(teklifFiyat.replace(',', '.')).toString();
+    const eskiFiyatSayi = mevcutTeklif?.fiyat 
+      ? parseFloat(mevcutTeklif.fiyat.replace(' TL', '').replace(',', '.')).toString() 
+      : null;
+
+    // 3. AYNI TEKLİF KONTROLÜ
+    // Revize modu olsun olmasın, fiyat eskisinin aynısıysa blokluyoruz
+    if (mevcutTeklif && girilenFiyatSayi === eskiFiyatSayi) {
+      Alert.alert(
+        'Aynı Fiyat!', 
+        'Zaten bu fiyatı (' + mevcutTeklif.fiyat + ') verdin usta! Müşterinin dikkatini çekmek için farklı bir fiyat girerek teklifini güncelle gari.'
+      );
       return;
     }
 
+    // 4. HAK KONTROLÜ
     if (!revizeModu && !kullanici?.abonelik) {
       let gYH = kullanici?.yeniKullaniciHakki ?? 0;
       let gH = kullanici?.hak ?? 0;
@@ -507,6 +521,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
       }
     }
 
+    // 5. KAYIT İŞLEMİ
     try {
       if (revizeModu) {
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler/${mevcutTeklif.id}.json`, {
