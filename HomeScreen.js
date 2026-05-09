@@ -340,32 +340,30 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-    {/* Orta: Logo + AYIT + ILANLAR (MERKEZİ VE BİTİŞİK) */}
+  {/* Orta: Logo + AYIT + ILANLAR (HİZALANMIŞ VE SAĞA KAYDIRILMIŞ) */}
         <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
           
-          {/* 1. Kısım: Logo ve AYIT Yan Yana — Logo Büyütüldü ve Yazıya Kenetlendi */}
+          {/* 1. Kısım: Logo ve AYIT Yan Yana — Logo Yukarı Alındı ve Hizalandı */}
           <View style={{ 
             flexDirection: 'row', 
             alignItems: 'center', 
-            marginTop: -10,
-            // Logonun büyüklüğünden kaynaklanan görsel kaymayı dengelemek için hafif sol boşluk
-            paddingLeft: 10 
+            marginTop: -15, 
           }}>
             <Image
               source={require('./Logo.png')}
               style={{ 
-                width: 100,  // Logoyu iyice büyüttük (90'dan 100'e)
+                width: 100, 
                 height: 100, 
-                marginRight: -15 // LOGOYU SAĞA, YAZIYA DOĞRU YANAŞTIRAN KRİTİK AYAR
+                marginRight: -15,
+                marginTop: -8 // Logoyu yazıya göre yukarı kaldıran ayar (Aynı kaldı)
               }} 
               resizeMode="contain"
             />
             <Text style={{
-              fontSize: 28, // Yazıyı da logoya uyum sağlasın diye hafif büyüttük
+              fontSize: 28, 
               fontWeight: '800',
               color: '#1B4965',
               letterSpacing: 1,
-              marginLeft: 0, // Aradaki boşluğu tamamen sıfırladık
               fontFamily: 'serif',
               textShadowColor: 'rgba(27,73,101,0.15)',
               textShadowOffset: { width: 1, height: 1 },
@@ -375,13 +373,14 @@ export function AnasayfaEkrani({
             </Text>
           </View>
 
-          {/* 2. Kısım: Alt Çizgili İLANLAR — Tam Ortada */}
+          {/* 2. Kısım: Alt Çizgili İLANLAR — SAĞA KAYDIRILDI */}
           <View style={{
             borderBottomWidth: 2, 
             borderBottomColor: '#1B4965',
             paddingBottom: 2,
-            marginTop: 2, // Logo ile yazı bitişince burayı biraz yukarı çektik
+            marginTop: -5, 
             paddingHorizontal: 12,
+            marginLeft: 25 // İŞTE BURASI DİREKSİYONU SAĞA KIRDI (-15 yerine 25 yaptık)
           }}>
             <Text style={{
               fontSize: 12,
