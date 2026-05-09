@@ -340,56 +340,59 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-        {/* Logo + AYIT yan yana */}
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image
-              source={require('./Logo.png')}
-              style={{ 
-                width: 75,       
-                height: 75,      
-                marginLeft: 15   
-              }}
-              resizeMode="contain"
-            />
-            <Text style={{
-              fontSize: 28,  
-              fontWeight: '800',
-              color: '#1B4965',
-              letterSpacing: 4,
-              marginLeft: 3,
-              fontFamily: 'serif',
-              textShadowColor: 'rgba(27,73,101,0.15)',
-              textShadowOffset: { width: 1, height: 1 },
-              textShadowRadius: 2,
-            }}>
-              AYIT
-            </Text>
-          </View>
-          {/* Alt çizgili İLANLAR */}
-          <View style={{
-            borderBottomWidth: 3,
-            borderBottomColor: '#1B4965',
-            paddingBottom: 2,
-            marginTop: 5,
-          }}>
-            <Text style={{
-              fontSize: 9,
-              color: '#1B4965',
-              letterSpacing: 2,
-              fontWeight: '700',
-            }}>
-              İ L A N L A R
-            </Text>
-          </View>
-        </View>
+       {/* Orta: Logo + AYIT + İLANLAR */}
+          <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            
+            {/* Logo + AYIT yan yana */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 15 }}>
+              <Image
+                source={require('./Logo.png')}
+                style={{ width: 75, height: 75 }}
+                resizeMode="contain"
+              />
+              <Text style={{
+                fontSize: 28,  
+                fontWeight: '800',
+                color: '#1B4965',
+                letterSpacing: 4,
+                marginLeft: 3,
+                fontFamily: 'serif',
+                textShadowColor: 'rgba(27,73,101,0.15)',
+                textShadowOffset: { width: 1, height: 1 },
+                textShadowRadius: 2,
+              }}>
+                AYIT
+              </Text>
+            </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity onPress={setBildirimEkrani}>
-            <Text style={{ fontSize: 22 }}>🔔</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)}>
-            <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
-          </TouchableOpacity>
+            {/* Alt çizgili İLANLAR */}
+            <View style={{
+              borderBottomWidth: 3,
+              borderBottomColor: '#1B4965',
+              paddingBottom: 2,
+              marginTop: 5,
+              marginLeft: 15 // Logonun kaymasına uyumlu olması için ortalandı
+            }}>
+              <Text style={{
+                fontSize: 9,
+                color: '#1B4965',
+                letterSpacing: 2,
+                fontWeight: '700',
+              }}>
+                İ L A N L A R
+              </Text>
+            </View>
+          </View>
+
+          {/* Sağ İkonlar: Zil ve Ayarlar */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity onPress={setBildirimEkrani}>
+              <Text style={{ fontSize: 22 }}>🔔</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)}>
+              <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       {/* Sayaç Bandı */}
