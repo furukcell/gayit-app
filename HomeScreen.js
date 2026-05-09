@@ -391,7 +391,6 @@ export function AnasayfaEkrani({
             <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
       {/* Sayaç Bandı */}
       <View style={{ flexDirection: 'row', backgroundColor: '#1B4965', paddingHorizontal: 15, paddingVertical: 8, justifyContent: 'space-around' }}>
