@@ -6,7 +6,6 @@ workflows:
     environment:
       node: latest
       java: 17
-      android_sdk: latest
     triggering:
       events:
         - push
@@ -27,4 +26,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - kurtulusfaruk94@gmail.com # Buraya kendi mailini yaz usta
+          - kurtulusfaruk94@gmail.com
