@@ -1,5 +1,5 @@
 export const MAHALLE_HIYERARSISI = {
-  "Menteşe": {
+  "Menteşe (Merkez)": {
     "Merkez Mahalleler": [
       "Balıbey", "Camikebir", "Emirbeyazıt", "Hacırüstem", "Karamehmet", 
       "Karamuğla", "Kiramettin", "Muslihittin", "Müştakbey", "Orhaniye", 
