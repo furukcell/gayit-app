@@ -1,17 +1,24 @@
 // ============================================================
 // ADIM 9 — PackageScreens.js
-// Google Play In-App Purchases entegrasyonu eklenmiştir.
+// RevenueCat + Google Play Billing entegrasyonu
 // ============================================================
 
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal, StyleSheet
+  ScrollView, Alert, Switch, Linking, Share, Clipboard, Modal, ActivityIndicator
 } from 'react-native';
 import { DB_URL, API_KEY, referansKoduOlustur, zamanFarki } from './constants';
+import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
-// Ürün ID → paket tipi eşleşmesi
-const URUN_ID_MAP = {
+// ============================================================
+// RevenueCat Konfigürasyonu
+// ============================================================
+const REVENUECAT_API_KEY = 'goog_yzCnxGIpNwIcSRAtNVJTZvRxgfr';
+
+// RevenueCat'teki Offering ID → Yerel paket tipi eşleşmesi
+// NOT: Bu ID'leri RevenueCat panelinde oluşturacaksın
+const PAKET_ID_MAP = {
   'musteri_ilan_teksefer': 'tekli',
   'musteri_acil_ilan': 'acil',
   'musteri_premium_aylik': 'premium',
@@ -19,6 +26,19 @@ const URUN_ID_MAP = {
   'usta_teklif_3': 'baslangic',
   'usta_premium_aylik': 'premium',
   'usta_vip_aylik': 'vip',
+};
+
+// ============================================================
+// RevenueCat başlatma — App.js veya index.js'te çağır!
+// ============================================================
+// Bunu uygulamanın en üstünde (App component mount edilmeden önce) çağır:
+//
+// import { revenueCatBaslat } from './PackageScreens';
+// revenueCatBaslat();
+//
+export const revenueCatBaslat = () => {
+  Purchases.setLogLevel(LOG_LEVEL.DEBUG); // Canlıya alırken LOG_LEVEL.ERROR yap
+  Purchases.configure({ apiKey: REVENUECAT_API_KEY });
 };
 
 // ============================================================
@@ -31,63 +51,105 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   const [iptalModalAcik, setIptalModalAcik] = useState(false);
   const [iptalSifre, setIptalSifre] = useState('');
   const [iptalYukleniyor, setIptalYukleniyor] = useState(false);
-  const [iapHazir, setIapHazir] = useState(false);
+  const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
+  const [yukleniyorPaket, setYukleniyorPaket] = useState(null); // hangi paket butonu spinner gösteriyor
 
   // ============================================================
-  // Google Play Billing bağlantısı
+  // Satın alma tetikleyici — RevenueCat üzerinden
   // ============================================================
-  useEffect(() => {
-    const iapBaslat = async () => {
-      try {
-        await InAppPurchases.connectAsync();
-        setIapHazir(true);
-
-        InAppPurchases.setPurchaseListener(({ responseCode, results, errorCode }) => {
-          if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-            results.forEach(async (purchase) => {
-              if (!purchase.acknowledged) {
-                const paketTipi = URUN_ID_MAP[purchase.productId];
-                if (paketTipi) {
-                  try {
-                    await InAppPurchases.finishTransactionAsync(purchase, true);
-                    await paketSatinAl(paketTipi);
-                  } catch (e) {
-                    Alert.alert('Hata', 'Ödeme doğrulanamadı. Destek ile iletişime geçin.');
-                  }
-                }
-              }
-            });
-          } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-            // Kullanıcı iptal etti, sessizce geç
-          } else {
-            Alert.alert('Ödeme Hatası', 'Bir sorun oluştu, tekrar dene.');
-          }
-        });
-      } catch (e) {
-        // Play Store bağlantısı kurulamadı (emülatör veya test cihazında olabilir)
-        console.log('IAP bağlantı hatası:', e);
-      }
-    };
-
-    iapBaslat();
-
-    return () => {
-      InAppPurchases.disconnectAsync().catch(() => {});
-    };
-  }, []);
-
-  // ============================================================
-  // Satın alma tetikleyici
-  // ============================================================
-  const odemeBaslat = async (urunId) => {
-    if (!iapHazir) {
-      Alert.alert('Hata', 'Ödeme sistemi hazır değil, lütfen tekrar dene.');
-      return;
-    }
+  const odemeBaslat = async (urunId, paketLabel) => {
+    setYukleniyorPaket(urunId);
+    setOdemeYukleniyor(true);
     try {
-      await InAppPurchases.purchaseItemAsync(urunId);
+      // RevenueCat'ten mevcut teklifleri al
+      const offerings = await Purchases.getOfferings();
+
+      if (!offerings.current) {
+        Alert.alert('Hata', 'Şu an paketler yüklenemedi. İnternet bağlantını kontrol et.');
+        return;
+      }
+
+      // Tüm paketleri düz listeye al
+      const tumPaketler = offerings.current.availablePackages;
+
+      // İstenen ürün ID'sine sahip paketi bul
+      const hedefPaket = tumPaketler.find(
+        (p) => p.product.identifier === urunId
+      );
+
+      if (!hedefPaket) {
+        Alert.alert(
+          'Paket Bulunamadı',
+          `"${urunId}" ürünü RevenueCat panelinde tanımlı değil. Lütfen RevenueCat ve Google Play Console'da bu ürünü oluştur.`
+        );
+        return;
+      }
+
+      // Google Play ödeme sayfasını aç
+      const { customerInfo } = await Purchases.purchasePackage(hedefPaket);
+
+      // Satın alma başarılı → hakkı güncelle
+      const paketTipi = PAKET_ID_MAP[urunId];
+      if (paketTipi) {
+        await paketSatinAl(paketTipi, customerInfo);
+      }
     } catch (e) {
-      Alert.alert('Hata', 'Ödeme başlatılamadı. İnternet bağlantını kontrol et.');
+      if (e.userCancelled) {
+        // Kullanıcı kendi iptal etti, sessizce geç
+      } else {
+        Alert.alert('Ödeme Hatası', e.message || 'Bir sorun oluştu. Tekrar dene.');
+      }
+    } finally {
+      setOdemeYukleniyor(false);
+      setYukleniyorPaket(null);
+    }
+  };
+
+  // ============================================================
+  // Satın alma restore — kullanıcı uygulama sildiyse geri yükler
+  // ============================================================
+  const satinAlmalariGeriYukle = async () => {
+    try {
+      setOdemeYukleniyor(true);
+      const customerInfo = await Purchases.restorePurchases();
+      const aktifAbonelikler = customerInfo.activeSubscriptions;
+
+      if (aktifAbonelikler.length === 0) {
+        Alert.alert('Bilgi', 'Geri yüklenecek aktif abonelik bulunamadı.');
+        return;
+      }
+
+      // Aktif aboneliği bul ve kullanıcıya uygula
+      let abonelikDegeri = null;
+      if (
+        aktifAbonelikler.includes('musteri_vip_aylik') ||
+        aktifAbonelikler.includes('usta_vip_aylik')
+      ) {
+        abonelikDegeri = 'vip';
+      } else if (
+        aktifAbonelikler.includes('musteri_premium_aylik') ||
+        aktifAbonelikler.includes('usta_premium_aylik')
+      ) {
+        abonelikDegeri = 'premium';
+      }
+
+      if (abonelikDegeri) {
+        const otuzGunSonra = Date.now() + 2592000000;
+        setKullanici({ ...kullanici, abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra });
+        if (token && kullanici?.uid) {
+          await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra }),
+          });
+        }
+        Alert.alert('Başarılı ✅', 'Aboneliğin geri yüklendi!');
+        setEkran('anasayfa');
+      }
+    } catch (e) {
+      Alert.alert('Hata', 'Geri yükleme başarısız: ' + (e.message || 'Bilinmeyen hata'));
+    } finally {
+      setOdemeYukleniyor(false);
     }
   };
 
@@ -131,7 +193,10 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       }
 
       if (kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
-        setKuponMesaj({ tip: 'hata', metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.` });
+        setKuponMesaj({
+          tip: 'hata',
+          metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.`,
+        });
         setTimeout(() => setKuponMesaj(null), 2500);
         return;
       }
@@ -155,7 +220,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
 
       setKuponMesaj({ tip: 'basarili', metin: `🎉 Kupon uygulandı! ${kupon.icerik} hak eklendi.` });
       setTimeout(() => setEkran('anasayfa'), 2000);
-
     } catch (e) {
       setKuponMesaj({ tip: 'hata', metin: '❌ Bağlantı hatası, tekrar dene.' });
       setTimeout(() => setKuponMesaj(null), 2500);
@@ -163,9 +227,9 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   };
 
   // ============================================================
-  // PAKET SATIN ALMA — ödeme onayı sonrası çağrılır
+  // PAKET SATIN ALMA — RevenueCat onayı sonrası çağrılır
   // ============================================================
-  const paketSatinAl = async (paketTipi) => {
+  const paketSatinAl = async (paketTipi, customerInfo) => {
     let yeniHak = kullanici?.hak || 0;
     let yeniAcilHak = kullanici?.acilHak || 0;
     let abonelikDegeri = null;
@@ -208,12 +272,14 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       }
     }
 
-    setKullanici({
+    const guncelKullanici = {
       ...kullanici,
       hak: yeniHak,
       acilHak: yeniAcilHak,
       ...(abonelikDegeri && { abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra }),
-    });
+    };
+
+    setKullanici(guncelKullanici);
 
     if (token && kullanici?.uid) {
       const guncelleVeri = {
@@ -247,7 +313,11 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: kullanici.email, password: iptalSifre, returnSecureToken: false }),
+          body: JSON.stringify({
+            email: kullanici.email,
+            password: iptalSifre,
+            returnSecureToken: false,
+          }),
         }
       );
       const data = await res.json();
@@ -255,6 +325,25 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         Alert.alert('Hata', 'Şifre yanlış usta!');
         return;
       }
+
+      // Google Play'de aboneliği iptal etmek için kullanıcıyı yönlendir
+      Alert.alert(
+        'Abonelik İptali',
+        'Google Play üzerinden aboneliğini iptal etmek için yönlendirileceksin.',
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          {
+            text: 'Google Play\'e Git',
+            onPress: () => {
+              Linking.openURL(
+                'https://play.google.com/store/account/subscriptions'
+              );
+            },
+          },
+        ]
+      );
+
+      // Yerel kayıtta da sil
       setKullanici({ ...kullanici, abonelik: null, abonelikBitis: null });
       if (token && kullanici?.uid) {
         await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
@@ -265,13 +354,31 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       }
       setIptalModalAcik(false);
       setIptalSifre('');
-      Alert.alert('İptal Edildi', 'Aboneliğin iptal edildi usta.');
-      setEkran('anasayfa');
     } catch (e) {
       Alert.alert('Hata', 'Bağlantı hatası!');
     } finally {
       setIptalYukleniyor(false);
     }
+  };
+
+  // ============================================================
+  // Paket butonu — spinner entegre
+  // ============================================================
+  const PaketButon = ({ urunId, label, style }) => {
+    const yukleniyor = yukleniyorPaket === urunId;
+    return (
+      <TouchableOpacity
+        style={[styles.cardBtn, style, yukleniyor && { opacity: 0.7 }]}
+        onPress={() => odemeBaslat(urunId, label)}
+        disabled={odemeYukleniyor}
+      >
+        {yukleniyor ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <Text style={styles.cardBtnText}>{label}</Text>
+        )}
+      </TouchableOpacity>
+    );
   };
 
   // ============================================================
@@ -281,7 +388,8 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     const bitisStr = kullanici?.abonelikBitis
       ? new Date(kullanici.abonelikBitis).toLocaleDateString('tr-TR')
       : '—';
-    const abonelikEtiketi = kullanici?.abonelik === 'vip' ? '👑 VIP Abone' : '⭐ Premium Üye';
+    const abonelikEtiketi =
+      kullanici?.abonelik === 'vip' ? '👑 VIP Abone' : '⭐ Premium Üye';
     return (
       <SafeAreaView style={s.con}>
         <View style={s.header}>
@@ -292,11 +400,32 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           <View style={{ width: 24 }} />
         </View>
         <View style={{ flex: 1, padding: 20 }}>
-          <View style={{ backgroundColor: '#1B4965', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 }}>
-            <Text style={{ fontSize: 48, marginBottom: 8 }}>{kullanici?.abonelik === 'vip' ? '👑' : '⭐'}</Text>
-            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>{abonelikEtiketi}</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Abonelik bitiş: {bitisStr}</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+          <View
+            style={{
+              backgroundColor: '#1B4965',
+              borderRadius: 20,
+              padding: 25,
+              alignItems: 'center',
+              marginBottom: 25,
+            }}
+          >
+            <Text style={{ fontSize: 48, marginBottom: 8 }}>
+              {kullanici?.abonelik === 'vip' ? '👑' : '⭐'}
+            </Text>
+            <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 5 }}>
+              {abonelikEtiketi}
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+              Abonelik bitiş: {bitisStr}
+            </Text>
+            <Text
+              style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 12,
+                marginTop: 8,
+                textAlign: 'center',
+              }}
+            >
               Aboneliğin avantajlarını kullanıyorsun usta!
             </Text>
           </View>
@@ -310,9 +439,30 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         </View>
 
         <Modal visible={iptalModalAcik} transparent animationType="slide">
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-            <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FF4444', textAlign: 'center', marginBottom: 5 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: '#FFF',
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: 30,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  color: '#FF4444',
+                  textAlign: 'center',
+                  marginBottom: 5,
+                }}
+              >
                 🚫 Aboneliği İptal Et
               </Text>
               <Text style={{ color: '#526E7F', textAlign: 'center', marginBottom: 20 }}>
@@ -326,13 +476,24 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                 secureTextEntry
               />
               <TouchableOpacity
-                style={[s.girisBtn, { backgroundColor: '#FF4444', opacity: iptalYukleniyor ? 0.7 : 1 }]}
+                style={[
+                  s.girisBtn,
+                  { backgroundColor: '#FF4444', opacity: iptalYukleniyor ? 0.7 : 1 },
+                ]}
                 onPress={abonelikIptalEt}
                 disabled={iptalYukleniyor}
               >
-                <Text style={s.anaBtnY}>{iptalYukleniyor ? 'İşleniyor...' : 'ONAYLA, İPTAL ET'}</Text>
+                <Text style={s.anaBtnY}>
+                  {iptalYukleniyor ? 'İşleniyor...' : 'ONAYLA, İPTAL ET'}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setIptalModalAcik(false); setIptalSifre(''); }} style={{ marginTop: 15, alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIptalModalAcik(false);
+                  setIptalSifre('');
+                }}
+                style={{ marginTop: 15, alignItems: 'center' }}
+              >
                 <Text style={{ color: '#526E7F' }}>Vazgeç</Text>
               </TouchableOpacity>
             </View>
@@ -357,23 +518,46 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         {odemeAdim === 'secim' && (
           <>
-            <TouchableOpacity style={[s.anaBtn, { marginBottom: 15 }]} onPress={() => setOdemeAdim('kupon')}>
+            <TouchableOpacity
+              style={[s.anaBtn, { marginBottom: 15 }]}
+              onPress={() => setOdemeAdim('kupon')}
+            >
               <Text style={s.anaBtnY}>🎫 Kupon Kodu Kullan</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.anaBtn, { backgroundColor: '#1B4965' }]} onPress={() => setOdemeAdim('paket')}>
+            <TouchableOpacity
+              style={[s.anaBtn, { backgroundColor: '#1B4965' }]}
+              onPress={() => setOdemeAdim('paket')}
+            >
               <Text style={s.anaBtnY}>💳 Fiyatlar ve Paketler</Text>
+            </TouchableOpacity>
+            {/* Önceki satın almaları geri yükle */}
+            <TouchableOpacity
+              style={{ marginTop: 20, alignItems: 'center' }}
+              onPress={satinAlmalariGeriYukle}
+              disabled={odemeYukleniyor}
+            >
+              <Text style={{ color: '#526E7F', textDecorationLine: 'underline', fontSize: 13 }}>
+                🔄 Önceki satın almalarımı geri yükle
+              </Text>
             </TouchableOpacity>
           </>
         )}
 
         {odemeAdim === 'kupon' && (
           <>
-            <Text style={[s.bas, { marginBottom: 10, textAlign: 'center' }]}>Kupon Kodunu Girin</Text>
+            <Text style={[s.bas, { marginBottom: 10, textAlign: 'center' }]}>
+              Kupon Kodunu Girin
+            </Text>
             {kuponMesaj && (
-              <View style={{
-                backgroundColor: kuponMesaj.tip === 'basarili' ? '#588157' : '#E74C3C',
-                borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center'
-              }}>
+              <View
+                style={{
+                  backgroundColor: kuponMesaj.tip === 'basarili' ? '#588157' : '#E74C3C',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                  alignItems: 'center',
+                }}
+              >
                 <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{kuponMesaj.metin}</Text>
               </View>
             )}
@@ -396,7 +580,15 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
 
         {odemeAdim === 'paket' && (
           <View>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1B4965', marginBottom: 20, textAlign: 'center' }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: '#1B4965',
+                marginBottom: 20,
+                textAlign: 'center',
+              }}
+            >
               İhtiyacınıza Uygun Paketi Seçin
             </Text>
 
@@ -407,18 +599,16 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   <Text style={styles.cardTitle}>Tekli İlan</Text>
                   <Text style={styles.cardPrice}>50 TL</Text>
                   <Text style={styles.cardDesc}>Sadece tek seferlik normal ilan ücreti.</Text>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('musteri_ilan_teksefer')}>
-                    <Text style={styles.cardBtnText}>Satın Al</Text>
-                  </TouchableOpacity>
+                  <PaketButon urunId="musteri_ilan_teksefer" label="Satın Al" />
                 </View>
 
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>Acil İlan</Text>
                   <Text style={styles.cardPrice}>100 TL</Text>
-                  <Text style={styles.cardDesc}>İlanınız 'Acil İlan' kategorisinde listelensin ve en üstte yer alsın.</Text>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('musteri_acil_ilan')}>
-                    <Text style={styles.cardBtnText}>Satın Al</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.cardDesc}>
+                    İlanınız 'Acil İlan' kategorisinde listelensin ve en üstte yer alsın.
+                  </Text>
+                  <PaketButon urunId="musteri_acil_ilan" label="Satın Al" />
                 </View>
 
                 <View style={[styles.card, styles.premiumCard]}>
@@ -426,30 +616,40 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.popularBadgeText}>🌟 EN ÇOK TERCİH EDİLEN</Text>
                   </View>
                   <Text style={styles.cardTitle}>Premium Abonelik</Text>
-                  <Text style={styles.cardPrice}>200 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <Text style={styles.cardPrice}>
+                    200 TL{' '}
+                    <Text style={{ fontSize: 16, color: '#666' }}>/Ay</Text>
+                  </Text>
                   <View style={styles.listContainer}>
                     <Text style={styles.listItem}>• Ayda 10 normal ilan hakkı</Text>
                     <Text style={styles.listItem}>• Ayda 2 acil ilan hakkı</Text>
                     <Text style={styles.listItem}>• Reklamsız erişim</Text>
-                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                    <Text style={styles.listItemItalic}>
+                      * İptal edilmediği sürece her ay yenilenir.
+                    </Text>
                   </View>
-                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => odemeBaslat('musteri_premium_aylik')}>
-                    <Text style={styles.cardBtnText}>Abone Ol</Text>
-                  </TouchableOpacity>
+                  <PaketButon
+                    urunId="musteri_premium_aylik"
+                    label="Abone Ol"
+                    style={{ backgroundColor: '#588157' }}
+                  />
                 </View>
 
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>VIP Abonelik</Text>
-                  <Text style={styles.cardPrice}>400 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <Text style={styles.cardPrice}>
+                    400 TL{' '}
+                    <Text style={{ fontSize: 16, color: '#666' }}>/Ay</Text>
+                  </Text>
                   <View style={styles.listContainer}>
                     <Text style={styles.listItem}>• Sınırsız ilan hakkı</Text>
                     <Text style={styles.listItem}>• 4 acil ilan hakkı</Text>
                     <Text style={styles.listItem}>• Reklamsız erişim</Text>
-                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                    <Text style={styles.listItemItalic}>
+                      * İptal edilmediği sürece her ay yenilenir.
+                    </Text>
                   </View>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('musteri_vip_aylik')}>
-                    <Text style={styles.cardBtnText}>Abone Ol</Text>
-                  </TouchableOpacity>
+                  <PaketButon urunId="musteri_vip_aylik" label="Abone Ol" />
                 </View>
               </>
             )}
@@ -462,11 +662,11 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                   <Text style={styles.cardPrice}>50 TL</Text>
                   <View style={styles.listContainer}>
                     <Text style={styles.listItem}>• 3 Adet Teklif Verme Hakkı</Text>
-                    <Text style={styles.listItem}>• Sistemi denemek ve ilk işlerini kapmak isteyen ustalar için ideal.</Text>
+                    <Text style={styles.listItem}>
+                      • Sistemi denemek ve ilk işlerini kapmak isteyen ustalar için ideal.
+                    </Text>
                   </View>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('usta_teklif_3')}>
-                    <Text style={styles.cardBtnText}>Satın Al</Text>
-                  </TouchableOpacity>
+                  <PaketButon urunId="usta_teklif_3" label="Satın Al" />
                 </View>
 
                 <View style={[styles.card, styles.premiumCard]}>
@@ -474,35 +674,52 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
                     <Text style={styles.popularBadgeText}>🌟 EN ÇOK TERCİH EDİLEN</Text>
                   </View>
                   <Text style={styles.cardTitle}>Premium Usta</Text>
-                  <Text style={styles.cardPrice}>200 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <Text style={styles.cardPrice}>
+                    200 TL{' '}
+                    <Text style={{ fontSize: 16, color: '#666' }}>/Ay</Text>
+                  </Text>
                   <View style={styles.listContainer}>
                     <Text style={styles.listItem}>• 30 Adet Teklif Verme Hakkı</Text>
                     <Text style={styles.listItem}>• Reklamsız kullanım</Text>
-                    <Text style={styles.listItem}>• İşlerini büyütmek isteyen profesyonel ustalar için</Text>
-                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                    <Text style={styles.listItem}>
+                      • İşlerini büyütmek isteyen profesyonel ustalar için
+                    </Text>
+                    <Text style={styles.listItemItalic}>
+                      * İptal edilmediği sürece her ay yenilenir.
+                    </Text>
                   </View>
-                  <TouchableOpacity style={[styles.cardBtn, {backgroundColor: '#588157'}]} onPress={() => odemeBaslat('usta_premium_aylik')}>
-                    <Text style={styles.cardBtnText}>Abone Ol</Text>
-                  </TouchableOpacity>
+                  <PaketButon
+                    urunId="usta_premium_aylik"
+                    label="Abone Ol"
+                    style={{ backgroundColor: '#588157' }}
+                  />
                 </View>
 
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>VIP Usta</Text>
-                  <Text style={styles.cardPrice}>400 TL <Text style={{fontSize: 16, color: '#666'}}>/Ay</Text></Text>
+                  <Text style={styles.cardPrice}>
+                    400 TL{' '}
+                    <Text style={{ fontSize: 16, color: '#666' }}>/Ay</Text>
+                  </Text>
                   <View style={styles.listContainer}>
                     <Text style={styles.listItem}>• Sınırsız Teklif Verme Hakkı</Text>
                     <Text style={styles.listItem}>• Reklamsız kullanım</Text>
-                    <Text style={styles.listItem}>• Muğla piyasasını domine et, hiçbir işi kaçırma!</Text>
-                    <Text style={styles.listItemItalic}>* İptal edilmediği sürece her ay yenilenir.</Text>
+                    <Text style={styles.listItem}>
+                      • Muğla piyasasını domine et, hiçbir işi kaçırma!
+                    </Text>
+                    <Text style={styles.listItemItalic}>
+                      * İptal edilmediği sürece her ay yenilenir.
+                    </Text>
                   </View>
-                  <TouchableOpacity style={styles.cardBtn} onPress={() => odemeBaslat('usta_vip_aylik')}>
-                    <Text style={styles.cardBtnText}>Abone Ol</Text>
-                  </TouchableOpacity>
+                  <PaketButon urunId="usta_vip_aylik" label="Abone Ol" />
                 </View>
               </>
             )}
 
-            <TouchableOpacity onPress={() => setOdemeAdim('secim')} style={{ marginTop: 20, marginBottom: 40 }}>
+            <TouchableOpacity
+              onPress={() => setOdemeAdim('secim')}
+              style={{ marginTop: 20, marginBottom: 40 }}
+            >
               <Text style={[s.vazgec, { textAlign: 'center', fontSize: 16 }]}>← Geri Dön</Text>
             </TouchableOpacity>
           </View>
@@ -511,6 +728,11 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     </SafeAreaView>
   );
 }
+
+// ============================================================
+// StyleSheet — değişmedi
+// ============================================================
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   card: {
@@ -524,7 +746,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderWidth: 1,
-    borderColor: '#F0F0F0'
+    borderColor: '#F0F0F0',
   },
   premiumCard: {
     borderColor: '#588157',
@@ -552,14 +774,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1B4965',
     marginBottom: 5,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   cardPrice: {
     fontSize: 32,
     fontWeight: '900',
     color: '#1B4965',
     marginBottom: 15,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   cardDesc: {
     color: '#526E7F',
@@ -593,7 +815,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
-  }
+  },
 });
 
 // ============================================================
@@ -620,26 +842,69 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <View style={{ backgroundColor: '#1B4965', borderRadius: 20, padding: 25, alignItems: 'center', marginBottom: 25 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 8 }}>Senin Davet Kodun</Text>
-          <Text style={{ color: '#FFF', fontSize: 28, fontWeight: '900', letterSpacing: 4, marginBottom: 15 }}>{refKod}</Text>
+        <View
+          style={{
+            backgroundColor: '#1B4965',
+            borderRadius: 20,
+            padding: 25,
+            alignItems: 'center',
+            marginBottom: 25,
+          }}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 8 }}>
+            Senin Davet Kodun
+          </Text>
+          <Text
+            style={{
+              color: '#FFF',
+              fontSize: 28,
+              fontWeight: '900',
+              letterSpacing: 4,
+              marginBottom: 15,
+            }}
+          >
+            {refKod}
+          </Text>
           {kopyalandi && (
-            <View style={{ backgroundColor: '#588157', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10 }}>
+            <View
+              style={{
+                backgroundColor: '#588157',
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginBottom: 10,
+              }}
+            >
               <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>✅ Kopyalandı!</Text>
             </View>
           )}
           <TouchableOpacity
-            style={{ backgroundColor: '#588157', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 }}
+            style={{
+              backgroundColor: '#588157',
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 12,
+            }}
             onPress={kopyala}
           >
             <Text style={{ color: '#FFF', fontWeight: 'bold' }}>📋 Kodu Kopyala</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 20, elevation: 2 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15 }}>Nasıl Çalışır? 🎁</Text>
+        <View
+          style={{
+            backgroundColor: '#FFF',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 20,
+            elevation: 2,
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15 }}>
+            Nasıl Çalışır? 🎁
+          </Text>
           {[
-            { num: '1️⃣', text: 'Arkadaşını GAYİT\'a davet et' },
+            { num: '1️⃣', text: "Arkadaşını GAYİT'a davet et" },
             { num: '2️⃣', text: 'O, kayıt olurken senin kodunu girsin' },
             { num: '3️⃣', text: 'İkiniz de +1 hak kazanırsınız!' },
           ].map((adim, i) => (
@@ -652,11 +917,16 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
 
         <TouchableOpacity
           style={[s.girisBtn, { backgroundColor: '#25D366', marginBottom: 15 }]}
-          onPress={() => Linking.openURL(`whatsapp://send?text=${encodeURIComponent(paylasimMetni)}`)}
+          onPress={() =>
+            Linking.openURL(`whatsapp://send?text=${encodeURIComponent(paylasimMetni)}`)
+          }
         >
           <Text style={s.anaBtnY}>📱 WhatsApp'ta Paylaş</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.girisBtn} onPress={() => Share.share({ message: paylasimMetni })}>
+        <TouchableOpacity
+          style={s.girisBtn}
+          onPress={() => Share.share({ message: paylasimMetni })}
+        >
           <Text style={s.anaBtnY}>🔗 Diğer Uygulamalarla Paylaş</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -682,7 +952,9 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
           onPress: async () => {
             try {
               if (token && kullanici?.uid) {
-                await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, { method: 'DELETE' });
+                await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+                  method: 'DELETE',
+                });
               }
               setKullanici(null);
               setEkran('karsilama');
@@ -708,16 +980,29 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
         <View style={[s.kart, { marginBottom: 10 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>🔔 Bildirimler</Text>
-            <Switch value={bildirimAcik} onValueChange={setBildirimAcik} trackColor={{ false: '#D1D9E0', true: '#588157' }} thumbColor="#FFF" />
+            <Switch
+              value={bildirimAcik}
+              onValueChange={setBildirimAcik}
+              trackColor={{ false: '#D1D9E0', true: '#588157' }}
+              thumbColor="#FFF"
+            />
           </View>
         </View>
         <View style={[s.kart, { marginBottom: 10 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>🌙 Karanlık Mod</Text>
-            <Switch value={karanlikMod} onValueChange={setKaranlikMod} trackColor={{ false: '#D1D9E0', true: '#1B4965' }} thumbColor="#FFF" />
+            <Switch
+              value={karanlikMod}
+              onValueChange={setKaranlikMod}
+              trackColor={{ false: '#D1D9E0', true: '#1B4965' }}
+              thumbColor="#FFF"
+            />
           </View>
         </View>
-        <TouchableOpacity style={[s.kart, { marginBottom: 10 }]} onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}>
+        <TouchableOpacity
+          style={[s.kart, { marginBottom: 10 }]}
+          onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}
+        >
           <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>✉️ Destek: info@gayit.com.tr</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -773,16 +1058,36 @@ export function IletisimEkrani({ kullanici, setEkran, s }) {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={s.authIc}>
-        <View style={{ backgroundColor: '#E1F2FE', padding: 20, borderRadius: 16, marginBottom: 25, alignItems: 'center' }}>
+        <View
+          style={{
+            backgroundColor: '#E1F2FE',
+            padding: 20,
+            borderRadius: 16,
+            marginBottom: 25,
+            alignItems: 'center',
+          }}
+        >
           <Text style={{ fontSize: 32, marginBottom: 8 }}>✉️</Text>
-          <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 16 }}>info@gayit.com.tr</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:info@gayit.com.tr')} style={{ marginTop: 8 }}>
-            <Text style={{ color: '#588157', fontSize: 13, textDecorationLine: 'underline' }}>E-posta Gönder</Text>
+          <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 16 }}>
+            info@gayit.com.tr
+          </Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}
+            style={{ marginTop: 8 }}
+          >
+            <Text style={{ color: '#588157', fontSize: 13, textDecorationLine: 'underline' }}>
+              E-posta Gönder
+            </Text>
           </TouchableOpacity>
         </View>
         <Text style={[s.bas, { marginBottom: 15 }]}>Bize Yazın</Text>
         <Text style={s.inputBaslik}>Konu</Text>
-        <TextInput style={s.inp} placeholder="Mesajınızın konusu" value={iletisimKonu} onChangeText={setIletisimKonu} />
+        <TextInput
+          style={s.inp}
+          placeholder="Mesajınızın konusu"
+          value={iletisimKonu}
+          onChangeText={setIletisimKonu}
+        />
         <Text style={s.inputBaslik}>Mesajınız</Text>
         <TextInput
           style={[s.inp, { height: 120, textAlignVertical: 'top' }]}
@@ -791,7 +1096,10 @@ export function IletisimEkrani({ kullanici, setEkran, s }) {
           onChangeText={setIletisimMesajState}
           multiline
         />
-        <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={iletisimGonder}>
+        <TouchableOpacity
+          style={[s.girisBtn, { marginBottom: 40 }]}
+          onPress={iletisimGonder}
+        >
           <Text style={s.anaBtnY}>MESAJ GÖNDER</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -813,20 +1121,53 @@ export function HakkimizdaEkrani({ setEkran, s }) {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <View style={{ backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 2 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Biz Kimiz?</Text>
-          <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15, textAlign: 'justify' }}>
-            GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur.
+        <View
+          style={{
+            backgroundColor: '#FFF',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 15,
+            elevation: 2,
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>
+            Biz Kimiz?
           </Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Amacımız</Text>
-          <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15, textAlign: 'justify' }}>
-            Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri ustayı tek tıkla bulmanızı sağlıyoruz.
+          <Text
+            style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15, textAlign: 'justify' }}
+          >
+            GAYIT, dışarıdan bir girişim değil; Muğla'nın toprağında doğmuş, bu coğrafyanın
+            insanını, esnafını ve ihtiyaçlarını yakından tanıyan yerel bir platformdur.
           </Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>Neden GAYIT?</Text>
-          <Text style={{ color: '#526E7F', lineHeight: 22, marginBottom: 20, textAlign: 'justify' }}>
-            Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz. GAYIT, "Muğla'nın bütün işi gaydı artık burada" sloganıyla yola çıktı.
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>
+            Amacımız
           </Text>
-          <Text style={{ fontWeight: 'bold', fontSize: 22, color: '#E67E22', textAlign: 'center', fontStyle: 'italic', marginTop: 10 }}>
+          <Text
+            style={{ color: '#526E7F', lineHeight: 22, marginBottom: 15, textAlign: 'justify' }}
+          >
+            Kendi memleketimizde iş yaptırmanın zorluklarını biliyoruz. Usta ararken eşe dosta
+            sorma devrini geride bırakıp; teknoloji sayesinde en yakın, en güvenilir ve işinin eri
+            ustayı tek tıkla bulmanızı sağlıyoruz.
+          </Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#1B4965', marginBottom: 10 }}>
+            Neden GAYIT?
+          </Text>
+          <Text
+            style={{ color: '#526E7F', lineHeight: 22, marginBottom: 20, textAlign: 'justify' }}
+          >
+            Çünkü biz buralıyız! Sizinle aynı sokaklarda yürüyor, aynı sorunları yaşıyoruz.
+            GAYIT, "Muğla'nın bütün işi gaydı artık burada" sloganıyla yola çıktı.
+          </Text>
+          <Text
+            style={{
+              fontWeight: 'bold',
+              fontSize: 22,
+              color: '#E67E22',
+              textAlign: 'center',
+              fontStyle: 'italic',
+              marginTop: 10,
+            }}
+          >
             Gullanın Gari!!
           </Text>
         </View>
@@ -842,35 +1183,78 @@ export function HizmetKosullariEkrani({ setEkran, setSozlesmeKabul, kayittan, s 
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
-        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran(kayittan ? 'auth' : 'anasayfa')}>
+        <TouchableOpacity
+          style={s.headerGeriBtn}
+          onPress={() => setEkran(kayittan ? 'auth' : 'anasayfa')}
+        >
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerBaslik}>Hizmet Koşulları</Text>
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15, textAlign: 'center' }}>
+        <Text
+          style={{
+            fontWeight: 'bold',
+            fontSize: 16,
+            color: '#1B4965',
+            marginBottom: 15,
+            textAlign: 'center',
+          }}
+        >
           GAYIT KULLANIM VE HİZMET KOŞULLARI
         </Text>
         {[
-          { baslik: '1. Hizmetin Kapsamı', icerik: 'GAYIT, Muğla ve ilçelerinde hizmet veren ustalar ile hizmet almak isteyen kullanıcıları buluşturan bir dijital platformdur.' },
-          { baslik: '2. Üyelik ve Güvenlik', icerik: 'Sisteme kayıt olurken beyan edilen bilgilerin doğruluğundan kullanıcı sorumludur.' },
-          { baslik: '3. Teklif ve Anlaşma Süreci', icerik: 'Verilen teklifler bağlayıcıdır. Anlaşma sağlandığında tarafların iletişim bilgileri karşılıklı açılır.' },
-          { baslik: '4. Ödeme ve İade Politikası', icerik: 'Satın alınan dijital içerikler iade edilemez.' },
-          { baslik: '5. Sorumluluk Sınırları', icerik: 'GAYIT, platform kullanıcılarının davranışlarından hukuki olarak sorumlu değildir.' },
-          { baslik: '6. Kişisel Verilerin Korunması', icerik: 'Telefon numaranız, "Anlaşma" butonuna basana kadar üçüncü taraflarla paylaşılmaz.' },
-          { baslik: '7. Değişiklik Hakkı', icerik: 'GAYIT yönetimi, hizmet bedellerini ve koşulları güncelleme hakkını saklı tutar.' },
+          {
+            baslik: '1. Hizmetin Kapsamı',
+            icerik:
+              'GAYIT, Muğla ve ilçelerinde hizmet veren ustalar ile hizmet almak isteyen kullanıcıları buluşturan bir dijital platformdur.',
+          },
+          {
+            baslik: '2. Üyelik ve Güvenlik',
+            icerik:
+              'Sisteme kayıt olurken beyan edilen bilgilerin doğruluğundan kullanıcı sorumludur.',
+          },
+          {
+            baslik: '3. Teklif ve Anlaşma Süreci',
+            icerik:
+              'Verilen teklifler bağlayıcıdır. Anlaşma sağlandığında tarafların iletişim bilgileri karşılıklı açılır.',
+          },
+          {
+            baslik: '4. Ödeme ve İade Politikası',
+            icerik: 'Satın alınan dijital içerikler iade edilemez.',
+          },
+          {
+            baslik: '5. Sorumluluk Sınırları',
+            icerik:
+              'GAYIT, platform kullanıcılarının davranışlarından hukuki olarak sorumlu değildir.',
+          },
+          {
+            baslik: '6. Kişisel Verilerin Korunması',
+            icerik:
+              'Telefon numaranız, "Anlaşma" butonuna basana kadar üçüncü taraflarla paylaşılmaz.',
+          },
+          {
+            baslik: '7. Değişiklik Hakkı',
+            icerik:
+              'GAYIT yönetimi, hizmet bedellerini ve koşulları güncelleme hakkını saklı tutar.',
+          },
         ].map((madde, i) => (
           <View key={i} style={{ marginBottom: 20 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#1B4965', marginBottom: 5 }}>{madde.baslik}</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#1B4965', marginBottom: 5 }}>
+              {madde.baslik}
+            </Text>
             <Text style={{ color: '#526E7F', lineHeight: 22 }}>{madde.icerik}</Text>
           </View>
         ))}
         {kayittan && (
-          <TouchableOpacity style={[s.girisBtn, { marginBottom: 40 }]} onPress={() => {
-            if (setSozlesmeKabul) setSozlesmeKabul(true);
-            setEkran('auth');
-          }}>
+          <TouchableOpacity
+            style={[s.girisBtn, { marginBottom: 40 }]}
+            onPress={() => {
+              if (setSozlesmeKabul) setSozlesmeKabul(true);
+              setEkran('auth');
+            }}
+          >
             <Text style={s.anaBtnY}>✅ OKUDUM, ANLADIM</Text>
           </TouchableOpacity>
         )}
@@ -886,7 +1270,9 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
   const [bildirimler, setBildirimler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
-  useEffect(() => { bildirimYukle(); }, []);
+  useEffect(() => {
+    bildirimYukle();
+  }, []);
 
   const bildirimYukle = async () => {
     if (!kullanici?.uid) return;
@@ -894,9 +1280,11 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
       const res = await fetch(`${DB_URL}/bildirimler/${kullanici.uid}.json`);
       const data = await res.json();
       if (data) {
-        const liste = Object.keys(data).map(key => ({ id: key, ...data[key] })).sort((a, b) => b.tarih - a.tarih);
+        const liste = Object.keys(data)
+          .map((key) => ({ id: key, ...data[key] }))
+          .sort((a, b) => b.tarih - a.tarih);
         setBildirimler(liste);
-        const okunmamislar = liste.filter(b => !b.okundu);
+        const okunmamislar = liste.filter((b) => !b.okundu);
         for (const b of okunmamislar) {
           await fetch(`${DB_URL}/bildirimler/${kullanici.uid}/${b.id}.json`, {
             method: 'PATCH',
@@ -923,26 +1311,52 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
       </View>
       <ScrollView style={s.scroll}>
         {yukleniyor ? (
-          <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 40 }}>Yükleniyor...</Text>
+          <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 40 }}>
+            Yükleniyor...
+          </Text>
         ) : bildirimler.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 60 }}>
             <Text style={{ fontSize: 48, marginBottom: 10 }}>🔔</Text>
-            <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>Henüz bildirim yok gari.</Text>
+            <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>
+              Henüz bildirim yok gari.
+            </Text>
           </View>
         ) : (
-          bildirimler.map(b => (
-            <View key={b.id} style={{
-              backgroundColor: b.okundu ? '#FFF' : '#E1F2FE',
-              borderRadius: 12, padding: 15, marginBottom: 10,
-              borderLeftWidth: 4, borderLeftColor: b.okundu ? '#D1D9E0' : '#1B4965',
-            }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          bildirimler.map((b) => (
+            <View
+              key={b.id}
+              style={{
+                backgroundColor: b.okundu ? '#FFF' : '#E1F2FE',
+                borderRadius: 12,
+                padding: 15,
+                marginBottom: 10,
+                borderLeftWidth: 4,
+                borderLeftColor: b.okundu ? '#D1D9E0' : '#1B4965',
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
+              >
                 <Text style={{ fontWeight: 'bold', color: '#1B4965', flex: 1 }}>{b.baslik}</Text>
                 <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{zamanFarki(b.tarih)}</Text>
               </View>
               <Text style={{ color: '#526E7F', marginTop: 4 }}>{b.mesaj}</Text>
               {!b.okundu && (
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#1B4965', position: 'absolute', top: 15, right: 15 }} />
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: '#1B4965',
+                    position: 'absolute',
+                    top: 15,
+                    right: 15,
+                  }}
+                />
               )}
             </View>
           ))
