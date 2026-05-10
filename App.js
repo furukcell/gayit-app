@@ -14,7 +14,7 @@ import { AnasayfaEkrani, SolMenu } from './HomeScreen';
 import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './IlanScreens';
 import { SohbetEkrani } from './ChatScreen';
 import { ProfilEkrani } from './ProfileScreens';
-import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani } from './PackageScreens';
+import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat } from './PackageScreens';
 import { PuanModali, SikayetModali } from './Modals';
 import { AdminEkrani } from './AdminScreen';
 
@@ -24,6 +24,7 @@ import { pushTokenAl } from './notifications';
 import * as Updates from 'expo-updates';
 
 // Bildirim ayarı
+revenueCatBaslat();
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
