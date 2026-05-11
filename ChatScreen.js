@@ -1,6 +1,7 @@
 // ============================================================
-// ChatScreen.js — DÜZELTİLMİŞ VERSİYON
+// ChatScreen.js
 // Bildirim ve sohbet açılma sorunları giderildi
+// YENİ: Usta müşterinin numarasını, müşteri ustanın numarasını görür
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -27,6 +28,7 @@ export function SohbetEkrani({
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState('');
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [musteriTelefon, setMusteriTelefon] = useState(null); // usta için müşteri numarası
   const flatListRef = useRef(null);
 
   const sohbetId = (secilenIlan?.id && aktifSohbetTeklif?.ustaUid)
@@ -34,6 +36,20 @@ export function SohbetEkrani({
     : (secilenIlan?.id && aktifSohbetTeklif?.ustaId)
     ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaId.replace(/[.@]/g, '_')}`
     : null;
+
+  // ============================================================
+  // Usta görüntülüyorsa müşterinin numarasını Firebase'den çek
+  // ============================================================
+  useEffect(() => {
+    if (rol === 'usta' && secilenIlan?.sahipUid) {
+      fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
+        .then(r => r.json())
+        .then(data => {
+          if (data?.telefon) setMusteriTelefon(data.telefon);
+        })
+        .catch(() => {});
+    }
+  }, [secilenIlan?.sahipUid]);
 
   const mesajlariYukle = async () => {
     if (!sohbetId || !secilenIlan?.id) return;
@@ -107,7 +123,6 @@ export function SohbetEkrani({
         }).catch(() => {});
       }
 
-      // DÜZELTİLDİ: Hedef UID belirleme — hem ustaUid hem sahipUid güvenli kontrol
       let hedefUid = null;
       if (rol === 'musteri') {
         hedefUid = aktifSohbetTeklif?.ustaUid || null;
@@ -116,11 +131,7 @@ export function SohbetEkrani({
       }
 
       if (hedefUid) {
-        await bildirimGonderVeKaydet(
-          hedefUid,
-          `💬 ${kullanici.ad}`,
-          mesajMetni
-        );
+        await bildirimGonderVeKaydet(hedefUid, `💬 ${kullanici.ad}`, mesajMetni);
       }
 
       await mesajlariYukle();
@@ -131,56 +142,56 @@ export function SohbetEkrani({
   };
 
   const konumGonder = async () => {
-  Alert.alert(
-    '📍 Konum Paylaş',
-    'Anlık konumunuzu karşı tarafa göndermek istiyor musunuz?',
-    [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Gönder',
-        onPress: async () => {
-          try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('İzin Gerekli', 'Konum paylaşmak için izin vermelisiniz.');
-              return;
+    Alert.alert(
+      '📍 Konum Paylaş',
+      'Anlık konumunuzu karşı tarafa göndermek istiyor musunuz?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Gönder',
+          onPress: async () => {
+            try {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('İzin Gerekli', 'Konum paylaşmak için izin vermelisiniz.');
+                return;
+              }
+              const konum = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+              const { latitude, longitude } = konum.coords;
+              const haritaLinki = `https://maps.google.com/?q=${latitude},${longitude}`;
+              const mesaj = {
+                metin: '📍 Konumunu paylaştı',
+                gonderen: kullanici.uid,
+                gonderenAd: kullanici.ad,
+                tarih: Date.now(),
+                durum: 'gonderildi',
+                tip: 'konum',
+                haritaLinki,
+              };
+              await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(mesaj),
+              });
+              let hedefUid = null;
+              if (rol === 'musteri') {
+                hedefUid = aktifSohbetTeklif?.ustaUid || null;
+              } else {
+                hedefUid = secilenIlan?.sahipUid || null;
+              }
+              if (hedefUid) {
+                await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
+              }
+              await mesajlariYukle();
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            } catch (e) {
+              Alert.alert('Hata', 'Konum alınamadı gari!');
             }
-            const konum = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-            const { latitude, longitude } = konum.coords;
-            const haritaLinki = `https://maps.google.com/?q=${latitude},${longitude}`;
-            const mesaj = {
-              metin: '📍 Konumunu paylaştı',
-              gonderen: kullanici.uid,
-              gonderenAd: kullanici.ad,
-              tarih: Date.now(),
-              durum: 'gonderildi',
-              tip: 'konum',
-              haritaLinki,
-            };
-            await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(mesaj),
-            });
-            let hedefUid = null;
-            if (rol === 'musteri') {
-              hedefUid = aktifSohbetTeklif?.ustaUid || null;
-            } else {
-              hedefUid = secilenIlan?.sahipUid || null;
-            }
-            if (hedefUid) {
-              await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
-            }
-            await mesajlariYukle();
-            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-          } catch (e) {
-            Alert.alert('Hata', 'Konum alınamadı gari!');
           }
         }
-      }
-    ]
-  );
-};
+      ]
+    );
+  };
 
   const anlasmayiTamamla = async () => {
     Alert.alert(
@@ -211,36 +222,86 @@ export function SohbetEkrani({
 
   const benimMesajim = (mesaj) => mesaj.gonderen === kullanici?.uid;
 
+  // ============================================================
+  // Numarayı arama uygulamasıyla aç
+  // ============================================================
+  const numaraAra = (numara) => {
+    if (!numara || numara === 'Numara Yok') return;
+    Linking.openURL(`tel:${numara}`);
+  };
+
+  // ============================================================
+  // Role göre gösterilecek numara ve isim
+  // ============================================================
+  const gosterilecekNumara = rol === 'musteri'
+    ? aktifSohbetTeklif?.telefon
+    : musteriTelefon;
+
+  const gosterilecekIsim = rol === 'musteri'
+    ? (aktifSohbetTeklif?.ustaAd || 'Usta')
+    : (secilenIlan?.sahip || 'Müşteri');
+
+  const numaraEtiketi = rol === 'musteri' ? '📞 Usta Telefonu' : '📞 Müşteri Telefonu';
+
   return (
     <SafeAreaView style={s.con}>
+      {/* HEADER */}
       <View style={s.header}>
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.headerBaslik} numberOfLines={1}>
-            💬 {rol === 'musteri' ? (aktifSohbetTeklif?.ustaAd || 'Usta') : (secilenIlan?.sahip || 'Müşteri')}
+            💬 {gosterilecekIsim}
           </Text>
           <Text style={{ textAlign: 'center', color: '#526E7F', fontSize: 11 }}>
             {secilenIlan?.baslik}
           </Text>
         </View>
         <TouchableOpacity onPress={() => {
-          setSikayetHedef(rol === 'musteri' ? (aktifSohbetTeklif?.ustaAd || 'Kullanıcı') : (secilenIlan?.sahip || 'Kullanıcı'));
+          setSikayetHedef(gosterilecekIsim);
           setSikayetModalAcik(true);
         }}>
           <Text style={{ color: '#FF4444', fontSize: 13 }}>⚠️</Text>
         </TouchableOpacity>
       </View>
 
+      {/* ANLAŞMA BİLGİ KUTUSU */}
       <View style={s.numaraKutu}>
-        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginBottom: 3 }}>🤝 ANLAŞILAN FİYAT</Text>
-        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 18 }}>{aktifSohbetTeklif?.fiyat || '-'}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 3 }}>
-          📞 {aktifSohbetTeklif?.telefon || 'Numara paylaşılmadı'}
+        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginBottom: 3 }}>
+          🤝 ANLAŞILAN FİYAT
         </Text>
+        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 18 }}>
+          {aktifSohbetTeklif?.fiyat || '-'}
+        </Text>
+
+        {/* NUMARA — tıklanınca arama yapar */}
+        <TouchableOpacity
+          onPress={() => numaraAra(gosterilecekNumara)}
+          style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          disabled={!gosterilecekNumara || gosterilecekNumara === 'Numara Yok'}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
+            {numaraEtiketi}:
+          </Text>
+          <Text style={{
+            color: gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
+              ? '#7FE8A2'
+              : 'rgba(255,255,255,0.4)',
+            fontSize: 14,
+            fontWeight: 'bold',
+            textDecorationLine: gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
+              ? 'underline'
+              : 'none',
+          }}>
+            {gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
+              ? gosterilecekNumara
+              : 'Numara bulunamadı'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
+      {/* MESAJLAR */}
       <FlatList
         ref={flatListRef}
         data={mesajlar}
@@ -251,7 +312,9 @@ export function SohbetEkrani({
           !yukleniyor ? (
             <View style={{ alignItems: 'center', marginTop: 40 }}>
               <Text style={{ fontSize: 36, marginBottom: 8 }}>💬</Text>
-              <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>Henüz mesaj yok.{'\n'}Pazarlığa başla usta!</Text>
+              <Text style={{ color: '#A3B1B9', textAlign: 'center' }}>
+                Henüz mesaj yok.{'\n'}Pazarlığa başla usta!
+              </Text>
             </View>
           ) : null
         }
@@ -262,7 +325,9 @@ export function SohbetEkrani({
             marginBottom: 10,
           }}>
             {!benimMesajim(item) && (
-              <Text style={{ fontSize: 11, color: '#A3B1B9', marginBottom: 2, marginLeft: 4 }}>{item.gonderenAd}</Text>
+              <Text style={{ fontSize: 11, color: '#A3B1B9', marginBottom: 2, marginLeft: 4 }}>
+                {item.gonderenAd}
+              </Text>
             )}
             <View style={{
               backgroundColor: benimMesajim(item) ? '#1B4965' : '#FFF',
@@ -274,13 +339,20 @@ export function SohbetEkrani({
             }}>
               {item.tip === 'konum' ? (
                 <TouchableOpacity onPress={() => Linking.openURL(item.haritaLinki)}>
-                  <Text style={{ color: benimMesajim(item) ? '#FFF' : '#1B4965', fontSize: 15 }}>📍 Konumu Görüntüle</Text>
-                  <Text style={{ color: benimMesajim(item) ? 'rgba(255,255,255,0.7)' : '#1B4965', fontSize: 12, textDecorationLine: 'underline', marginTop: 3 }}>
+                  <Text style={{ color: benimMesajim(item) ? '#FFF' : '#1B4965', fontSize: 15 }}>
+                    📍 Konumu Görüntüle
+                  </Text>
+                  <Text style={{
+                    color: benimMesajim(item) ? 'rgba(255,255,255,0.7)' : '#1B4965',
+                    fontSize: 12, textDecorationLine: 'underline', marginTop: 3
+                  }}>
                     Google Maps'te Aç →
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <Text style={{ color: benimMesajim(item) ? '#FFF' : '#1B4965', fontSize: 15 }}>{item.metin}</Text>
+                <Text style={{ color: benimMesajim(item) ? '#FFF' : '#1B4965', fontSize: 15 }}>
+                  {item.metin}
+                </Text>
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 4, gap: 4 }}>
                 <Text style={{ color: benimMesajim(item) ? 'rgba(255,255,255,0.5)' : '#A3B1B9', fontSize: 10 }}>
@@ -293,6 +365,7 @@ export function SohbetEkrani({
         )}
       />
 
+      {/* İŞ TAMAMLANDI BUTONU */}
       {anlasmaSaglandi && (
         <TouchableOpacity
           style={{ backgroundColor: '#588157', margin: 10, padding: 12, borderRadius: 12, alignItems: 'center' }}
@@ -302,6 +375,7 @@ export function SohbetEkrani({
         </TouchableOpacity>
       )}
 
+      {/* MESAJ YAZMA ALANI */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
         <View style={{
           flexDirection: 'row', padding: 10, paddingBottom: 20,
