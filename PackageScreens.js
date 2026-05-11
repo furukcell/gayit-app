@@ -1114,7 +1114,7 @@ export function HakkimizdaEkrani({ setEkran, s }) {
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
-        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('ayarlar')}>
+        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerBaslik}>Hakkımızda</Text>
