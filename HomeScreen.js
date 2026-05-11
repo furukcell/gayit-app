@@ -7,9 +7,24 @@ import * as WebBrowser from 'expo-web-browser';
 import { BOLGELER, KATEGORILER } from './constants';
 
 // ============================================================
+// YARDIMCI: "3 saat önce", "2 gün önce" formatı
+// ============================================================
+function zamanOncesi(tarih) {
+  if (!tarih) return '';
+  const fark = Date.now() - tarih;
+  const dakika = Math.floor(fark / 60000);
+  const saat = Math.floor(fark / 3600000);
+  const gun = Math.floor(fark / 86400000);
+  if (dakika < 1) return 'Az önce';
+  if (dakika < 60) return `${dakika} dk önce`;
+  if (saat < 24) return `${saat} saat önce`;
+  return `${gun} gün önce`;
+}
+
+// ============================================================
 // İLAN KARTI BİLEŞENİ
 // ============================================================
-function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s }) {
+function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, onIlanSil, s }) {
   return (
     <TouchableOpacity
       style={[s.kart, item.acil && { borderWidth: 2, borderColor: '#FF4444' }]}
@@ -23,11 +38,15 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={s.kategoriBadge}>{item.kategori}</Text>
-        {item.ustaOnayli && (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {/* İlan oluşturulma tarihi */}
+          {item.tarih && (
+            <Text style={{ color: '#A3B1B9', fontSize: 11 }}>🕐 {zamanOncesi(item.tarih)}</Text>
+          )}
+          {item.ustaOnayli && (
             <Text style={{ color: '#00a2ed', fontSize: 11, fontWeight: 'bold' }}>✅ Onaylı</Text>
-          </View>
-        )}
+          )}
+        </View>
       </View>
 
       <Text style={s.kartBaslik}>{item.baslik}</Text>
@@ -46,9 +65,25 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
           <Text style={s.anaBtnY}>TEKLİF VER</Text>
         </View>
       )}
+
+      {/* Müşteri kendi ilanını görebilir + silebilir */}
       {rol === 'musteri' && item.sahip === kullanici?.email && (
-        <View style={[s.girisBtn, { marginTop: 10, backgroundColor: '#588157' }]}>
-          <Text style={s.anaBtnY}>TEKLİFLERİ GÖR ({item.teklifler?.length || 0})</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+          <TouchableOpacity
+            style={[s.girisBtn, { flex: 1, backgroundColor: '#588157' }]}
+            onPress={() => onTekliflerTikla(item)}
+          >
+            <Text style={s.anaBtnY}>TEKLİFLERİ GÖR ({item.teklifler?.length || 0})</Text>
+          </TouchableOpacity>
+          {/* Anlaşma yoksa sil butonu göster */}
+          {!item.anlasmaVar && (
+            <TouchableOpacity
+              style={[s.girisBtn, { backgroundColor: '#FF4444', paddingHorizontal: 16 }]}
+              onPress={() => onIlanSil(item)}
+            >
+              <Text style={s.anaBtnY}>🗑️</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </TouchableOpacity>
@@ -89,7 +124,6 @@ export function SolMenu({
             style={s.profilTiklanabilir}
             onPress={() => { setMenuAcik(false); setProfilTel(kullanici?.telefon || ''); setEkran('profil'); }}
           >
-            {/* AVATAR — aboneliğe göre çerçeve rengi */}
             <View style={[
               s.profilAvatar,
               kullanici?.abonelik === 'vip'
@@ -101,7 +135,6 @@ export function SolMenu({
               <Text style={s.avatarHarf}>{kullanici?.ad?.[0]?.toUpperCase() || '?'}</Text>
             </View>
             <Text style={s.profilAd}>{kullanici?.ad || 'Usta'}</Text>
-            {/* ABONE YAZISI — vip / premium / standart */}
             <Text style={s.profilDuzenleText}>
               {kullanici?.abonelik === 'vip'
                 ? '👑 VIP ABONE'
@@ -112,79 +145,78 @@ export function SolMenu({
           </TouchableOpacity>
 
           {/* HAK ÖZETİ */}
-{(() => {
-  const abonelik = kullanici?.abonelik;
-  const hak = kullanici?.hak ?? 0;
-  const acilHak = kullanici?.acilHak ?? 0;
-  const yeniHak = kullanici?.yeniKullaniciHakki ?? 0;
-  const isPremium = abonelik === 'premium';
-  const isVip = abonelik === 'vip';
-  const ekstraHakVar = hak > 0;
-  const yeniHakVar = yeniHak > 0;
+          {(() => {
+            const abonelik = kullanici?.abonelik;
+            const hak = kullanici?.hak ?? 0;
+            const acilHak = kullanici?.acilHak ?? 0;
+            const yeniHak = kullanici?.yeniKullaniciHakki ?? 0;
+            const isPremium = abonelik === 'premium';
+            const isVip = abonelik === 'vip';
+            const ekstraHakVar = hak > 0;
+            const yeniHakVar = yeniHak > 0;
 
-  if (!isPremium && !isVip && !ekstraHakVar && !yeniHakVar) return null;
+            if (!isPremium && !isVip && !ekstraHakVar && !yeniHakVar) return null;
 
-  return (
-    <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 8 }}>
-      {(isPremium || isVip) && (
-        <>
-          <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
-            {isVip ? '👑 VIP Hakları' : '⭐ Premium Hakları'}
-          </Text>
-          {rol === 'usta' ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🔨 Teklif Hakkı</Text>
-              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{isVip ? '∞' : hak}</Text>
-            </View>
-          ) : (
-            <>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>📋 İlan Hakkı</Text>
-                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{isVip ? '∞' : hak}</Text>
+            return (
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, marginBottom: 8 }}>
+                {(isPremium || isVip) && (
+                  <>
+                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>
+                      {isVip ? '👑 VIP Hakları' : '⭐ Premium Hakları'}
+                    </Text>
+                    {rol === 'usta' ? (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🔨 Teklif Hakkı</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{isVip ? '∞' : hak}</Text>
+                      </View>
+                    ) : (
+                      <>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>📋 İlan Hakkı</Text>
+                          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{isVip ? '∞' : hak}</Text>
+                        </View>
+                        {acilHak > 0 && (
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🚨 Acil İlan Hakkı</Text>
+                            <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{acilHak}</Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                    {ekstraHakVar && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Ekstra Hak</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
+                      </View>
+                    )}
+                    {yeniHakVar && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
+                      </View>
+                    )}
+                  </>
+                )}
+                {!isPremium && !isVip && (
+                  <>
+                    <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>📦 Mevcut Haklar</Text>
+                    {yeniHakVar && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
+                      </View>
+                    )}
+                    {ekstraHakVar && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Kupon / Davet Hakkı</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
+                      </View>
+                    )}
+                  </>
+                )}
               </View>
-              {acilHak > 0 && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🚨 Acil İlan Hakkı</Text>
-                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{acilHak}</Text>
-                </View>
-              )}
-            </>
-          )}
-          {ekstraHakVar && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Ekstra Hak</Text>
-              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
-            </View>
-          )}
-          {yeniHakVar && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
-              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
-            </View>
-          )}
-        </>
-      )}
-
-      {!isPremium && !isVip && (
-        <>
-          <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>📦 Mevcut Haklar</Text>
-          {yeniHakVar && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
-              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
-            </View>
-          )}
-          {ekstraHakVar && (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Kupon / Davet Hakkı</Text>
-              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
-            </View>
-          )}
-        </>
-      )}
-    </View>
-  );
-})()}
+            );
+          })()}
 
           <View style={s.ayrac} />
 
@@ -307,15 +339,21 @@ export function SolMenu({
 export function AnasayfaEkrani({
   kullanici, rol, ilanlar, sistemIst, yenileniyor, onYenile,
   setEkran, setMenuAcik, setSecilenIlan,
-  ustaTeklifTiklandi, setBildirimEkrani, s
+  ustaTeklifTiklandi, setBildirimEkrani, onIlanSil, s
 }) {
   const [seciliKategori, setSeciliKategori] = useState('Tümü');
   const [seciliIlce, setSeciliIlce] = useState('Tümü');
   const [filtreAcik, setFiltreAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(20);
 
+  const YIRMI_DORT_SAAT = 24 * 60 * 60 * 1000;
+
   const filtrelenmis = ilanlar.filter(ilan => {
-    if (ilan.anlasmaVar) return false;
+    // Anlaşma sağlanmış ve 24 saat geçmişse anasayfada gösterme
+    if (ilan.anlasmaVar && ilan.kapanmaTarihi && Date.now() > ilan.kapanmaTarihi) return false;
+    // Anlaşması olmayan ilanları normal göster
+    if (ilan.anlasmaVar && !ilan.kapanmaTarihi) return false;
+
     const kategoriUygun = rol === 'usta'
       ? ilan.kategori === kullanici?.meslek
       : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
@@ -340,69 +378,41 @@ export function AnasayfaEkrani({
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
 
-  {/* Orta: Logo + AYIT + ILANLAR (HİZALANMIŞ VE SAĞA KAYDIRILMIŞ) */}
         <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          
-          {/* 1. Kısım: Logo ve AYIT Yan Yana — Logo Yukarı Alındı ve Hizalandı */}
-          <View style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            marginTop: -15, 
-          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -15 }}>
             <Image
               source={require('./Logo.png')}
-              style={{ 
-                width: 80, 
-                height: 80, 
-                marginRight: -15,
-                marginTop: -16 // Logoyu yazıya göre yukarı kaldıran ayar (Aynı kaldı)
-              }} 
+              style={{ width: 80, height: 80, marginRight: -15, marginTop: -16 }}
               resizeMode="contain"
             />
             <Text style={{
-              fontSize: 28, 
-              fontWeight: '800',
-              color: '#1B4965',
-              letterSpacing: 1,
-              fontFamily: 'serif',
+              fontSize: 28, fontWeight: '800', color: '#1B4965',
+              letterSpacing: 1, fontFamily: 'serif',
               textShadowColor: 'rgba(27,73,101,0.15)',
-              textShadowOffset: { width: 1, height: 1 },
-              textShadowRadius: 2,
+              textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2,
             }}>
               AYIT
             </Text>
           </View>
-
-          {/* 2. Kısım: Alt Çizgili İLANLAR — SAĞA KAYDIRILDI */}
           <View style={{
-            borderBottomWidth: 2, 
-            borderBottomColor: '#1B4965',
-            paddingBottom: 2,
-            marginTop: -3, 
-            paddingHorizontal: 12,
-            marginLeft: 25 // İŞTE BURASI DİREKSİYONU SAĞA KIRDI (-15 yerine 25 yaptık)
+            borderBottomWidth: 2, borderBottomColor: '#1B4965',
+            paddingBottom: 2, marginTop: -3, paddingHorizontal: 12, marginLeft: 25
           }}>
-            <Text style={{
-              fontSize: 12,
-              color: '#1B4965',
-              letterSpacing: 4, 
-              fontWeight: '700',
-            }}>
+            <Text style={{ fontSize: 12, color: '#1B4965', letterSpacing: 4, fontWeight: '700' }}>
               İLANLAR
             </Text>
           </View>
         </View>
 
-          {/* Sağ İkonlar: Zil ve Ayarlar */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TouchableOpacity onPress={setBildirimEkrani}>
-              <Text style={{ fontSize: 22 }}>🔔</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)}>
-              <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity onPress={setBildirimEkrani}>
+            <Text style={{ fontSize: 22 }}>🔔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setFiltreAcik(!filtreAcik)}>
+            <Text style={{ fontSize: 22, color: '#1B4965' }}>⚙️</Text>
+          </TouchableOpacity>
         </View>
+      </View>
 
       {/* Sayaç Bandı */}
       <View style={{ flexDirection: 'row', backgroundColor: '#1B4965', paddingHorizontal: 15, paddingVertical: 8, justifyContent: 'space-around' }}>
@@ -455,7 +465,6 @@ export function AnasayfaEkrani({
         </View>
       )}
 
-      {/* Müşteri için ilan ver butonu */}
       {rol === 'musteri' && (
         <TouchableOpacity
           style={[s.girisBtn, { margin: 15, marginBottom: 5 }]}
@@ -489,7 +498,9 @@ export function AnasayfaEkrani({
               style={{ backgroundColor: '#E1F2FE', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 20 }}
               onPress={() => setGosterilen(prev => prev + 20)}
             >
-              <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>Daha Fazla Yükle ({filtrelenmis.length - gosterilen} ilan daha)</Text>
+              <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>
+                Daha Fazla Yükle ({filtrelenmis.length - gosterilen} ilan daha)
+              </Text>
             </TouchableOpacity>
           ) : null
         }
@@ -500,6 +511,7 @@ export function AnasayfaEkrani({
             kullanici={kullanici}
             onTeklifTikla={ustaTeklifTiklandi}
             onTekliflerTikla={onTekliflerTikla}
+            onIlanSil={onIlanSil}
             s={s}
           />
         )}
