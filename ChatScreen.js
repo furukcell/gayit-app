@@ -131,7 +131,7 @@ export function SohbetEkrani({
       }
 
       if (hedefUid) {
-        await bildirimGonderVeKaydet(hedefUid, `💬 ${kullanici.ad}`, mesajMetni);
+      await bildirimGonderVeKaydet(hedefUid, kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`, mesajMetni);
       }
 
       await mesajlariYukle();
