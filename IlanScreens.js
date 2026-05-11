@@ -600,6 +600,11 @@ export function TekliflerEkrani({
 }) {
   const ilan = ilanlar.find(i => i.id === secilenIlan?.id);
 
+  // Usta profil modalı için state
+  const [ustaProfil, setUstaProfil] = useState(null);
+  const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
+  const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
+
   // 🔒 YETKİ KONTROLÜ: Sadece ilan sahibi görebilir
   if (!ilan || ilan.sahip !== kullanici?.email) {
     return (
@@ -626,11 +631,6 @@ export function TekliflerEkrani({
       </SafeAreaView>
     );
   }
-
-  // Usta profil modalı için state
-  const [ustaProfil, setUstaProfil] = useState(null);
-  const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
-  const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
 
   // ============================================================
   // Usta profilini Firebase'den çek
