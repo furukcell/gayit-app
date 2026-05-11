@@ -312,16 +312,18 @@ export default function App() {
     );
 
     if (ekran === 'ilanlarim') return (
-      <IlanlarimEkrani
-        kullanici={kullanici}
-        rol={rol}
-        ilanlar={ilanlar}
-        setEkran={setEkran}
-        setSecilenIlan={setSecilenIlan}
-        ustaTeklifTiklandi={ustaTeklifTiklandi}
-        s={st}
-      />
-    );
+  <IlanlarimEkrani
+    kullanici={kullanici}
+    token={token}
+    rol={rol}
+    ilanlar={ilanlar}
+    setEkran={setEkran}
+    setSecilenIlan={setSecilenIlan}
+    ustaTeklifTiklandi={ustaTeklifTiklandi}
+    onVeriYukle={veriYukle}
+    s={st}
+  />
+);
 
     if (ekran === 'teklifver') return (
       <TeklifVerEkrani
