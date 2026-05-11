@@ -375,52 +375,57 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
           <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 30 }}>Henüz kayıt yok usta.</Text>
         ) : (
           benimIlanlarim.map(item => (
-            <TouchableOpacity
+            <View
               key={item.id}
               style={[s.kart, item.acil && { borderWidth: 2, borderColor: '#FF4444' }]}
-              onPress={() => {
-                setSecilenIlan(item);
-                rol === 'musteri' ? setEkran('teklifler') : ustaTeklifTiklandi(item);
-              }}
             >
               {item.acil && (
                 <View style={s.acilRozet}>
                   <Text style={s.acilRozetYazi}>🚨 ACİL</Text>
                 </View>
               )}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={s.kategoriBadge}>{item.kategori}</Text>
-                {item.anlasmaVar && (
-                  <View style={{ backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                    <Text style={{ color: '#588157', fontSize: 11, fontWeight: 'bold' }}>✅ Anlaşma Var</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={s.kartBaslik}>{item.baslik}</Text>
-              <Text style={s.kartAlt}>📍 {item.mahalle} - {item.bolge}</Text>
-              {item.isTarihi && <Text style={s.kartAlt}>📅 {item.isTarihi}</Text>}
-              <View style={s.kartIstatistikler}>
-                <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
-                {rol === 'musteri' && item.goruntuleyen && (
-                  <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
-                    👁️ {Object.keys(item.goruntuleyen).length} usta gördü
-                  </Text>
-                )}
-              </View>
 
-              {/* Müşteri için sil butonu — sade çöp kutusu ikonu, arka plan yok */}
+              {/* Karta tıklanabilir alan — sil butonu hariç her yer */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setSecilenIlan(item);
+                  rol === 'musteri' ? setEkran('teklifler') : ustaTeklifTiklandi(item);
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={s.kategoriBadge}>{item.kategori}</Text>
+                  {item.anlasmaVar && (
+                    <View style={{ backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ color: '#588157', fontSize: 11, fontWeight: 'bold' }}>✅ Anlaşma Var</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={s.kartBaslik}>{item.baslik}</Text>
+                <Text style={s.kartAlt}>📍 {item.mahalle} - {item.bolge}</Text>
+                {item.isTarihi && <Text style={s.kartAlt}>📅 {item.isTarihi}</Text>}
+                <View style={s.kartIstatistikler}>
+                  <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
+                  {rol === 'musteri' && item.goruntuleyen && (
+                    <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
+                      👁️ {Object.keys(item.goruntuleyen).length} usta gördü
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Sil butonu — karttan bağımsız, sadece çöp kutusu ikonu */}
               {rol === 'musteri' && !item.anlasmaVar && (
-                <TouchableOpacity
-                  style={{ marginTop: 8, alignSelf: 'flex-end', padding: 6 }}
-                  onPress={(e) => {
-                    if (e && e.stopPropagation) e.stopPropagation();
-                    ilanSil(item);
-                  }}
-                >
-                  <Text style={{ color: '#FF4444', fontSize: 20 }}>🗑️</Text>
-                </TouchableOpacity>
+                <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
+                  <TouchableOpacity
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={() => ilanSil(item)}
+                  >
+                    <Text style={{ color: '#FF4444', fontSize: 22 }}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
               )}
-            </TouchableOpacity>
+            </View>
           ))
         )}
       </ScrollView>
