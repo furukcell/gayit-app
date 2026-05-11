@@ -86,7 +86,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       sahipUid: kullanici.uid,
       anlasmaVar: false,
       teklifler: [],
-      tarih: Date.now(), // ilan oluşturma tarihi
+      tarih: Date.now(),
     };
 
     try {
@@ -316,8 +316,6 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 // ============================================================
 export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setSecilenIlan, ustaTeklifTiklandi, onVeriYukle, s }) {
 
-  // Müşteri için kendi tüm ilanları (anlaşmalı olanlar dahil — sadece bu ekranda görünür)
-  // Usta için teklif verdiği ilanlar
   const benimIlanlarim = rol === 'usta'
     ? ilanlar.filter(ilan => ilan.teklifler && ilan.teklifler.some(t => t.ustaId === kullanici?.email))
     : ilanlar.filter(ilan => ilan.sahip === kullanici?.email);
@@ -333,9 +331,10 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
     }
 
     // Silme işlemini yapan asıl fonksiyon
+    // DÜZELTİLDİ: ?auth=${token} eklendi, Firebase silme yetkisi için gerekli
     const silmeIslemi = async () => {
       try {
-        await fetch(`${DB_URL}/ilanlar/${ilan.id}.json`, { method: 'DELETE' });
+        await fetch(`${DB_URL}/ilanlar/${ilan.id}.json?auth=${token}`, { method: 'DELETE' });
         await onVeriYukle();
         if (Platform.OS === 'web') window.alert('İlanın silindi.');
         else Alert.alert('Silindi', 'İlanın silindi.');
@@ -346,13 +345,11 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
     };
 
     if (Platform.OS === 'web') {
-      // Web (Bilgisayar) ortamındaysak standart tarayıcı onayı kullan
       const onay = window.confirm(`"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`);
       if (onay) {
         silmeIslemi();
       }
     } else {
-      // Mobil ortamdaysak React Native Alert kullan
       Alert.alert(
         'İlanı Sil',
         `"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`,
@@ -393,7 +390,6 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={s.kategoriBadge}>{item.kategori}</Text>
-                {/* Anlaşmalı ilanlar için etiket */}
                 {item.anlasmaVar && (
                   <View style={{ backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
                     <Text style={{ color: '#588157', fontSize: 11, fontWeight: 'bold' }}>✅ Anlaşma Var</Text>
@@ -412,19 +408,16 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
                 )}
               </View>
 
-              {/* Müşteri için sil butonu — anlaşma yoksa */}
+              {/* Müşteri için sil butonu — sade çöp kutusu ikonu, arka plan yok */}
               {rol === 'musteri' && !item.anlasmaVar && (
                 <TouchableOpacity
-                  style={{ marginTop: 10, alignSelf: 'flex-end', backgroundColor: '#FFEBEE', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+                  style={{ marginTop: 8, alignSelf: 'flex-end', padding: 6 }}
                   onPress={(e) => {
-                    // HAYAT KURTARAN SATIR: Tıklamanın karta sıçramasını engeller!
-                    if (e && e.stopPropagation) {
-                      e.stopPropagation();
-                    }
+                    if (e && e.stopPropagation) e.stopPropagation();
                     ilanSil(item);
                   }}
                 >
-                  <Text style={{ color: '#FF4444', fontWeight: 'bold', fontSize: 13 }}>🗑️ İlanı Sil</Text>
+                  <Text style={{ color: '#FF4444', fontSize: 20 }}>🗑️</Text>
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
@@ -618,7 +611,6 @@ export function TekliflerEkrani({
 }) {
   const ilan = ilanlar.find(i => i.id === secilenIlan?.id);
 
-  // Usta profil modalı için state
   const [ustaProfil, setUstaProfil] = useState(null);
   const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
@@ -650,9 +642,6 @@ export function TekliflerEkrani({
     );
   }
 
-  // ============================================================
-  // Usta profilini Firebase'den çek
-  // ============================================================
   const ustaProfilGoster = async (ustaUid, ustaAd) => {
     setUstaProfilYukleniyor(true);
     setUstaProfilModalAcik(true);
@@ -671,9 +660,6 @@ export function TekliflerEkrani({
     }
   };
 
-  // ============================================================
-  // Anlaşma yap + 24 saat kapanma tarihi yaz
-  // ============================================================
   const anlasmaYap = async (ilanId, teklif) => {
     Alert.alert(
       'Anlaşmayı Onayla',
@@ -684,14 +670,14 @@ export function TekliflerEkrani({
           text: 'Evet, Anlaş!',
           onPress: async () => {
             try {
-              const kapanmaTarihi = Date.now() + 24 * 60 * 60 * 1000; // 24 saat sonra
+              const kapanmaTarihi = Date.now() + 24 * 60 * 60 * 1000;
               await fetch(`${DB_URL}/ilanlar/${ilanId}.json`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   anlasmaVar: true,
                   anlasilanUsta: teklif,
-                  kapanmaTarihi, // anasayfadan 24 saat sonra kalkar
+                  kapanmaTarihi,
                 }),
               });
               await onVeriYukle();
@@ -756,7 +742,6 @@ export function TekliflerEkrani({
               ]}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                {/* Usta adına tıklayınca profil açılır */}
                 <TouchableOpacity onPress={() => ustaProfilGoster(teklif.ustaUid, teklif.ustaAd)}>
                   <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', textDecorationLine: 'underline' }}>
                     {teklif.ustaAd} 👤
@@ -835,7 +820,6 @@ export function TekliflerEkrani({
               <Text style={{ textAlign: 'center', color: '#A3B1B9', marginVertical: 30 }}>Yükleniyor...</Text>
             ) : ustaProfil ? (
               <>
-                {/* Avatar */}
                 <View style={{ alignItems: 'center', marginBottom: 20 }}>
                   <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: '#1B4965', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
                     <Text style={{ color: '#FFF', fontSize: 28, fontWeight: 'bold' }}>
@@ -847,7 +831,6 @@ export function TekliflerEkrani({
                   {ustaProfil.abonelik === 'premium' && <Text style={{ color: '#F39C12' }}>⭐ Premium Usta</Text>}
                 </View>
 
-                {/* Bilgiler */}
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 16, padding: 16, gap: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔨 Meslek</Text>
