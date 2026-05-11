@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  FlatList, KeyboardAvoidingView, Platform, Alert, Linking
+  FlatList, KeyboardAvoidingView, Platform, Alert, Linking, RefreshControl
 } from 'react-native';
 import * as Location from 'expo-location';
 import { DB_URL } from './constants';
@@ -89,8 +89,6 @@ export function SohbetEkrani({
 
   useEffect(() => {
     mesajlariYukle();
-    const interval = setInterval(mesajlariYukle, 3000);
-    return () => clearInterval(interval);
   }, [sohbetId]);
 
   const mesajGonder = async () => {
@@ -306,6 +304,13 @@ export function SohbetEkrani({
         ref={flatListRef}
         data={mesajlar}
         keyExtractor={item => item.id}
+        refreshControl={
+  <RefreshControl
+    refreshing={yukleniyor}
+    onRefresh={mesajlariYukle}
+    colors={['#1B4965']}
+  />
+}
         contentContainerStyle={{ padding: 15, paddingBottom: 10 }}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
