@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  ScrollView, Alert, Image, Switch, ActivityIndicator, Modal
+  ScrollView, Alert, Image, Switch, ActivityIndicator, Modal, StyleSheet
 } from 'react-native';
 import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur } from './constants';
 import { MAHALLE_HIYERARSISI } from './Mahalleler';
@@ -67,9 +67,10 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [yukleniyor, setYukleniyor] = useState(false);
   const [secimModalAcik, setSecimModalAcik] = useState(false);
   const [kayitMahalle, setKayitMahalle] = useState('');
-  const [mahalleGrubu, setMahalleGrubu] = useState(''); 
+  const [mahalleGrubu, setMahalleGrubu] = useState('');
   const [asama, setAsama] = useState(1);
   const [secimTipi, setSecimTipi] = useState('');
+
   const islemiTamamla = async () => {
     if (!email || !sifre || (mod === 'kayit' && !ad))
       return Alert.alert('Hata', 'Eksik bilgi girdiniz usta!');
@@ -247,12 +248,13 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           <>
             {/* İLÇE SEÇİMİ */}
             <Text style={s.inputBaslik}>Bulunduğunuz İlçe</Text>
-            <TouchableOpacity 
-              style={s.inp} 
+            {/* DÜZELTİLDİ: s.yaziBas/s.yaziSoluk obje referansı değil renk string'i olmalı */}
+            <TouchableOpacity
+              style={s.inp}
               onPress={() => { setSecimTipi('bolge'); setSecimModalAcik(true); }}
             >
-              <Text style={{ color: kayitBolge ? s.yaziBas : s.yaziSoluk }}>
-                {kayitBolge || "İlçe Seçiniz..."}
+              <Text style={{ color: kayitBolge ? '#1B4965' : '#A3B1B9' }}>
+                {kayitBolge || 'İlçe Seçiniz...'}
               </Text>
             </TouchableOpacity>
 
@@ -260,12 +262,12 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             {rol === 'usta' && (
               <>
                 <Text style={s.inputBaslik}>Branşınız</Text>
-                <TouchableOpacity 
-                  style={s.inp} 
+                <TouchableOpacity
+                  style={s.inp}
                   onPress={() => { setSecimTipi('brans'); setSecimModalAcik(true); }}
                 >
-                  <Text style={{ color: kayitBrans ? s.yaziBas : s.yaziSoluk }}>
-                    {kayitBrans || "Branş Seçiniz..."}
+                  <Text style={{ color: kayitBrans ? '#1B4965' : '#A3B1B9' }}>
+                    {kayitBrans || 'Branş Seçiniz...'}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -313,7 +315,11 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           <Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>← Geri</Text>
         </TouchableOpacity>
       </ScrollView>
-          <Modal visible={secimModalAcik} transparent animationType="slide">
+
+      {/* DÜZELTİLDİ: modalSatir ve modalSatirYazi stilleri eklendi —
+          Bu stiller App.js'de tanımlı değildi, modal açılınca ilçe/branş
+          satırları görünmüyordu ya da hata veriyordu. */}
+      <Modal visible={secimModalAcik} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={[s.modalKutu, { maxHeight: '70%' }]}>
             <Text style={s.modalBaslik}>
@@ -322,26 +328,25 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             <ScrollView showsVerticalScrollIndicator={false}>
               {secimTipi === 'bolge' ? (
                 BOLGELER.map((item, index) => (
-                  <TouchableOpacity key={index} style={s.modalSatir} onPress={() => { setKayitBolge(item); setSecimModalAcik(false); }}>
-                    <Text style={s.modalSatirYazi}>{item}</Text>
+                  <TouchableOpacity key={index} style={localStyles.modalSatir} onPress={() => { setKayitBolge(item); setSecimModalAcik(false); }}>
+                    <Text style={localStyles.modalSatirYazi}>{item}</Text>
                   </TouchableOpacity>
                 ))
               ) : secimTipi === 'brans' ? (
                 KATEGORILER.filter(k => k !== 'Tümü').map((item, index) => (
-                  <TouchableOpacity key={index} style={s.modalSatir} onPress={() => { setKayitBrans(item); setSecimModalAcik(false); }}>
-                    <Text style={s.modalSatirYazi}>{item}</Text>
+                  <TouchableOpacity key={index} style={localStyles.modalSatir} onPress={() => { setKayitBrans(item); setSecimModalAcik(false); }}>
+                    <Text style={localStyles.modalSatirYazi}>{item}</Text>
                   </TouchableOpacity>
                 ))
               ) : (
-                // MAHALLE SEÇİMİ (İKİ AŞAMALI)
                 asama === 1 ? (
                   Object.keys(MAHALLE_HIYERARSISI[kayitBolge] || {}).map((grup, index) => (
-                    <TouchableOpacity 
-                      key={index} 
-                      style={[s.modalSatir, { backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10 }]} 
+                    <TouchableOpacity
+                      key={index}
+                      style={[localStyles.modalSatir, { backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10 }]}
                       onPress={() => { setMahalleGrubu(grup); setAsama(2); }}
                     >
-                      <Text style={[s.modalSatirYazi, { fontWeight: 'bold', color: '#1B4965' }]}>{grup} ❯</Text>
+                      <Text style={[localStyles.modalSatirYazi, { fontWeight: 'bold', color: '#1B4965' }]}>{grup} ❯</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
@@ -350,12 +355,12 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                       <Text style={{ color: '#E67E22', fontWeight: 'bold' }}>❮ Geri Dön</Text>
                     </TouchableOpacity>
                     {MAHALLE_HIYERARSISI[kayitBolge][mahalleGrubu].map((mahalle, index) => (
-                      <TouchableOpacity 
-                        key={index} 
-                        style={s.modalSatir} 
+                      <TouchableOpacity
+                        key={index}
+                        style={localStyles.modalSatir}
                         onPress={() => { setKayitMahalle(mahalle); setSecimModalAcik(false); }}
                       >
-                        <Text style={s.modalSatirYazi}>{mahalle}</Text>
+                        <Text style={localStyles.modalSatirYazi}>{mahalle}</Text>
                       </TouchableOpacity>
                     ))}
                   </>
@@ -371,6 +376,21 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     </SafeAreaView>
   );
 }
+
+// ============================================================
+// Modal satır stilleri — yerel olarak tanımlandı
+// ============================================================
+const localStyles = StyleSheet.create({
+  modalSatir: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalSatirYazi: {
+    fontSize: 15,
+    color: '#1B4965',
+  },
+});
 
 // ============================================================
 // ŞİFREMİ UNUTTUM EKRANI
