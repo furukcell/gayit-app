@@ -30,6 +30,7 @@ export function SohbetEkrani({
   const [yukleniyor, setYukleniyor] = useState(true);
   const [musteriTelefon, setMusteriTelefon] = useState(null);
   const [ustaTelefon, setUstaTelefon] = useState(null);
+  const [musteriAd, setMusteriAd] = useState(null);
   const flatListRef = useRef(null);
 
   const sohbetId = (secilenIlan?.id && aktifSohbetTeklif?.ustaUid)
@@ -38,24 +39,27 @@ export function SohbetEkrani({
     ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaId.replace(/[.@]/g, '_')}`
     : null;
 
+ // ============================================================
+  // Usta görüntülüyorsa müşterinin numarasını ve ADINI Firebase'den çek
   // ============================================================
-  // Usta görüntülüyorsa müşterinin numarasını Firebase'den çek
-  // ============================================================
- useEffect(() => {
-  if (rol === 'usta' && secilenIlan?.sahipUid) {
-    fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
-      .then(r => r.json())
-      .then(data => { if (data?.telefon) setMusteriTelefon(data.telefon); })
-      .catch(() => {});
-  }
-  if (rol === 'musteri' && aktifSohbetTeklif?.ustaUid) {
-    fetch(`${DB_URL}/kullanicilar/${aktifSohbetTeklif.ustaUid}.json`)
-      .then(r => r.json())
-      .then(data => { if (data?.telefon) setUstaTelefon(data.telefon); })
-      .catch(() => {});
-  }
-}, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
-
+  useEffect(() => {
+    if (rol === 'usta' && secilenIlan?.sahipUid) {
+      fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
+        .then(r => r.json())
+        .then(data => { 
+          if (data?.telefon) setMusteriTelefon(data.telefon); 
+          if (data?.ad) setMusteriAd(data.ad); // <-- İŞTE YENİ EKLENEN KISIM BURASI
+        })
+        .catch(() => {});
+    }
+    if (rol === 'musteri' && aktifSohbetTeklif?.ustaUid) {
+      fetch(`${DB_URL}/kullanicilar/${aktifSohbetTeklif.ustaUid}.json`)
+        .then(r => r.json())
+        .then(data => { if (data?.telefon) setUstaTelefon(data.telefon); })
+        .catch(() => {});
+    }
+  }, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
+  
   const mesajlariYukle = async () => {
     if (!sohbetId || !secilenIlan?.id) return;
     try {
@@ -240,9 +244,21 @@ export function SohbetEkrani({
   ? ustaTelefon
   : musteriTelefon;
 
-  const gosterilecekIsim = rol === 'musteri'
+  // 1. Önce müşterinin veritabanındaki gerçek adını (musteriAd) arıyoruz
+  let hamIsim = rol === 'musteri'
     ? (aktifSohbetTeklif?.ustaAd || 'Usta')
-    : (secilenIlan?.sahip || 'Müşteri');
+    : (musteriAd || secilenIlan?.sahip || 'Müşteri');
+
+  // 2. Eğer gerçek ad yoksa ve e-posta geldiyse @'den sonrasını at
+  if (hamIsim.includes('@')) {
+    hamIsim = hamIsim.split('@')[0];
+  }
+
+  // 3. Sadece ilk ismi al (Boşluk veya noktadan bölerek)
+  let ilkIsim = hamIsim.split(/[\s.]/)[0];
+
+  // 4. Baş harfini otomatik büyük yap (Örn: ahmet -> Ahmet)
+  const gosterilecekIsim = ilkIsim.charAt(0).toUpperCase() + ilkIsim.slice(1);
 
   const numaraEtiketi = rol === 'musteri' ? '📞 Usta Telefonu' : '📞 Müşteri Telefonu';
 
@@ -278,30 +294,38 @@ export function SohbetEkrani({
           {aktifSohbetTeklif?.fiyat || '-'}
         </Text>
 
-        {/* NUMARA — tıklanınca arama yapar */}
-        <TouchableOpacity
-          onPress={() => numaraAra(gosterilecekNumara)}
-          style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}
-          disabled={!gosterilecekNumara || gosterilecekNumara === 'Numara Yok'}
-        >
-          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
-            {numaraEtiketi}:
-          </Text>
-          <Text style={{
-            color: gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
-              ? '#7FE8A2'
-              : 'rgba(255,255,255,0.4)',
-            fontSize: 14,
-            fontWeight: 'bold',
-            textDecorationLine: gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
-              ? 'underline'
-              : 'none',
-          }}>
-            {gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
-              ? gosterilecekNumara
-              : 'Numara bulunamadı'}
-          </Text>
-        </TouchableOpacity>
+        {/* NUMARA — Sadece anlaşma sağlandıysa görünür veya tıklanabilir olur */}
+        {anlasmaSaglandi ? (
+          <TouchableOpacity
+            onPress={() => numaraAra(gosterilecekNumara)}
+            style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            disabled={!gosterilecekNumara || gosterilecekNumara === 'Numara Yok'}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
+              {numaraEtiketi}:
+            </Text>
+            <Text style={{
+              color: gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
+                ? '#7FE8A2'
+                : 'rgba(255,255,255,0.4)',
+              fontSize: 14,
+              fontWeight: 'bold',
+              textDecorationLine: gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
+                ? 'underline'
+                : 'none',
+            }}>
+              {gosterilecekNumara && gosterilecekNumara !== 'Numara Yok'
+                ? gosterilecekNumara
+                : 'Numara bulunamadı'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ marginTop: 6, backgroundColor: 'rgba(0,0,0,0.2)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, alignSelf: 'flex-start' }}>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>
+              🔒 Numara anlaşma sağlandıktan sonra görünür
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* MESAJLAR */}
