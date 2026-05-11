@@ -28,7 +28,8 @@ export function SohbetEkrani({
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState('');
   const [yukleniyor, setYukleniyor] = useState(true);
-  const [musteriTelefon, setMusteriTelefon] = useState(null); // usta için müşteri numarası
+  const [musteriTelefon, setMusteriTelefon] = useState(null);
+  const [ustaTelefon, setUstaTelefon] = useState(null);
   const flatListRef = useRef(null);
 
   const sohbetId = (secilenIlan?.id && aktifSohbetTeklif?.ustaUid)
@@ -40,16 +41,20 @@ export function SohbetEkrani({
   // ============================================================
   // Usta görüntülüyorsa müşterinin numarasını Firebase'den çek
   // ============================================================
-  useEffect(() => {
-    if (rol === 'usta' && secilenIlan?.sahipUid) {
-      fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
-        .then(r => r.json())
-        .then(data => {
-          if (data?.telefon) setMusteriTelefon(data.telefon);
-        })
-        .catch(() => {});
-    }
-  }, [secilenIlan?.sahipUid]);
+ useEffect(() => {
+  if (rol === 'usta' && secilenIlan?.sahipUid) {
+    fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
+      .then(r => r.json())
+      .then(data => { if (data?.telefon) setMusteriTelefon(data.telefon); })
+      .catch(() => {});
+  }
+  if (rol === 'musteri' && aktifSohbetTeklif?.ustaUid) {
+    fetch(`${DB_URL}/kullanicilar/${aktifSohbetTeklif.ustaUid}.json`)
+      .then(r => r.json())
+      .then(data => { if (data?.telefon) setUstaTelefon(data.telefon); })
+      .catch(() => {});
+  }
+}, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
 
   const mesajlariYukle = async () => {
     if (!sohbetId || !secilenIlan?.id) return;
@@ -232,8 +237,8 @@ export function SohbetEkrani({
   // Role göre gösterilecek numara ve isim
   // ============================================================
   const gosterilecekNumara = rol === 'musteri'
-    ? aktifSohbetTeklif?.telefon
-    : musteriTelefon;
+  ? ustaTelefon
+  : musteriTelefon;
 
   const gosterilecekIsim = rol === 'musteri'
     ? (aktifSohbetTeklif?.ustaAd || 'Usta')
