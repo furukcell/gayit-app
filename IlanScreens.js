@@ -416,7 +416,13 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
               {rol === 'musteri' && !item.anlasmaVar && (
                 <TouchableOpacity
                   style={{ marginTop: 10, alignSelf: 'flex-end', backgroundColor: '#FFEBEE', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
-                  onPress={() => ilanSil(item)}
+                  onPress={(e) => {
+                    // HAYAT KURTARAN SATIR: Tıklamanın karta sıçramasını engeller!
+                    if (e && e.stopPropagation) {
+                      e.stopPropagation();
+                    }
+                    ilanSil(item);
+                  }}
                 >
                   <Text style={{ color: '#FF4444', fontWeight: 'bold', fontSize: 13 }}>🗑️ İlanı Sil</Text>
                 </TouchableOpacity>
