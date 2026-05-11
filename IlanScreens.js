@@ -327,29 +327,41 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
   // ============================================================
   const ilanSil = (ilan) => {
     if (ilan.anlasmaVar) {
-      Alert.alert('Silinemez', 'Anlaşma sağlanmış ilanı silemezsin usta.');
+      if (Platform.OS === 'web') window.alert('Anlaşma sağlanmış ilanı silemezsin usta.');
+      else Alert.alert('Silinemez', 'Anlaşma sağlanmış ilanı silemezsin usta.');
       return;
     }
-    Alert.alert(
-      'İlanı Sil',
-      `"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`,
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Evet, Sil',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await fetch(`${DB_URL}/ilanlar/${ilan.id}.json`, { method: 'DELETE' });
-              await onVeriYukle();
-              Alert.alert('Silindi', 'İlanın silindi.');
-            } catch (e) {
-              Alert.alert('Hata', 'İlan silinemedi!');
-            }
-          },
-        },
-      ]
-    );
+
+    // Silme işlemini yapan asıl fonksiyon
+    const silmeIslemi = async () => {
+      try {
+        await fetch(`${DB_URL}/ilanlar/${ilan.id}.json`, { method: 'DELETE' });
+        await onVeriYukle();
+        if (Platform.OS === 'web') window.alert('İlanın silindi.');
+        else Alert.alert('Silindi', 'İlanın silindi.');
+      } catch (e) {
+        if (Platform.OS === 'web') window.alert('İlan silinemedi!');
+        else Alert.alert('Hata', 'İlan silinemedi!');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      // Web (Bilgisayar) ortamındaysak standart tarayıcı onayı kullan
+      const onay = window.confirm(`"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`);
+      if (onay) {
+        silmeIslemi();
+      }
+    } else {
+      // Mobil ortamdaysak React Native Alert kullan
+      Alert.alert(
+        'İlanı Sil',
+        `"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`,
+        [
+          { text: 'Vazgeç', style: 'cancel' },
+          { text: 'Evet, Sil', style: 'destructive', onPress: silmeIslemi },
+        ]
+      );
+    }
   };
 
   return (
