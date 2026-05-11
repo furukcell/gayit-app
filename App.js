@@ -243,7 +243,7 @@ export default function App() {
     return () => geriHandler.remove();
   }, [ekran, menuAcik, kullanici]);
 
-  // ============================================================
+ // ============================================================
   // SPLASH SCREEN
   // ============================================================
   if (isLoading) {
@@ -254,15 +254,11 @@ export default function App() {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <Image
-          source={require('./icon.png')}
-          style={{ width: 110, height: 110, borderRadius: 22 }}
-        />
         <Animated.View style={{
           position: 'absolute',
-          width: 155,
-          height: 155,
-          borderRadius: 78,
+          width: 180,
+          height: 180,
+          borderRadius: 90,
           borderWidth: 4,
           borderColor: '#2E86AB',
           borderTopColor: '#588157',
@@ -270,6 +266,11 @@ export default function App() {
           borderBottomColor: 'transparent',
           transform: [{ rotate: spin }],
         }} />
+        <Image
+          source={require('./Logo.png')}
+          style={{ width: 120, height: 120 }}
+          resizeMode="contain"
+        />
       </View>
     );
   }
