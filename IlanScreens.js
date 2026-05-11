@@ -600,6 +600,33 @@ export function TekliflerEkrani({
 }) {
   const ilan = ilanlar.find(i => i.id === secilenIlan?.id);
 
+  // 🔒 YETKİ KONTROLÜ: Sadece ilan sahibi görebilir
+  if (!ilan || ilan.sahip !== kullanici?.email) {
+    return (
+      <SafeAreaView style={s.con}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+            <Text style={s.menuSimge}>←</Text>
+          </TouchableOpacity>
+          <Text style={s.headerBaslik}>Teklifler</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 }}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1B4965', textAlign: 'center', marginBottom: 8 }}>
+            Bu İlana Erişim Yok
+          </Text>
+          <Text style={{ color: '#A3B1B9', textAlign: 'center', fontSize: 14 }}>
+            Teklifleri sadece ilan sahibi görebilir.
+          </Text>
+          <TouchableOpacity style={[s.girisBtn, { marginTop: 24 }]} onPress={() => setEkran('anasayfa')}>
+            <Text style={s.anaBtnY}>Ana Sayfaya Dön</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Usta profil modalı için state
   const [ustaProfil, setUstaProfil] = useState(null);
   const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
