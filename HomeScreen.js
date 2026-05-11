@@ -24,7 +24,7 @@ function zamanOncesi(tarih) {
 // ============================================================
 // İLAN KARTI BİLEŞENİ
 // ============================================================
-function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, onIlanSil, s }) {
+function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s }) {
   return (
     <TouchableOpacity
       style={[s.kart, item.acil && { borderWidth: 2, borderColor: '#FF4444' }]}
@@ -39,7 +39,6 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, onIl
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={s.kategoriBadge}>{item.kategori}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          {/* İlan oluşturulma tarihi */}
           {item.tarih && (
             <Text style={{ color: '#A3B1B9', fontSize: 11 }}>🕐 {zamanOncesi(item.tarih)}</Text>
           )}
@@ -66,25 +65,14 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, onIl
         </View>
       )}
 
-      {/* Müşteri kendi ilanını görebilir + silebilir */}
+      {/* Müşteri kendi ilanını görünce sadece teklifleri göster butonu */}
       {rol === 'musteri' && item.sahip === kullanici?.email && (
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-          <TouchableOpacity
-            style={[s.girisBtn, { flex: 1, backgroundColor: '#588157' }]}
-            onPress={() => onTekliflerTikla(item)}
-          >
-            <Text style={s.anaBtnY}>TEKLİFLERİ GÖR ({item.teklifler?.length || 0})</Text>
-          </TouchableOpacity>
-          {/* Anlaşma yoksa sil butonu göster */}
-          {!item.anlasmaVar && (
-            <TouchableOpacity
-              style={[s.girisBtn, { backgroundColor: '#FF4444', paddingHorizontal: 16 }]}
-              onPress={() => onIlanSil(item)}
-            >
-              <Text style={s.anaBtnY}>🗑️</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <TouchableOpacity
+          style={[s.girisBtn, { marginTop: 10, backgroundColor: '#588157' }]}
+          onPress={() => onTekliflerTikla(item)}
+        >
+          <Text style={s.anaBtnY}>TEKLİFLERİ GÖR ({item.teklifler?.length || 0})</Text>
+        </TouchableOpacity>
       )}
     </TouchableOpacity>
   );
@@ -144,7 +132,6 @@ export function SolMenu({
             </Text>
           </TouchableOpacity>
 
-          {/* HAK ÖZETİ */}
           {(() => {
             const abonelik = kullanici?.abonelik;
             const hak = kullanici?.hak ?? 0;
@@ -339,19 +326,15 @@ export function SolMenu({
 export function AnasayfaEkrani({
   kullanici, rol, ilanlar, sistemIst, yenileniyor, onYenile,
   setEkran, setMenuAcik, setSecilenIlan,
-  ustaTeklifTiklandi, setBildirimEkrani, onIlanSil, s
+  ustaTeklifTiklandi, setBildirimEkrani, s
 }) {
   const [seciliKategori, setSeciliKategori] = useState('Tümü');
   const [seciliIlce, setSeciliIlce] = useState('Tümü');
   const [filtreAcik, setFiltreAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(20);
 
-  const YIRMI_DORT_SAAT = 24 * 60 * 60 * 1000;
-
   const filtrelenmis = ilanlar.filter(ilan => {
-    // Anlaşma sağlanmış ve 24 saat geçmişse anasayfada gösterme
     if (ilan.anlasmaVar && ilan.kapanmaTarihi && Date.now() > ilan.kapanmaTarihi) return false;
-    // Anlaşması olmayan ilanları normal göster
     if (ilan.anlasmaVar && !ilan.kapanmaTarihi) return false;
 
     const kategoriUygun = rol === 'usta'
@@ -511,7 +494,6 @@ export function AnasayfaEkrani({
             kullanici={kullanici}
             onTeklifTikla={ustaTeklifTiklandi}
             onTekliflerTikla={onTekliflerTikla}
-            onIlanSil={onIlanSil}
             s={s}
           />
         )}
