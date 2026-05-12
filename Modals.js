@@ -11,6 +11,10 @@ import {
 import { DB_URL } from './constants';
 import { bildirimGonderVeKaydet } from './notifications';
 
+// Firebase key olarak email kullanılırken nokta ve @ yasak
+const emaildenKey = (email) =>
+  email.replace(/\./g, '_').replace(/@/g, '_at_');
+
 // ============================================================
 // PUAN MODALİ
 // ============================================================
@@ -33,8 +37,8 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
     }
 
     try {
-      // Puanı Firebase'e kaydet
-      await fetch(`${DB_URL}/puanlar/${ustaEmail}.json`, {
+      // Puanı Firebase'e kaydet (email key'i güvenli formata çevrildi)
+      await fetch(`${DB_URL}/puanlar/${emaildenKey(ustaEmail)}.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

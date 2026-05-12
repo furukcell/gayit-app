@@ -11,6 +11,10 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { DB_URL, BOLGELER, STORAGE_BUCKET, API_KEY, damgaToTarih } from './constants';
 
+// Firebase key olarak email kullanılırken nokta ve @ yasak
+const emaildenKey = (email) =>
+  email.replace(/\./g, '_').replace(/@/g, '_at_');
+
 // ============================================================
 // ABONELİK ROZETİ YARDIMCI FONKSİYONU
 // abonelik değerleri: null/undefined = standart, 'premium' = premium, 'vip' = vip
@@ -112,7 +116,7 @@ export function ProfilEkrani({
 
   const puanlariYukle = async () => {
     try {
-      const res = await fetch(`${DB_URL}/puanlar/${kullanici.email}.json`);
+      const res = await fetch(`${DB_URL}/puanlar/${emaildenKey(kullanici.email)}.json`);
       const data = await res.json();
       if (data) {
         const liste = Object.keys(data)
