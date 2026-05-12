@@ -111,9 +111,11 @@ export default function App() {
   const bildirimDinleyici = useRef();
 
   useEffect(() => {
-    bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener(() => {});
-    return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
-  }, []);
+  bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    setEkran('bildirimler');
+  });
+  return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
+}, []);
 
   // Kullanıcı girişinde verileri yükle + push token kaydet
   useEffect(() => {
