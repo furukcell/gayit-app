@@ -305,7 +305,7 @@ export default function App() {
         ilanlar={ilanlar}
         setEkran={setEkran}
         onVeriYukle={veriYukle}
-        setKullanici={setKullanici}  {/* DÜZELTİLDİ: setKullanici eklendi — hak düşürme için gerekli */}
+        setKullanici={setKullanici}
         s={st}
       />
     );
