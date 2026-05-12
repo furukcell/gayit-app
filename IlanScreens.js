@@ -90,12 +90,14 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
     };
 
     try {
+      // 1. İlanı kaydet
       await fetch(`${DB_URL}/ilanlar.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(yeniIlan),
       });
 
+      // 2. Hak düşür
       let gYH = kullanici?.yeniKullaniciHakki || 0;
       let gH = kullanici?.hak || 0;
       let gAH = kullanici?.acilHak || 0;
@@ -114,9 +116,14 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
         setKullanici({ ...kullanici, yeniKullaniciHakki: gYH, hak: gH, acilHak: gAH });
       }
 
-      await onVeriYukle();
+      // 3. Formu temizle ve anasayfaya git
+      setIlanBaslik(''); setIlanDetay(''); setIlanIlce(''); setIlanMahalle('');
+      setIsTarihiTip('Bugün'); setOzelTarih(''); setIlanAcil(false);
       Alert.alert('Başarılı! 🎉', `İlanınız ${ilanAcil ? 'ACİL olarak ' : ''}yayınlandı usta!`);
+      setEkran('anasayfa');
 
+      // 4. Arka planda veri yenile ve bildirim gönder — hata verse bile ilan kaydedildi
+      onVeriYukle().catch(() => {});
       try {
         const kulRes = await fetch(`${DB_URL}/kullanicilar.json`);
         const kulData = await kulRes.json();
@@ -134,9 +141,6 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
         }
       } catch (e) { console.log('Usta bildirimi gönderilemedi:', e); }
 
-      setIlanBaslik(''); setIlanDetay(''); setIlanIlce(''); setIlanMahalle('');
-      setIsTarihiTip('Bugün'); setOzelTarih(''); setIlanAcil(false);
-      setEkran('anasayfa');
     } catch (e) {
       Alert.alert('Hata', 'İlan kaydedilemedi!');
     }

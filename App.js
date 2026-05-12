@@ -223,13 +223,10 @@ export default function App() {
         ]);
         return true;
       }
-      // KVKK ve Şifremi Unuttum'dan geri basınca kayıt formuna dön
       if (['kvkk', 'sifremi_unuttum'].includes(ekran)) {
         setEkran('auth');
         return true;
       }
-      // DÜZELTİLDİ: Hizmet koşullarından geri basınca;
-      // giriş yapmışsa anasayfaya, yapmamışsa auth'a git
       if (ekran === 'hizmet_kosullari') {
         setEkran(kullanici ? 'anasayfa' : 'auth');
         return true;
@@ -243,7 +240,7 @@ export default function App() {
     return () => geriHandler.remove();
   }, [ekran, menuAcik, kullanici]);
 
- // ============================================================
+  // ============================================================
   // SPLASH SCREEN
   // ============================================================
   if (isLoading) {
@@ -308,23 +305,24 @@ export default function App() {
         ilanlar={ilanlar}
         setEkran={setEkran}
         onVeriYukle={veriYukle}
+        setKullanici={setKullanici}  {/* DÜZELTİLDİ: setKullanici eklendi — hak düşürme için gerekli */}
         s={st}
       />
     );
 
     if (ekran === 'ilanlarim') return (
-  <IlanlarimEkrani
-    kullanici={kullanici}
-    token={token}
-    rol={rol}
-    ilanlar={ilanlar}
-    setEkran={setEkran}
-    setSecilenIlan={setSecilenIlan}
-    ustaTeklifTiklandi={ustaTeklifTiklandi}
-    onVeriYukle={veriYukle}
-    s={st}
-  />
-);
+      <IlanlarimEkrani
+        kullanici={kullanici}
+        token={token}
+        rol={rol}
+        ilanlar={ilanlar}
+        setEkran={setEkran}
+        setSecilenIlan={setSecilenIlan}
+        ustaTeklifTiklandi={ustaTeklifTiklandi}
+        onVeriYukle={veriYukle}
+        s={st}
+      />
+    );
 
     if (ekran === 'teklifver') return (
       <TeklifVerEkrani
