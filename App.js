@@ -369,6 +369,8 @@ export default function App() {
         setEkran={setEkran}
         setSikayetHedef={setSikayetHedef}
         setSikayetModalAcik={setSikayetModalAcik}
+        setPuanlananIlan={setPuanlananIlan}
+        setPuanModalAcik={setPuanModalAcik}
         onVeriYukle={veriYukle}
         s={st}
       />
