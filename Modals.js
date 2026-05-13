@@ -18,7 +18,7 @@ const emaildenKey = (email) =>
 // ============================================================
 // PUAN MODALİ
 // ============================================================
-export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilanlar, setIlanlar, s }) {
+export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, token, ilanlar, setIlanlar, s }) {
   const [secilenPuan, setSecilenPuan] = useState(0);
   const [puanYorum, setPuanYorum] = useState('');
 
@@ -60,7 +60,7 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
             const tumPuanlar = Object.values(puanData);
             const puanSayisi = tumPuanlar.length;
             const ortalama = (tumPuanlar.reduce((t, p) => t + p.puan, 0) / puanSayisi).toFixed(1);
-            await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json`, {
+            await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
