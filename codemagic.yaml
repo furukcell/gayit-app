@@ -18,9 +18,10 @@ workflows:
         script: npm install
       - name: Expo Prebuild (Android Klasörünü Oluştur)
         script: npx expo prebuild --platform android
-      - name: Keystore Hazırla
+      - name: Doğrulama Dosyasını Yerleştir
         script: |
-          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+          mkdir -p android/app/src/main/assets
+          cp assets/adi-registration.properties android/app/src/main/assets/adi-registration.properties
       - name: Android AAB Üret ve İmzala (Release)
         script: |
           cd android
@@ -32,6 +33,7 @@ workflows:
             -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD
       - name: Android APK Üret ve İmzala (Release)
         script: |
+          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
           cd android
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=/tmp/keystore.jks \
