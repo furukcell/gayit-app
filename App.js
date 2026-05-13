@@ -343,6 +343,7 @@ export default function App() {
     if (ekran === 'teklifler') return (
       <TekliflerEkrani
         kullanici={kullanici}
+        token={token}
         secilenIlan={secilenIlan}
         ilanlar={ilanlar}
         setEkran={setEkran}
