@@ -18,42 +18,29 @@ workflows:
         script: npm install
       - name: Expo Prebuild (Android Klasörünü Oluştur)
         script: npx expo prebuild --platform android
-      - name: Android AAB Üret (Release)
+      - name: Keystore Hazırla
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+      - name: Android AAB Üret ve İmzala (Release)
         script: |
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease
-      - name: Android APK Üret (Release)
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=/tmp/keystore.jks \
+            -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD
+      - name: Android APK Üret ve İmzala (Release)
         script: |
           cd android
-          ./gradlew assembleRelease
-      - name: GAYİT Mührünü Bas (Jarsigner)
-        script: |
-          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
-
-          # AAB imzala
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore /tmp/keystore.jks \
-            -storepass $CM_KEYSTORE_PASSWORD \
-            -keypass $CM_KEY_PASSWORD \
-            android/app/build/outputs/bundle/release/app-release.aab \
-            $CM_KEY_ALIAS
-
-          # APK imzala
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore /tmp/keystore.jks \
-            -storepass $CM_KEYSTORE_PASSWORD \
-            -keypass $CM_KEY_PASSWORD \
-            android/app/build/outputs/apk/release/app-release-unsigned.apk \
-            $CM_KEY_ALIAS
-
-          # zipalign uygula (Google Play şart koşuyor)
-          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/zipalign -v 4 \
-            android/app/build/outputs/apk/release/app-release-unsigned.apk \
-            android/app/build/outputs/apk/release/app-release.apk
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=/tmp/keystore.jks \
+            -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
-      - android/app/build/outputs/apk/release/app-release.apk
+      - android/app/build/outputs/apk/release/*.apk
     publishing:
       email:
         recipients:
