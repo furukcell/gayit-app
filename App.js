@@ -512,6 +512,7 @@ export default function App() {
         setGorunur={setPuanModalAcik}
         puanlananIlan={puanlananIlan}
         kullanici={kullanici}
+        token={token}
         ilanlar={ilanlar}
         setIlanlar={setIlanlar}
         s={st}
