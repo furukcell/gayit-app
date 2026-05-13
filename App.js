@@ -9,7 +9,9 @@ import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHand
 import * as Notifications from 'expo-notifications';
 
 // Ekranlar
-import { KarsilamaEkrani, AuthEkrani, SifremiUnuttumEkrani, KvkkEkrani } from './AuthScreens';
+import { KarsilamaEkrani, AuthEkrani } from './AuthScreens';
+import { SifremiUnuttumEkrani } from './SifremiUnuttumEkrani';
+import { KvkkEkrani } from './KvkkEkrani';
 import { AnasayfaEkrani, SolMenu } from './HomeScreen';
 import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './IlanScreens';
 import { SohbetEkrani } from './ChatScreen';
