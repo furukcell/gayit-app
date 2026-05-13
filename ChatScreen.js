@@ -217,8 +217,17 @@ export function SohbetEkrani({
                 body: JSON.stringify({ isTamamlandi: true }),
               });
               await onVeriYukle();
-              Alert.alert('Tebrikler! 🎉', 'İş tamamlandı olarak işaretlendi.');
-              setEkran('anasayfa');
+             Alert.alert('Tebrikler! 🎉', 'İş tamamlandı! Şimdi ustayı puanlayabilirsin.', [
+  {
+    text: 'Ustayı Puanla ⭐',
+    onPress: () => {
+      setPuanlananIlan(secilenIlan);
+      setPuanModalAcik(true);
+      setEkran('anasayfa');
+    }
+  },
+  { text: 'Daha Sonra', onPress: () => setEkran('anasayfa') }
+]);
             } catch (e) {
               Alert.alert('Hata', 'İşlem kaydedilemedi!');
             }
