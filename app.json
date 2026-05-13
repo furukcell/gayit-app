@@ -5,6 +5,11 @@
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./icon.png",
+    "plugins": [
+      ["expo-adi-registration", {
+        "token": "DNAJVVAI6KJIOAAAAAAAAAAAAA"
+      }]
+    ],
     "splash": {
       "image": "./icon.png",
       "resizeMode": "contain",
