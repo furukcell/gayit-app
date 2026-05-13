@@ -37,7 +37,7 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
     }
 
     try {
-      // Puanı Firebase'e kaydet (email key'i güvenli formata çevrildi)
+      // 1. Puanı puanlar koleksiyonuna kaydet
       await fetch(`${DB_URL}/puanlar/${emaildenKey(ustaEmail)}.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,14 +51,37 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
         }),
       });
 
-      // İlanı puanlandı olarak işaretle
+      // 2. Ustanın mevcut puanlarını çek, ortalama hesapla, kullanicilar tablosunu güncelle
+      if (ustaUid) {
+        try {
+          const puanRes = await fetch(`${DB_URL}/puanlar/${emaildenKey(ustaEmail)}.json`);
+          const puanData = await puanRes.json();
+          if (puanData) {
+            const tumPuanlar = Object.values(puanData);
+            const puanSayisi = tumPuanlar.length;
+            const ortalama = (tumPuanlar.reduce((t, p) => t + p.puan, 0) / puanSayisi).toFixed(1);
+            await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                puan: parseFloat(ortalama),
+                puanSayisi,
+              }),
+            });
+          }
+        } catch (e) {
+          console.log('Kullanıcı puan güncellenemedi:', e);
+        }
+      }
+
+      // 3. İlanı puanlandı olarak işaretle
       await fetch(`${DB_URL}/ilanlar/${puanlananIlan?.id}.json`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ puanlandi: true }),
       });
 
-      // Ustaya bildirim gönder
+      // 4. Ustaya bildirim gönder
       if (ustaUid) {
         await bildirimGonderVeKaydet(
           ustaUid,
@@ -67,7 +90,7 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, ilan
         );
       }
 
-      // Local state güncelle
+      // 5. Local state güncelle
       if (setIlanlar) {
         setIlanlar(prev => prev.map(i =>
           i.id === puanlananIlan?.id ? { ...i, puanlandi: true } : i
