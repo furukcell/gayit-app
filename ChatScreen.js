@@ -23,6 +23,7 @@ export function SohbetEkrani({
   kullanici, rol, secilenIlan, aktifSohbetTeklif,
   anlasmaSaglandi, setEkran,
   setSikayetHedef, setSikayetModalAcik,
+  setPuanlananIlan, setPuanModalAcik,
   onVeriYukle, s
 }) {
   const [mesajlar, setMesajlar] = useState([]);
