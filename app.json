@@ -29,7 +29,7 @@
       }
     },
     "android": {
-      "package": "com.gayit.app",
+      "package": "com.gayit.android",
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
         "backgroundColor": "#F5F5F0"
