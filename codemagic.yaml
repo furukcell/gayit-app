@@ -24,14 +24,15 @@ workflows:
       - name: Target SDK 35 Ayarla
         script: |
           python3 -c "
-          with open('android/app/build.gradle', 'r') as f:
+          with open('android/build.gradle', 'r') as f:
               content = f.read()
           content = content.replace('targetSdkVersion = 34', 'targetSdkVersion = 35')
-          content = content.replace('targetSdk = 34', 'targetSdk = 35')
-          with open('android/app/build.gradle', 'w') as f:
+          content = content.replace('targetSdkVersion=34', 'targetSdkVersion=35')
+          with open('android/build.gradle', 'w') as f:
               f.write(content)
           print('Done!')
           "
+          grep -n "targetSdk" android/build.gradle
           grep -n "targetSdk" android/app/build.gradle
       - name: Doğrulama Dosyasını Yerleştir
         script: |
