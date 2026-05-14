@@ -23,9 +23,15 @@ workflows:
         script: npx expo prebuild --platform android
       - name: Target SDK 35 Ayarla
         script: |
-          perl -i -pe 's/targetSdkVersion\s*=\s*\d+/targetSdkVersion = 35/g' android/app/build.gradle
-          perl -i -pe 's/targetSdk\s*=\s*\d+/targetSdk = 35/g' android/app/build.gradle
-          echo "build.gradle kontrol:"
+          python3 -c "
+          with open('android/app/build.gradle', 'r') as f:
+              content = f.read()
+          content = content.replace('targetSdkVersion = 34', 'targetSdkVersion = 35')
+          content = content.replace('targetSdk = 34', 'targetSdk = 35')
+          with open('android/app/build.gradle', 'w') as f:
+              f.write(content)
+          print('Done!')
+          "
           grep -n "targetSdk" android/app/build.gradle
       - name: Doğrulama Dosyasını Yerleştir
         script: |
