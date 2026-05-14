@@ -29,6 +29,7 @@ workflows:
               with open(path, 'r') as f:
                   content = f.read()
               content = re.sub(r'targetSdkVersion\s*=?\s*34', 'targetSdkVersion = 35', content)
+              content = re.sub(r'targetSdkVersion\s*=\s*Integer\.parseInt.*', 'targetSdkVersion = 35', content)
               with open(path, 'w') as f:
                   f.write(content)
               print(f'Done: {path}')
