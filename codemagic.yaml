@@ -24,13 +24,14 @@ workflows:
       - name: Target SDK 35 Ayarla
         script: |
           python3 -c "
-          with open('android/build.gradle', 'r') as f:
-              content = f.read()
-          content = content.replace('targetSdkVersion = 34', 'targetSdkVersion = 35')
-          content = content.replace('targetSdkVersion=34', 'targetSdkVersion=35')
-          with open('android/build.gradle', 'w') as f:
-              f.write(content)
-          print('Done!')
+          import re
+          for path in ['android/build.gradle', 'android/app/build.gradle']:
+              with open(path, 'r') as f:
+                  content = f.read()
+              content = re.sub(r'targetSdkVersion\s*=?\s*34', 'targetSdkVersion = 35', content)
+              with open(path, 'w') as f:
+                  f.write(content)
+              print(f'Done: {path}')
           "
           grep -n "targetSdk" android/build.gradle
           grep -n "targetSdk" android/app/build.gradle
