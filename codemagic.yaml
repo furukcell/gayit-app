@@ -21,6 +21,10 @@ workflows:
         script: npm install
       - name: Expo Prebuild (Android Klasörünü Oluştur)
         script: npx expo prebuild --platform android
+      - name: Target SDK 35 Ayarla
+        script: |
+          sed -i 's/targetSdkVersion = .*/targetSdkVersion = 35/' android/app/build.gradle
+          sed -i 's/targetSdk = .*/targetSdk = 35/' android/app/build.gradle
       - name: Doğrulama Dosyasını Yerleştir
         script: |
           mkdir -p android/app/src/main/assets
