@@ -31,6 +31,7 @@
     "android": {
       "package": "com.gayit.android",
       "targetSdkVersion": 35,
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
         "backgroundColor": "#F5F5F0"
