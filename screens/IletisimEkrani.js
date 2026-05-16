@@ -8,7 +8,7 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert,
 } from 'react-native';
-import { DB_URL } from './constants';
+import { DB_URL } from '../constants';
 
 export function IletisimEkrani({ kullanici, setEkran, s }) {
   const [iletisimKonu, setIletisimKonu] = useState('');
