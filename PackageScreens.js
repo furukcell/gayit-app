@@ -817,7 +817,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
 // ============================================================
 // DAVET ET KAZAN EKRANI
 // ============================================================
@@ -832,6 +831,18 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
     setTimeout(() => setKopyalandi(false), 2000);
   };
 
+  const adimlar = kullanici?.rol === 'usta'
+    ? [
+        { num: '1️⃣', text: "Arkadaşını GAYİT'a davet et" },
+        { num: '2️⃣', text: 'O, kayıt olurken senin kodunu girsin' },
+        { num: '3️⃣', text: 'Usta davet ettiysen +3 teklif, müşteri davet ettiysen +1 teklif hakkı kazanırsın! (Max 5 davet)' },
+      ]
+    : [
+        { num: '1️⃣', text: "Arkadaşını GAYİT'a davet et" },
+        { num: '2️⃣', text: 'O, kayıt olurken senin kodunu girsin' },
+        { num: '3️⃣', text: 'İkiniz de +1 ilan hakkı kazanırsınız! (Max 5 davet)' },
+      ];
+
   return (
     <SafeAreaView style={s.con}>
       <View style={s.header}>
@@ -842,6 +853,8 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
+
+        {/* Kod kartı */}
         <View
           style={{
             backgroundColor: '#1B4965',
@@ -891,6 +904,32 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
           </TouchableOpacity>
         </View>
 
+        {/* Davet sayacı */}
+        <View
+          style={{
+            backgroundColor: '#FFF',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 20,
+            elevation: 2,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 5 }}>
+            Davet Durumu
+          </Text>
+          <Text style={{ fontSize: 32, fontWeight: '900', color: '#1B4965' }}>
+            {kullanici?.davetSayisi || 0}
+            <Text style={{ fontSize: 18, color: '#526E7F' }}>/5</Text>
+          </Text>
+          <Text style={{ color: '#526E7F', fontSize: 13, marginTop: 4 }}>
+            {(kullanici?.davetSayisi || 0) >= 5
+              ? '⚠️ Davet limitine ulaştın, artık hak verilmiyor'
+              : `${5 - (kullanici?.davetSayisi || 0)} davet hakkın daha var`}
+          </Text>
+        </View>
+
+        {/* Nasıl çalışır */}
         <View
           style={{
             backgroundColor: '#FFF',
@@ -903,11 +942,7 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
           <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', marginBottom: 15 }}>
             Nasıl Çalışır? 🎁
           </Text>
-          {[
-            { num: '1️⃣', text: "Arkadaşını GAYİT'a davet et" },
-            { num: '2️⃣', text: 'O, kayıt olurken senin kodunu girsin' },
-            { num: '3️⃣', text: 'İkiniz de +1 hak kazanırsınız!' },
-          ].map((adim, i) => (
+          {adimlar.map((adim, i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontSize: 24, marginRight: 12 }}>{adim.num}</Text>
               <Text style={{ color: '#526E7F', flex: 1 }}>{adim.text}</Text>
@@ -915,6 +950,7 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
           ))}
         </View>
 
+        {/* Paylaş butonları */}
         <TouchableOpacity
           style={[s.girisBtn, { backgroundColor: '#25D366', marginBottom: 15 }]}
           onPress={() =>
@@ -929,6 +965,7 @@ export function DavetEkrani({ kullanici, setEkran, s }) {
         >
           <Text style={s.anaBtnY}>🔗 Diğer Uygulamalarla Paylaş</Text>
         </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
