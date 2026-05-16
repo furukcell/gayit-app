@@ -9,8 +9,8 @@ import {
   ScrollView, Alert, Image, Switch, ActivityIndicator, Modal, StyleSheet
 } from 'react-native';
 import { API_KEY, DB_URL, BÖLGELER, KATEGORİLER, referansKoduOlustur, DAVET_LIMITI } from '../constants';
-import { MAHALLE_HIYERARSISI } from './Mahalleler';
-import { pushTokenAl } from './notifications';
+import { MAHALLE_HIYERARSISI } from '../Mahalleler';
+import { pushTokenAl } from '../notifications';
 
 // ============================================================
 // KARŞILAMA EKRANI
