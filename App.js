@@ -16,7 +16,7 @@ import { AnasayfaEkrani, SolMenu } from './HomeScreen';
 import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './IlanScreens';
 import { SohbetEkrani } from './ChatScreen';
 import { ProfilEkrani } from './ProfileScreens';
-import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat } from './PackageScreens';
+import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat } from './screens';
 import { PuanModali, SikayetModali } from './Modals';
 import { AdminEkrani } from './AdminScreen';
 
