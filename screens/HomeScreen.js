@@ -4,7 +4,7 @@ import {
   ScrollView, RefreshControl, Alert, Image
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { BOLGELER, KATEGORILER } from './constants';
+import { BOLGELER, KATEGORILER } from '../constants';
 
 // ============================================================
 // YARDIMCI: "3 saat önce", "2 gün önce" formatı
