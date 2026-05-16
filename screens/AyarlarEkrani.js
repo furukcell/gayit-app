@@ -8,7 +8,7 @@ import {
   View, Text, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Switch, Linking,
 } from 'react-native';
-import { DB_URL } from './constants';
+import { DB_URL } from '../constants';
 
 export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanlikMod, setKaranlikMod, s }) {
   const [bildirimAcik, setBildirimAcik] = useState(true);
