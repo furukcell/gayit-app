@@ -112,12 +112,17 @@ export default function App() {
   const [sistemIst, setSistemIst] = useState(null);
   const bildirimDinleyici = useRef();
 
+  // --- BİLDİRİM DİNLEYİCİSİ ---
+  // Düzeltme: Sadece kullanıcı giriş yapmışsa bildirimler ekranına yönlendir.
+  // Kayıt/karşılama ekranlarında bildirime tıklanırsa yönlendirme yapma.
   useEffect(() => {
-  bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
-    setEkran('bildirimler');
-  });
-  return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
-}, []);
+    bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      if (kullanici) {
+        setEkran('bildirimler');
+      }
+    });
+    return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
+  }, [kullanici]); // kullanici değişince dinleyici yeniden kurulur
 
   // Kullanıcı girişinde verileri yükle + push token kaydet
   useEffect(() => {
@@ -217,6 +222,8 @@ export default function App() {
   }, [kullanici]);
 
   // --- GERİ BUTONU YÖNETİMİ ---
+  // Düzeltme: 'auth' ekranı için geri tuşu 'karsilama' ekranına dönsün.
+  // Bu sayede kayıt ekranında geri tuşu bildirimler ekranına atmaz.
   useEffect(() => {
     const geriHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (menuAcik) { setMenuAcik(false); return true; }
@@ -229,6 +236,11 @@ export default function App() {
       }
       if (['kvkk', 'sifremi_unuttum'].includes(ekran)) {
         setEkran('auth');
+        return true;
+      }
+      // Kayıt/giriş ekranında geri tuşu karşılama ekranına dönsün
+      if (ekran === 'auth') {
+        setEkran('karsilama');
         return true;
       }
       if (ekran === 'hizmet_kosullari') {
