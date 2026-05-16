@@ -364,7 +364,7 @@ export function AnasayfaEkrani({
         <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -15 }}>
             <Image
-              source={require('./Logo.png')}
+              source={require('../Logo.png')}
               style={{ width: 80, height: 80, marginRight: -15, marginTop: -16 }}
               resizeMode="contain"
             />
