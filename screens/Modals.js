@@ -8,8 +8,8 @@ import {
   View, Text, TextInput, TouchableOpacity,
   Modal, Alert, ScrollView
 } from 'react-native';
-import { DB_URL } from './constants';
-import { bildirimGonderVeKaydet } from './notifications';
+import { DB_URL } from '../constants';
+import { bildirimGonderVeKaydet } from '../notifications';
 
 // Firebase key olarak email kullanılırken nokta ve @ yasak
 const emaildenKey = (email) =>
