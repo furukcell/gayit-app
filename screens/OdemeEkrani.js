@@ -8,7 +8,7 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Linking, Modal, ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { DB_URL, API_KEY } from './constants';
+import { DB_URL, API_KEY } from '../constants';
 import Purchases from 'react-native-purchases';
 import { PAKET_ID_MAP } from './revenueCat';
 
