@@ -9,16 +9,16 @@ import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHand
 import * as Notifications from 'expo-notifications';
 
 // Ekranlar
-import { KarsilamaEkrani, AuthEkrani } from './AuthScreens';
-import { SifremiUnuttumEkrani } from './SifremiUnuttumEkrani';
-import { KvkkEkrani } from './KvkkEkrani';
-import { AnasayfaEkrani, SolMenu } from './HomeScreen';
-import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './IlanScreens';
-import { SohbetEkrani } from './ChatScreen';
-import { ProfilEkrani } from './ProfileScreens';
+import { KarsilamaEkrani, AuthEkrani } from './screens/AuthScreens';
+import { SifremiUnuttumEkrani } from './screens/SifremiUnuttumEkrani';
+import { KvkkEkrani } from './screens/KvkkEkrani';
+import { AnasayfaEkrani, SolMenu } from './screens/HomeScreen';
+import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './screens/IlanScreens';
+import { SohbetEkrani } from './screens/ChatScreen';
+import { ProfilEkrani } from './screens/ProfileScreens';
 import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat } from './screens';
-import { PuanModali, SikayetModali } from './Modals';
-import { AdminEkrani } from './AdminScreen';
+import { PuanModali, SikayetModali } from './screens/Modals';
+import { AdminEkrani } from './screens/AdminScreen';
 
 // Yardımcılar
 import { DB_URL } from './constants';
