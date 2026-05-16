@@ -8,7 +8,7 @@ import {
   View, Text, TouchableOpacity, SafeAreaView,
   ScrollView, Linking, Share, Clipboard,
 } from 'react-native';
-import { referansKoduOlustur } from './constants';
+import { referansKoduOlustur } from '../constants';
 
 export function DavetEkrani({ kullanici, setEkran, s }) {
   const refKod = kullanici?.referansKodu || referansKoduOlustur();
