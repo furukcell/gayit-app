@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
-import { API_KEY } from './constants';
+import { API_KEY } from '../constants';
 
 export function SifremiUnuttumEkrani({ setEkran, s }) {
   const [sifremiUnuttumEmail, setSifremiUnuttumEmail] = useState('');
