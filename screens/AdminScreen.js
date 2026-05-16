@@ -9,8 +9,8 @@ import {
   ScrollView, Alert, TextInput, Image, Linking,
   Modal, KeyboardAvoidingView, Platform, FlatList
 } from 'react-native';
-import { DB_URL, damgaToTarih, zamanFarki } from './constants';
-import { bildirimGonderVeKaydet } from './notifications';
+import { DB_URL, damgaToTarih, zamanFarki } from '../constants';
+import { bildirimGonderVeKaydet } from '../notifications';
 
 export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [aktifSekme, setAktifSekme] = useState('istatistik');
