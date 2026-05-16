@@ -8,7 +8,7 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Image, Switch, ActivityIndicator, Modal, StyleSheet
 } from 'react-native';
-import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur } from './constants';
+import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur, DAVET_LIMITI } from './constants';
 import { MAHALLE_HIYERARSISI } from './Mahalleler';
 import { pushTokenAl } from './notifications';
 
@@ -71,8 +71,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [asama, setAsama] = useState(1);
   const [secimTipi, setSecimTipi] = useState('');
 
-  const DAVET_LIMITI = 5;
-
   const islemiTamamla = async () => {
     if (!email || !sifre || (mod === 'kayit' && !ad))
       return Alert.alert('Hata', 'Eksik bilgi girdiniz usta!');
@@ -112,12 +110,12 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           bolge: kayitBolge,
           telefon: '',
           meslek: rol === 'usta' ? kayitBrans : null,
-          hak: 0,
+          hak: rol === 'usta' ? 3 : 1,
           abonelik: false,
           yeniKullaniciHakki: 3,
           kayitTarihi: Date.now(),
           referansKodu: refKod,
-          davetSayisi: 0,       // Gerçekten kayıt olan davet sayısı
+          davetSayisi: 0,
           pushToken: cihazToken || '',
         };
 
@@ -132,7 +130,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         // --------------------------------------------------
         // 3) Davet kodu kontrolü
-        //    - davetSayisi < DAVET_LIMITI → her iki tarafa +1 hak
+        //    - davetSayisi < DAVET_LIMITI → rol bazlı bonus her iki tarafa
         //    - davetSayisi >= DAVET_LIMITI → hak verme, sadece davetSayisi artır
         // --------------------------------------------------
         if (davetKodu.trim()) {
@@ -150,27 +148,43 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                 const mevcutDavetSayisi = davetEdenKul.davetSayisi || 0;
 
                 if (mevcutDavetSayisi < DAVET_LIMITI) {
-                  // ✅ Limit dolmamış — her iki tarafa da +1 hak
+                  // ✅ Limit dolmamış — rol bazlı bonus hesapla
+                  const davetEdenRol = davetEdenKul.rol;
+                  const gelenRol = yeniKul.rol;
+
+                  // Davet edene verilecek bonus
+                  let davetEdenBonus = 0;
+                  if (davetEdenRol === 'musteri') {
+                    davetEdenBonus = 1; // müşteri her zaman +1 ilan
+                  } else if (davetEdenRol === 'usta' && gelenRol === 'usta') {
+                    davetEdenBonus = 3; // usta → usta +3 teklif
+                  } else if (davetEdenRol === 'usta' && gelenRol === 'musteri') {
+                    davetEdenBonus = 1; // usta → müşteri +1 teklif
+                  }
+
+                  // Gelene verilecek bonus (role göre base paket kadar)
+                  const gelenBonus = gelenRol === 'usta' ? 3 : 1;
+
                   await fetch(`${DB_URL}/kullanicilar/${davetEdenUid}.json?auth=${data.idToken}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      hak: (davetEdenKul.hak || 0) + 1,
+                      hak: (davetEdenKul.hak || 0) + davetEdenBonus,
                       davetSayisi: mevcutDavetSayisi + 1,
                     }),
                   });
 
-                  yeniKul.hak = 1;
+                  yeniKul.hak = yeniKul.hak + gelenBonus;
                   await fetch(`${DB_URL}/kullanicilar/${data.localId}.json?auth=${data.idToken}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hak: 1 }),
+                    body: JSON.stringify({ hak: yeniKul.hak }),
                   });
 
-                  Alert.alert(
-                    'Davet Bonusu! 🎁',
-                    'Davet kodunu kullandın, sana ve arkadaşına birer hak eklendi usta!'
-                  );
+                  const bonusMesaj = gelenRol === 'usta'
+                    ? 'Sana 3 teklif hakkı eklendi!'
+                    : 'Sana 1 ilan hakkı eklendi!';
+                  Alert.alert('Davet Bonusu! 🎁', bonusMesaj);
                 } else {
                   // ❌ Limit dolmuş — hak verme, sadece davetSayisi artır
                   await fetch(`${DB_URL}/kullanicilar/${davetEdenUid}.json?auth=${data.idToken}`, {
