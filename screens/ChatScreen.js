@@ -10,8 +10,8 @@ import {
   FlatList, KeyboardAvoidingView, Platform, Alert, Linking, RefreshControl
 } from 'react-native';
 import * as Location from 'expo-location';
-import { DB_URL } from './constants';
-import { bildirimGonderVeKaydet } from './notifications';
+import { DB_URL } from '../constants';
+import { bildirimGonderVeKaydet } from '../notifications';
 
 function MesajTik({ durum }) {
   if (durum === 'okundu') return <Text style={{ fontSize: 11, color: '#4FC3F7' }}>✓✓</Text>;
