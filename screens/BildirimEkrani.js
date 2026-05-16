@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
-import { DB_URL, zamanFarki } from './constants';
-import { bildirimleriGetir } from './notifications';
+import { DB_URL, zamanFarki } from '../constants';
+import { bildirimleriGetir } from '../notifications';
 
 export function BildirimEkrani({ kullanici, setEkran, s }) {
   const [bildirimler, setBildirimler] = useState([]);
