@@ -9,7 +9,7 @@ import {
   ScrollView, Alert, Image, ActivityIndicator
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { DB_URL, BOLGELER, STORAGE_BUCKET, API_KEY, damgaToTarih } from './constants';
+import { DB_URL, BOLGELER, STORAGE_BUCKET, API_KEY, damgaToTarih } from '../constants';
 
 // Firebase key olarak email kullanılırken nokta ve @ yasak
 const emaildenKey = (email) =>
