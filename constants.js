@@ -28,14 +28,17 @@ export const YENI_ILAN_KATEGORILER = [
 ];
 
 
-// Referans kodu üretici
+// Davet limiti
+
+export const DAVET_LIMITI = 5;
+// Referans kodu üretici - GAYIT- prefix'li
 export const referansKoduOlustur = () => {
-  const karakterler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let kod = '';
-  for (let i = 0; i < 7; i++) {
-    kod += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
-  }
-  return kod;
+const karakterler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let kod = 'GAYIT-';
+for (let i = 0; i < 6; i++) {
+kod += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
+}
+return kod; // Örnek: GAYIT-AB3X9K
 };
 
 // Tarih düzeltmesi — seçilen tarihi doğru formatta döndürür
