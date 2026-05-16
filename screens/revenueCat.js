@@ -10,11 +10,11 @@ export const REVENUECAT_API_KEY = 'goog_yZLkXbIDMWICSMXBWUIZVKxgfP';
 export const PAKET_ID_MAP = {
   'musteri_ilan_teksefer': 'tekli',
   'musteri_acil_ilan': 'acil',
-  'musteri_premium_aylik:premium-aylik-plan': 'premium',
-  'musteri_vip_aylik:vip-aylik-plan': 'vip',
+  'musteri_premium_aylik': 'premium',
+  'musteri_vip_aylik': 'vip',
   'usta_teklif_3': 'baslangic',
-  'usta_premium_aylik:usta-premium-plan': 'premium',
-  'usta_vip_aylik:usta-vip-plan': 'vip',
+  'usta_premium_aylik': 'premium',
+  'usta_vip_aylik': 'vip',
 };
 
 // App.js veya index.js'te uygulama açılırken bir kere çağır:
