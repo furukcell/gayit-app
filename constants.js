@@ -16,34 +16,72 @@ export const BOLGELER = [
 ];
 
 export const KATEGORILER = [
-  'Tümü', 'Tesisat (Sucu)', 'Klimacı', 'Boyacı',
-  'Elektrik', 'Temizlik', 'Nakliyat',
-  'Marangoz', 'İnşaat', 'Bahçe/Peyzaj', 'Dijital Hizmetler', 'Diğer'
+  'Tümü',
+  'Tesisat (Sucu)',
+  'Klimacı',
+  'Boyacı',
+  'Elektrik',
+  'Temizlik',
+  'Nakliyat',
+  'Marangoz',
+  'İnşaat',
+  'Bahçe/Peyzaj',
+  'Dijital Hizmetler',
+  // --- YENİ KATEGORİLER ---
+  'Cam, Alüminyum & PVC',
+  'Fayans & Seramik',
+  'Televizyon & Beyaz Eşya',
+  'Parti & Organizasyon',
+  'Çilingir',
+  'Halı & Koltuk Yıkama',
+  'Çatı & Su Yalıtımı',
+  'Fotoğrafçı & Kameraman',
+  'Güneş Enerji Sistemi',
+  'Özel Ders & Eğitim',
+  // ------------------------
+  'Diğer',
 ];
 
 export const YENI_ILAN_KATEGORILER = [
-  'Tesisat (Sucu)', 'Klimacı', 'Boyacı',
-  'Elektrik', 'Temizlik', 'Nakliyat',
-  'Marangoz', 'İnşaat', 'Bahçe/Peyzaj', 'Dijital Hizmetler', 'Diğer'
+  'Tesisat (Sucu)',
+  'Klimacı',
+  'Boyacı',
+  'Elektrik',
+  'Temizlik',
+  'Nakliyat',
+  'Marangoz',
+  'İnşaat',
+  'Bahçe/Peyzaj',
+  'Dijital Hizmetler',
+  // --- YENİ KATEGORİLER ---
+  'Cam, Alüminyum & PVC',
+  'Fayans & Seramik',
+  'Televizyon & Beyaz Eşya',
+  'Parti & Organizasyon',
+  'Çilingir',
+  'Halı & Koltuk Yıkama',
+  'Çatı & Su Yalıtımı',
+  'Fotoğrafçı & Kameraman',
+  'Güneş Enerji Sistemi',
+  'Özel Ders & Eğitim',
+  // ------------------------
+  'Diğer',
 ];
 
-
 // Davet limiti
-
 export const DAVET_LIMITI = 5;
+
 // Referans kodu üretici - GAYIT- prefix'li
 export const referansKoduOlustur = () => {
-const karakterler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-let kod = 'GAYIT-';
-for (let i = 0; i < 6; i++) {
-kod += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
-}
-return kod; // Örnek: GAYIT-AB3X9K
+  const karakterler = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let kod = 'GAYIT-';
+  for (let i = 0; i < 6; i++) {
+    kod += karakterler.charAt(Math.floor(Math.random() * karakterler.length));
+  }
+  return kod; // Örnek: GAYIT-AB3X9K
 };
 
 // Tarih düzeltmesi — seçilen tarihi doğru formatta döndürür
-// Orijinal kodda isTarihiTip 'İleri' olarak set edilmeden ilan
-// oluşturulunca "Bugün" yazıyordu. Bu fonksiyon bunu önler.
 export const tarihHesapla = (isTarihiTip, ozelTarih) => {
   if (isTarihiTip === 'Bugün') {
     return new Date().toLocaleDateString('tr-TR');
@@ -56,7 +94,6 @@ export const tarihHesapla = (isTarihiTip, ozelTarih) => {
   if (isTarihiTip === 'İleri' && ozelTarih) {
     return ozelTarih;
   }
-  // Fallback — her ihtimale karşı bugünü döndür
   return new Date().toLocaleDateString('tr-TR');
 };
 
