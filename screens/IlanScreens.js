@@ -841,14 +841,32 @@ export function TekliflerEkrani({
                 </View>
 
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 16, padding: 16, gap: 10 }}>
+
+                  {/* ANA BRANŞ */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔨 Meslek</Text>
-                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.meslek || '—'}</Text>
+                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔨 Ana Branş</Text>
+                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
+                      {ustaProfil.anaBrans || ustaProfil.meslek || '—'}
+                    </Text>
                   </View>
+
+                  {/* YAN BRANŞLAR — sadece varsa göster */}
+                  {ustaProfil.yanBranslar?.length > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔧 Yan Branş</Text>
+                      <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13, flex: 1, textAlign: 'right' }}>
+                        {ustaProfil.yanBranslar.join(', ')}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* BÖLGE */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>📍 Bölge</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>
                   </View>
+
+                  {/* PUAN */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>⭐ Puan</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
@@ -857,12 +875,15 @@ export function TekliflerEkrani({
                         : 'Henüz değerlendirilmedi'}
                     </Text>
                   </View>
+
+                  {/* HAKKINDA */}
                   {ustaProfil.hakkinda && (
                     <View>
                       <Text style={{ color: '#A3B1B9', fontSize: 13, marginBottom: 4 }}>💬 Hakkında</Text>
                       <Text style={{ color: '#526E7F', fontSize: 13 }}>{ustaProfil.hakkinda}</Text>
                     </View>
                   )}
+
                 </View>
               </>
             ) : null}
