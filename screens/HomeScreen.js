@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView, FlatList,
   ScrollView, RefreshControl, Alert, Image
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { BOLGELER, KATEGORILER } from '../constants';
+import { BOLGELER, KATEGORILER, DB_URL } from '../constants';
 
 // ============================================================
 // YARDIMCI: "3 saat önce", "2 gün önce" formatı
@@ -65,7 +65,6 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
         </View>
       )}
 
-      {/* Müşteri kendi ilanını görünce sadece teklifleri göster butonu */}
       {rol === 'musteri' && item.sahip === kullanici?.email && (
         <TouchableOpacity
           style={[s.girisBtn, { marginTop: 10, backgroundColor: '#588157' }]}
@@ -338,8 +337,8 @@ export function AnasayfaEkrani({
     if (ilan.anlasmaVar && !ilan.kapanmaTarihi) return false;
 
     const kategoriUygun = rol === 'usta'
-  ? [kullanici?.meslek, kullanici?.anaBrans, ...(kullanici?.yanBranslar || [])].includes(ilan.kategori)
-  : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
+      ? [kullanici?.meslek, kullanici?.anaBrans, ...(kullanici?.yanBranslar || [])].includes(ilan.kategori)
+      : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
     const ilceUygun = seciliIlce === 'Tümü' || ilan.bolge === seciliIlce;
     return kategoriUygun && ilceUygun;
   });
@@ -355,7 +354,6 @@ export function AnasayfaEkrani({
 
   return (
     <SafeAreaView style={s.con}>
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.menuBtn} onPress={() => setMenuAcik(true)}>
           <Text style={s.menuSimge}>☰</Text>
@@ -397,7 +395,6 @@ export function AnasayfaEkrani({
         </View>
       </View>
 
-      {/* Sayaç Bandı */}
       <View style={{ flexDirection: 'row', backgroundColor: '#1B4965', paddingHorizontal: 15, paddingVertical: 8, justifyContent: 'space-around' }}>
         <View style={{ alignItems: 'center' }}>
           <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>{sistemIst?.usta || 0}</Text>
@@ -418,7 +415,6 @@ export function AnasayfaEkrani({
         </View>
       </View>
 
-      {/* Filtre Paneli */}
       {filtreAcik && (
         <View style={{ backgroundColor: '#F5F5F0', padding: 10 }}>
           <Text style={{ color: '#526E7F', fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>KATEGORİ</Text>
@@ -457,7 +453,6 @@ export function AnasayfaEkrani({
         </TouchableOpacity>
       )}
 
-      {/* İlan Listesi */}
       <FlatList
         data={gosterilenIlanlar}
         keyExtractor={item => item.id}
@@ -498,6 +493,178 @@ export function AnasayfaEkrani({
           />
         )}
       />
+    </SafeAreaView>
+  );
+}
+
+// ============================================================
+// SOHBETLERİM EKRANI
+// Son mesaj gösterimi ile
+// ============================================================
+export function SohbetlerimEkrani({
+  kullanici, ilanlar, adminMesajlari,
+  setEkran, setSecilenIlan, setAktifSohbetTeklif, setAnlasmaSaglandi,
+  s
+}) {
+  const [sonMesajlar, setSonMesajlar] = useState({});
+
+  const aktifSohbetler = (ilanlar || []).filter(i => {
+    try {
+      const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
+      const benUsta = i.teklifler?.some(t => t.ustaUid === kullanici?.uid) && i.anlasmaVar;
+      return benMusteri || benUsta;
+    } catch (e) { return false; }
+  });
+
+  useEffect(() => {
+    const sonMesajlariCek = async () => {
+      const yeniSonMesajlar = {};
+      for (const ilan of aktifSohbetler) {
+        const hedefTeklif = ilan.sahipUid === kullanici?.uid
+          ? ilan.anlasilanUsta
+          : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
+
+        if (!hedefTeklif) continue;
+
+        const ustaUid = hedefTeklif.ustaUid || hedefTeklif.ustaId;
+        if (!ustaUid) continue;
+
+        const sohbetId = `${ilan.id}_${ustaUid.replace(/[.@]/g, '_')}`;
+
+        try {
+          const res = await fetch(
+            `${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?orderBy="tarih"&limitToLast=1`
+          );
+          const data = await res.json();
+          if (data) {
+            const mesajlar = Object.values(data);
+            if (mesajlar.length > 0) {
+              yeniSonMesajlar[ilan.id] = mesajlar[0];
+            }
+          }
+        } catch (e) {}
+      }
+      setSonMesajlar(yeniSonMesajlar);
+    };
+
+    if (aktifSohbetler.length > 0) {
+      sonMesajlariCek();
+    }
+  }, [ilanlar]);
+
+  const zamanFormat = (tarih) => {
+    if (!tarih) return '';
+    const fark = Date.now() - tarih;
+    const dakika = Math.floor(fark / 60000);
+    const saat = Math.floor(fark / 3600000);
+    const gun = Math.floor(fark / 86400000);
+    if (dakika < 1) return 'Az önce';
+    if (dakika < 60) return `${dakika} dk`;
+    if (saat < 24) return `${saat} sa`;
+    return `${gun} gün`;
+  };
+
+  return (
+    <SafeAreaView style={s.con}>
+      <View style={s.header}>
+        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+          <Text style={s.menuSimge}>←</Text>
+        </TouchableOpacity>
+        <Text style={s.headerBaslik}>Mesajlarım</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView style={s.scroll}>
+        {(adminMesajlari || []).length > 0 && (
+          <TouchableOpacity
+            style={[s.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
+            onPress={() => setEkran('iletisim')}
+          >
+            <Text style={{ fontWeight: 'bold', color: '#E67E22' }}>🛡️ GAYİT Destek Yanıtı</Text>
+            <Text style={s.kartAlt}>Yönetimden yeni bir mesajınız var.</Text>
+          </TouchableOpacity>
+        )}
+
+        {aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
+          <View style={{ alignItems: 'center', marginTop: 50 }}>
+            <Text style={{ fontSize: 40, marginBottom: 10 }}>💬</Text>
+            <Text style={{ textAlign: 'center', color: '#A3B1B9' }}>
+              Henüz aktif bir sohbet yok gari.
+            </Text>
+          </View>
+        ) : (
+          aktifSohbetler.map(ilan => {
+            const hedefTeklif = ilan.sahipUid === kullanici?.uid
+              ? ilan.anlasilanUsta
+              : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
+
+            if (!hedefTeklif) return null;
+
+            const karsiAd = kullanici?.rol === 'usta'
+              ? (ilan.sahip?.split('@')[0] || 'Müşteri')
+              : (hedefTeklif.ustaAd || 'Usta');
+
+            const sonMesaj = sonMesajlar[ilan.id];
+            const benimMesajim = sonMesaj?.gonderen === kullanici?.uid;
+
+            return (
+              <TouchableOpacity
+                key={ilan.id}
+                style={[s.kart, { borderLeftWidth: 4, borderLeftColor: '#588157', paddingVertical: 14 }]}
+                onPress={() => {
+                  setSecilenIlan(ilan);
+                  setAktifSohbetTeklif(hedefTeklif);
+                  setAnlasmaSaglandi(true);
+                  setEkran('sohbet');
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={s.kategoriBadge}>{ilan.kategori}</Text>
+                  {sonMesaj?.tarih && (
+                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
+                      {zamanFormat(sonMesaj.tarih)}
+                    </Text>
+                  )}
+                </View>
+
+                <Text style={[s.kartBaslik, { fontSize: 14, marginTop: 0 }]} numberOfLines={1}>
+                  {ilan.baslik}
+                </Text>
+
+                <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 2 }}>
+                  👤 {karsiAd}
+                </Text>
+
+                {sonMesaj ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                    {benimMesajim && (
+                      <Text style={{ fontSize: 11, color: sonMesaj.durum === 'okundu' ? '#4FC3F7' : '#A3B1B9' }}>
+                        {sonMesaj.durum === 'okundu' ? '✓✓' : sonMesaj.durum === 'iletildi' ? '✓✓' : '✓'}
+                      </Text>
+                    )}
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: '#A3B1B9',
+                        fontSize: 13,
+                        flex: 1,
+                        fontStyle: sonMesaj.tip === 'konum' ? 'italic' : 'normal',
+                      }}
+                    >
+                      {benimMesajim ? 'Sen: ' : ''}
+                      {sonMesaj.tip === 'konum' ? '📍 Konum paylaşıldı' : sonMesaj.metin}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={{ color: '#A3B1B9', fontSize: 12, marginTop: 6, fontStyle: 'italic' }}>
+                    Henüz mesaj yok
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
