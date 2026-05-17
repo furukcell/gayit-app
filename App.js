@@ -2,6 +2,7 @@
 // ADIM 12 — App.js (ANA DOSYA)
 // Sadece state yönetimi ve ekran yönlendirme
 // Tüm ekranlar ayrı dosyalara taşındı
+// DÜZELTİLDİ: token gelmeden veri çekilmiyordu
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -121,12 +122,13 @@ export default function App() {
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
   }, [kullanici]);
 
+  // DÜZELTİLDİ: kullanici VE token ikisi de geldikten sonra veri çek
   useEffect(() => {
-    if (kullanici) {
+    if (kullanici && token) {
       veriYukle();
       sistemIstatistikleriniGuncelle();
       pushTokenAl().then(pToken => {
-        if (pToken && kullanici.uid && token) {
+        if (pToken && kullanici.uid) {
           fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -135,7 +137,7 @@ export default function App() {
         }
       }).catch(() => {});
     }
-  }, [kullanici]);
+  }, [kullanici, token]);
 
   // --- VERİ YÜKLEME ---
   const veriYukle = async () => {
@@ -162,7 +164,7 @@ export default function App() {
       );
 
       if (kullanici?.uid) {
-        fetch(`${DB_URL}/adminMesajlari/${kullanici.uid}.json`)
+        fetch(`${DB_URL}/adminMesajlari/${kullanici.uid}.json?auth=${token}`)
           .then(r => r.json())
           .then(adData => {
             if (adData) setAdminMesajlari(Object.keys(adData).map(k => ({ id: k, ...adData[k] })));
@@ -378,7 +380,6 @@ export default function App() {
       />
     );
 
-    // ✅ SohbetlerimEkrani — son mesaj gösterimi ile
     if (ekran === 'sohbetlerim') return (
       <SohbetlerimEkrani
         kullanici={kullanici}
