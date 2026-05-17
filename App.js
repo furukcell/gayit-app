@@ -141,7 +141,7 @@ export default function App() {
   const veriYukle = async () => {
     setYenileniyor(true);
     try {
-      const res = await fetch(`${DB_URL}/ilanlar.json`);
+      const res = await fetch(`${DB_URL}/ilanlar.json?auth=${token}`);
       const data = await res.json();
       if (!data) { setIlanlar([]); return; }
 
@@ -179,7 +179,7 @@ export default function App() {
   // --- SİSTEM İSTATİSTİKLERİ ---
   const sistemIstatistikleriniGuncelle = async () => {
     try {
-      const res = await fetch(`${DB_URL}/kullanicilar.json`);
+      const res = await fetch(`${DB_URL}/kullanicilar.json?auth=${token}`);
       const data = await res.json();
       if (!data) return;
 
