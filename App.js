@@ -12,7 +12,7 @@ import * as Notifications from 'expo-notifications';
 import { KarsilamaEkrani, AuthEkrani } from './screens/AuthScreens';
 import { SifremiUnuttumEkrani } from './screens/SifremiUnuttumEkrani';
 import { KvkkEkrani } from './screens/KvkkEkrani';
-import { AnasayfaEkrani, SolMenu } from './screens/HomeScreen';
+import { AnasayfaEkrani, SolMenu, SohbetlerimEkrani } from './screens/HomeScreen';
 import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './screens/IlanScreens';
 import { SohbetEkrani } from './screens/ChatScreen';
 import { ProfilEkrani } from './screens/ProfileScreens';
@@ -112,9 +112,6 @@ export default function App() {
   const [sistemIst, setSistemIst] = useState(null);
   const bildirimDinleyici = useRef();
 
-  // --- BİLDİRİM DİNLEYİCİSİ ---
-  // Düzeltme: Sadece kullanıcı giriş yapmışsa bildirimler ekranına yönlendir.
-  // Kayıt/karşılama ekranlarında bildirime tıklanırsa yönlendirme yapma.
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
       if (kullanici) {
@@ -122,9 +119,8 @@ export default function App() {
       }
     });
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
-  }, [kullanici]); // kullanici değişince dinleyici yeniden kurulur
+  }, [kullanici]);
 
-  // Kullanıcı girişinde verileri yükle + push token kaydet
   useEffect(() => {
     if (kullanici) {
       veriYukle();
@@ -210,20 +206,15 @@ export default function App() {
     }
   };
 
-  // --- USTA TEKLİF TIKLANDI ---
   const ustaTeklifTiklandi = (ilan) => {
     setSecilenIlan(ilan);
     setEkran('teklifver');
   };
 
-  // --- ROL GÜNCELLE ---
   useEffect(() => {
     if (kullanici?.rol) setRol(kullanici.rol === 'admin' ? 'musteri' : kullanici.rol);
   }, [kullanici]);
 
-  // --- GERİ BUTONU YÖNETİMİ ---
-  // Düzeltme: 'auth' ekranı için geri tuşu 'karsilama' ekranına dönsün.
-  // Bu sayede kayıt ekranında geri tuşu bildirimler ekranına atmaz.
   useEffect(() => {
     const geriHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (menuAcik) { setMenuAcik(false); return true; }
@@ -238,7 +229,6 @@ export default function App() {
         setEkran('auth');
         return true;
       }
-      // Kayıt/giriş ekranında geri tuşu karşılama ekranına dönsün
       if (ekran === 'auth') {
         setEkran('karsilama');
         return true;
@@ -388,71 +378,19 @@ export default function App() {
       />
     );
 
-    if (ekran === 'sohbetlerim') {
-      const aktifSohbetler = (ilanlar || []).filter(i => {
-        try {
-          const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
-          const benUsta = i.teklifler?.some(t => t.ustaUid === kullanici?.uid) && i.anlasmaVar;
-          return benMusteri || benUsta;
-        } catch(e) { return false; }
-      });
-
-      return (
-        <SafeAreaView style={st.con}>
-          <View style={st.header}>
-            <TouchableOpacity style={st.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
-              <Text style={st.menuSimge}>←</Text>
-            </TouchableOpacity>
-            <Text style={st.headerBaslik}>Mesajlarım</Text>
-            <View style={{ width: 24 }} />
-          </View>
-          <ScrollView style={st.scroll}>
-            {(adminMesajlari || []).length > 0 && (
-              <TouchableOpacity
-                style={[st.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
-                onPress={() => setEkran('iletisim')}
-              >
-                <Text style={{ fontWeight: 'bold', color: '#E67E22' }}>🛡️ GAYİT Destek Yanıtı</Text>
-                <Text style={st.kartAlt}>Yönetimden yeni bir mesajınız var.</Text>
-              </TouchableOpacity>
-            )}
-
-            {aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
-              <View style={{ alignItems: 'center', marginTop: 50 }}>
-                <Text style={{ textAlign: 'center', color: '#A3B1B9' }}>Henüz aktif bir sohbet yok gari.</Text>
-              </View>
-            ) : (
-              aktifSohbetler.map(ilan => {
-                const hedefTeklif = ilan.sahipUid === kullanici?.uid
-                  ? ilan.anlasilanUsta
-                  : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
-
-                if (!hedefTeklif) return null;
-
-                return (
-                  <TouchableOpacity
-                    key={ilan.id}
-                    style={[st.kart, { borderLeftWidth: 5, borderLeftColor: '#588157' }]}
-                    onPress={() => {
-                      setSecilenIlan(ilan);
-                      setAktifSohbetTeklif(hedefTeklif);
-                      setAnlasmaSaglandi(true);
-                      setEkran('sohbet');
-                    }}
-                  >
-                    <Text style={st.kategoriBadge}>{ilan.kategori}</Text>
-                    <Text style={st.kartBaslik}>{ilan.baslik}</Text>
-                    <Text style={st.kartAlt}>
-                      {kullanici?.rol === 'usta' ? `👤 Müşteri: ${ilan.sahip}` : `👤 Usta: ${hedefTeklif.ustaAd}`}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      );
-    }
+    // ✅ SohbetlerimEkrani — son mesaj gösterimi ile
+    if (ekran === 'sohbetlerim') return (
+      <SohbetlerimEkrani
+        kullanici={kullanici}
+        ilanlar={ilanlar}
+        adminMesajlari={adminMesajlari}
+        setEkran={setEkran}
+        setSecilenIlan={setSecilenIlan}
+        setAktifSohbetTeklif={setAktifSohbetTeklif}
+        setAnlasmaSaglandi={setAnlasmaSaglandi}
+        s={st}
+      />
+    );
 
     if (ekran === 'profil') return (
       <ProfilEkrani
