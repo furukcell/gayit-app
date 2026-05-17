@@ -338,8 +338,8 @@ export function AnasayfaEkrani({
     if (ilan.anlasmaVar && !ilan.kapanmaTarihi) return false;
 
     const kategoriUygun = rol === 'usta'
-      ? ilan.kategori === kullanici?.meslek
-      : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
+  ? [kullanici?.meslek, kullanici?.anaBrans, ...(kullanici?.yanBranslar || [])].includes(ilan.kategori)
+  : (seciliKategori === 'Tümü' || ilan.kategori === seciliKategori);
     const ilceUygun = seciliIlce === 'Tümü' || ilan.bolge === seciliIlce;
     return kategoriUygun && ilceUygun;
   });
