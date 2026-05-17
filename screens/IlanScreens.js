@@ -125,11 +125,11 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       // 4. Arka planda veri yenile ve bildirim gönder — hata verse bile ilan kaydedildi
       onVeriYukle().catch(() => {});
       try {
-        const kulRes = await fetch(`${DB_URL}/kullanicilar.json`);
+        const kulRes = await fetch(`${DB_URL}/kullanicilar.json?orderBy="bolge"&equalTo="${ilanIlce}"`);
         const kulData = await kulRes.json();
         if (kulData) {
           const hedefUstalar = Object.values(kulData).filter(
-            k => k.rol === 'usta' && k.bolge === ilanIlce && k.meslek === ilanKategori && k.uid !== kullanici.uid
+            k => k.rol === 'usta' && k.meslek === ilanKategori && k.uid !== kullanici.uid
           );
           for (const usta of hedefUstalar) {
             await bildirimGonderVeKaydet(
