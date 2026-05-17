@@ -2,12 +2,13 @@
 // ChatScreen.js
 // Bildirim ve sohbet açılma sorunları giderildi
 // YENİ: Usta müşterinin numarasını, müşteri ustanın numarasını görür
+// YENİ: Sohbette usta profili görüntüleme eklendi
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
-  FlatList, KeyboardAvoidingView, Platform, Alert, Linking, RefreshControl
+  FlatList, KeyboardAvoidingView, Platform, Alert, Linking, RefreshControl, Modal
 } from 'react-native';
 import * as Location from 'expo-location';
 import { DB_URL } from '../constants';
@@ -32,6 +33,9 @@ export function SohbetEkrani({
   const [musteriTelefon, setMusteriTelefon] = useState(null);
   const [ustaTelefon, setUstaTelefon] = useState(null);
   const [musteriAd, setMusteriAd] = useState(null);
+  const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
+  const [ustaProfil, setUstaProfil] = useState(null);
+  const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
   const flatListRef = useRef(null);
 
   const sohbetId = (secilenIlan?.id && aktifSohbetTeklif?.ustaUid)
@@ -40,16 +44,16 @@ export function SohbetEkrani({
     ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaId.replace(/[.@]/g, '_')}`
     : null;
 
- // ============================================================
+  // ============================================================
   // Usta görüntülüyorsa müşterinin numarasını ve ADINI Firebase'den çek
   // ============================================================
   useEffect(() => {
     if (rol === 'usta' && secilenIlan?.sahipUid) {
       fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
         .then(r => r.json())
-        .then(data => { 
-          if (data?.telefon) setMusteriTelefon(data.telefon); 
-          if (data?.ad) setMusteriAd(data.ad); // <-- İŞTE YENİ EKLENEN KISIM BURASI
+        .then(data => {
+          if (data?.telefon) setMusteriTelefon(data.telefon);
+          if (data?.ad) setMusteriAd(data.ad);
         })
         .catch(() => {});
     }
@@ -60,7 +64,7 @@ export function SohbetEkrani({
         .catch(() => {});
     }
   }, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
-  
+
   const mesajlariYukle = async () => {
     if (!sohbetId || !secilenIlan?.id) return;
     try {
@@ -139,7 +143,7 @@ export function SohbetEkrani({
       }
 
       if (hedefUid) {
-      await bildirimGonderVeKaydet(hedefUid, kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`, mesajMetni);
+        await bildirimGonderVeKaydet(hedefUid, kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`, mesajMetni);
       }
 
       await mesajlariYukle();
@@ -217,17 +221,17 @@ export function SohbetEkrani({
                 body: JSON.stringify({ isTamamlandi: true }),
               });
               await onVeriYukle();
-             Alert.alert('Tebrikler! 🎉', 'İş tamamlandı! Şimdi ustayı puanlayabilirsin.', [
-  {
-    text: 'Ustayı Puanla ⭐',
-    onPress: () => {
-      setPuanlananIlan(secilenIlan);
-      setPuanModalAcik(true);
-      setEkran('anasayfa');
-    }
-  },
-  { text: 'Daha Sonra', onPress: () => setEkran('anasayfa') }
-]);
+              Alert.alert('Tebrikler! 🎉', 'İş tamamlandı! Şimdi ustayı puanlayabilirsin.', [
+                {
+                  text: 'Ustayı Puanla ⭐',
+                  onPress: () => {
+                    setPuanlananIlan(secilenIlan);
+                    setPuanModalAcik(true);
+                    setEkran('anasayfa');
+                  }
+                },
+                { text: 'Daha Sonra', onPress: () => setEkran('anasayfa') }
+              ]);
             } catch (e) {
               Alert.alert('Hata', 'İşlem kaydedilemedi!');
             }
@@ -235,6 +239,24 @@ export function SohbetEkrani({
         },
       ]
     );
+  };
+
+  // ============================================================
+  // Usta profil modalını aç — sadece müşteri görebilir
+  // ============================================================
+  const ustaProfilGoster = async () => {
+    if (rol !== 'musteri') return;
+    setUstaProfilYukleniyor(true);
+    setUstaProfilModalAcik(true);
+    try {
+      const res = await fetch(`${DB_URL}/kullanicilar/${aktifSohbetTeklif.ustaUid}.json`);
+      const data = await res.json();
+      setUstaProfil(data ? { ...data, ad: aktifSohbetTeklif.ustaAd } : { ad: aktifSohbetTeklif.ustaAd });
+    } catch (e) {
+      setUstaProfil({ ad: aktifSohbetTeklif.ustaAd });
+    } finally {
+      setUstaProfilYukleniyor(false);
+    }
   };
 
   const benimMesajim = (mesaj) => mesaj.gonderen === kullanici?.uid;
@@ -251,23 +273,18 @@ export function SohbetEkrani({
   // Role göre gösterilecek numara ve isim
   // ============================================================
   const gosterilecekNumara = rol === 'musteri'
-  ? ustaTelefon
-  : musteriTelefon;
+    ? ustaTelefon
+    : musteriTelefon;
 
-  // 1. Önce müşterinin veritabanındaki gerçek adını (musteriAd) arıyoruz
   let hamIsim = rol === 'musteri'
     ? (aktifSohbetTeklif?.ustaAd || 'Usta')
     : (musteriAd || secilenIlan?.sahip || 'Müşteri');
 
-  // 2. Eğer gerçek ad yoksa ve e-posta geldiyse @'den sonrasını at
   if (hamIsim.includes('@')) {
     hamIsim = hamIsim.split('@')[0];
   }
 
-  // 3. Sadece ilk ismi al (Boşluk veya noktadan bölerek)
   let ilkIsim = hamIsim.split(/[\s.]/)[0];
-
-  // 4. Baş harfini otomatik büyük yap (Örn: ahmet -> Ahmet)
   const gosterilecekIsim = ilkIsim.charAt(0).toUpperCase() + ilkIsim.slice(1);
 
   const numaraEtiketi = rol === 'musteri' ? '📞 Usta Telefonu' : '📞 Müşteri Telefonu';
@@ -280,9 +297,11 @@ export function SohbetEkrani({
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={s.headerBaslik} numberOfLines={1}>
-            💬 {gosterilecekIsim}
-          </Text>
+          <TouchableOpacity onPress={ustaProfilGoster} disabled={rol !== 'musteri'}>
+            <Text style={s.headerBaslik} numberOfLines={1}>
+              💬 {gosterilecekIsim} {rol === 'musteri' ? '👤' : ''}
+            </Text>
+          </TouchableOpacity>
           <Text style={{ textAlign: 'center', color: '#526E7F', fontSize: 11 }}>
             {secilenIlan?.baslik}
           </Text>
@@ -304,7 +323,6 @@ export function SohbetEkrani({
           {aktifSohbetTeklif?.fiyat || '-'}
         </Text>
 
-        {/* NUMARA — Sadece anlaşma sağlandıysa görünür veya tıklanabilir olur */}
         {anlasmaSaglandi ? (
           <TouchableOpacity
             onPress={() => numaraAra(gosterilecekNumara)}
@@ -344,12 +362,12 @@ export function SohbetEkrani({
         data={mesajlar}
         keyExtractor={item => item.id}
         refreshControl={
-  <RefreshControl
-    refreshing={yukleniyor}
-    onRefresh={mesajlariYukle}
-    colors={['#1B4965']}
-  />
-}
+          <RefreshControl
+            refreshing={yukleniyor}
+            onRefresh={mesajlariYukle}
+            colors={['#1B4965']}
+          />
+        }
         contentContainerStyle={{ padding: 15, paddingBottom: 10 }}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
@@ -448,6 +466,80 @@ export function SohbetEkrani({
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* ============================================================
+          USTA PROFİL MODALI — Sadece müşteri görebilir
+      ============================================================ */}
+      <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
+            <TouchableOpacity
+              onPress={() => { setUstaProfilModalAcik(false); setUstaProfil(null); }}
+              style={{ position: 'absolute', top: 15, right: 20 }}
+            >
+              <Text style={{ color: '#A3B1B9', fontSize: 22 }}>✕</Text>
+            </TouchableOpacity>
+
+            {ustaProfilYukleniyor ? (
+              <Text style={{ textAlign: 'center', color: '#A3B1B9', marginVertical: 30 }}>Yükleniyor...</Text>
+            ) : ustaProfil ? (
+              <>
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                  <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: '#1B4965', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ color: '#FFF', fontSize: 28, fontWeight: 'bold' }}>
+                      {ustaProfil.ad?.[0]?.toUpperCase() || '?'}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1B4965' }}>{ustaProfil.ad}</Text>
+                  {ustaProfil.abonelik === 'vip' && <Text style={{ color: '#F39C12', fontWeight: 'bold' }}>👑 VIP Usta</Text>}
+                  {ustaProfil.abonelik === 'premium' && <Text style={{ color: '#F39C12' }}>⭐ Premium Usta</Text>}
+                  {ustaProfil.onayDurumu === 'onayli' && <Text style={{ color: '#00a2ed', fontWeight: 'bold' }}>✅ Onaylı Usta</Text>}
+                </View>
+
+                <View style={{ backgroundColor: '#F5F5F0', borderRadius: 16, padding: 16, gap: 10 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔨 Branş</Text>
+                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
+                      {ustaProfil.anaBrans || ustaProfil.meslek || '—'}
+                    </Text>
+                  </View>
+
+                  {ustaProfil.yanBranslar?.length > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔧 Yan Branş</Text>
+                      <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13, flex: 1, textAlign: 'right' }}>
+                        {ustaProfil.yanBranslar.join(', ')}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>📍 Bölge</Text>
+                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>⭐ Puan</Text>
+                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
+                      {ustaProfil.puan
+                        ? `${Number(ustaProfil.puan).toFixed(1)} / 5 (${ustaProfil.puanSayisi || 0} değerlendirme)`
+                        : 'Henüz değerlendirilmedi'}
+                    </Text>
+                  </View>
+
+                  {ustaProfil.hakkinda && (
+                    <View>
+                      <Text style={{ color: '#A3B1B9', fontSize: 13, marginBottom: 4 }}>💬 Hakkında</Text>
+                      <Text style={{ color: '#526E7F', fontSize: 13 }}>{ustaProfil.hakkinda}</Text>
+                    </View>
+                  )}
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
