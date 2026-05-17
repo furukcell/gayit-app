@@ -8,7 +8,7 @@ import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Image, Switch, ActivityIndicator, Modal, StyleSheet
 } from 'react-native';
-import { API_KEY, DB_URL, BÖLGELER, KATEGORİLER, referansKoduOlustur, DAVET_LIMITI } from '../constants';
+import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur, DAVET_LIMITI } from '../constants';
 import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
 
@@ -62,22 +62,48 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
   const [kayitBolge, setKayitBolge] = useState('');
-  const [kayitBrans, setKayitBrans] = useState('');
   const [davetKodu, setDavetKodu] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [secimModalAcik, setSecimModalAcik] = useState(false);
-  const [kayitMahalle, setKayitMahalle] = useState('');
-  const [mahalleGrubu, setMahalleGrubu] = useState('');
   const [asama, setAsama] = useState(1);
+  const [mahalleGrubu, setMahalleGrubu] = useState('');
+
+  // --- Çoklu Branş ---
+  const [anaBrans, setAnaBrans] = useState('');
+  const [yanBrans1, setYanBrans1] = useState('');
+  const [yanBrans2, setYanBrans2] = useState('');
+
+  // --- Modal ---
+  // secimTipi: 'bolge' | 'anaBrans' | 'yanBrans1' | 'yanBrans2'
+  const [secimModalAcik, setSecimModalAcik] = useState(false);
   const [secimTipi, setSecimTipi] = useState('');
+
+  const modalAc = (tip) => {
+    setSecimTipi(tip);
+    setAsama(1);
+    setSecimModalAcik(true);
+  };
+
+  const bransSecildi = (item) => {
+    if (secimTipi === 'anaBrans') setAnaBrans(item);
+    else if (secimTipi === 'yanBrans1') setYanBrans1(item);
+    else if (secimTipi === 'yanBrans2') setYanBrans2(item);
+    setSecimModalAcik(false);
+  };
+
+  // Ana branşı çıkar, seçilmiş branşları çıkar — yan branş seçenekleri
+  const yanBransSecenekleri = (hangiYan) => {
+    const secilmisler = [anaBrans];
+    if (hangiYan === 'yanBrans2') secilmisler.push(yanBrans1);
+    return KATEGORILER.filter(k => k !== 'Tümü' && !secilmisler.includes(k));
+  };
 
   const islemiTamamla = async () => {
     if (!email || !sifre || (mod === 'kayit' && !ad))
       return Alert.alert('Hata', 'Eksik bilgi girdiniz usta!');
     if (mod === 'kayit' && !kayitBolge)
       return Alert.alert('Hata', 'Lütfen bir ilçe seçin gari!');
-    if (mod === 'kayit' && rol === 'usta' && !kayitBrans)
-      return Alert.alert('Hata', 'Lütfen branş seçin!');
+    if (mod === 'kayit' && rol === 'usta' && !anaBrans)
+      return Alert.alert('Hata', 'Lütfen ana branşınızı seçin!');
     if (mod === 'kayit' && !kvkkKabul)
       return Alert.alert('Hata', 'KVKK metnini onaylamanız gerekiyor!');
     if (mod === 'kayit' && !sozlesmeKabul)
@@ -86,6 +112,9 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     setYukleniyor(true);
     try {
       if (mod === 'kayit') {
+        // Yan branşları temizle (boş olanları alma)
+        const yanBranslar = [yanBrans1, yanBrans2].filter(b => b !== '');
+
         // --------------------------------------------------
         // 1) Firebase Auth — hesap oluştur
         // --------------------------------------------------
@@ -109,7 +138,10 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           ad, email, rol,
           bolge: kayitBolge,
           telefon: '',
-          meslek: rol === 'usta' ? kayitBrans : null,
+          // Usta ise: anaBrans + yanBranslar; değilse null
+          meslek: rol === 'usta' ? anaBrans : null,
+          anaBrans: rol === 'usta' ? anaBrans : null,
+          yanBranslar: rol === 'usta' ? yanBranslar : [],
           hak: rol === 'usta' ? 3 : 1,
           abonelik: false,
           yeniKullaniciHakki: 3,
@@ -130,8 +162,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         // --------------------------------------------------
         // 3) Davet kodu kontrolü
-        //    - davetSayisi < DAVET_LIMITI → rol bazlı bonus her iki tarafa
-        //    - davetSayisi >= DAVET_LIMITI → hak verme, sadece davetSayisi artır
         // --------------------------------------------------
         if (davetKodu.trim()) {
           try {
@@ -148,21 +178,18 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                 const mevcutDavetSayisi = davetEdenKul.davetSayisi || 0;
 
                 if (mevcutDavetSayisi < DAVET_LIMITI) {
-                  // ✅ Limit dolmamış — rol bazlı bonus hesapla
                   const davetEdenRol = davetEdenKul.rol;
                   const gelenRol = yeniKul.rol;
 
-                  // Davet edene verilecek bonus
                   let davetEdenBonus = 0;
                   if (davetEdenRol === 'musteri') {
-                    davetEdenBonus = 1; // müşteri her zaman +1 ilan
+                    davetEdenBonus = 1;
                   } else if (davetEdenRol === 'usta' && gelenRol === 'usta') {
-                    davetEdenBonus = 3; // usta → usta +3 teklif
+                    davetEdenBonus = 3;
                   } else if (davetEdenRol === 'usta' && gelenRol === 'musteri') {
-                    davetEdenBonus = 1; // usta → müşteri +1 teklif
+                    davetEdenBonus = 1;
                   }
 
-                  // Gelene verilecek bonus (role göre base paket kadar)
                   const gelenBonus = gelenRol === 'usta' ? 3 : 1;
 
                   await fetch(`${DB_URL}/kullanicilar/${davetEdenUid}.json?auth=${data.idToken}`, {
@@ -186,19 +213,12 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                     : 'Sana 1 ilan hakkı eklendi!';
                   Alert.alert('Davet Bonusu! 🎁', bonusMesaj);
                 } else {
-                  // ❌ Limit dolmuş — hak verme, sadece davetSayisi artır
                   await fetch(`${DB_URL}/kullanicilar/${davetEdenUid}.json?auth=${data.idToken}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      davetSayisi: mevcutDavetSayisi + 1,
-                    }),
+                    body: JSON.stringify({ davetSayisi: mevcutDavetSayisi + 1 }),
                   });
-
-                  Alert.alert(
-                    'Davet Kodu Kullanıldı',
-                    'Kod geçerli ama bu kullanıcının davet hakkı dolmuş. Bonus eklenemedi.'
-                  );
+                  Alert.alert('Davet Kodu Kullanıldı', 'Kod geçerli ama bu kullanıcının davet hakkı dolmuş. Bonus eklenemedi.');
                 }
               } else {
                 Alert.alert('Geçersiz Kod', 'Böyle bir davet kodu bulunamadı gari!');
@@ -265,6 +285,15 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     }
   };
 
+  // Modal başlığı
+  const modalBaslik = () => {
+    if (secimTipi === 'bolge') return 'İlçe Seçin';
+    if (secimTipi === 'anaBrans') return 'Ana Branş Seçin';
+    if (secimTipi === 'yanBrans1') return 'Yan Branş 1 Seçin';
+    if (secimTipi === 'yanBrans2') return 'Yan Branş 2 Seçin';
+    return 'Seçim Yapın';
+  };
+
   return (
     <SafeAreaView style={s.con}>
       <ScrollView contentContainerStyle={s.authIc}>
@@ -311,30 +340,64 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         {mod === 'kayit' && (
           <>
+            {/* İlçe Seçimi */}
             <Text style={s.inputBaslik}>Bulunduğunuz İlçe</Text>
             <TouchableOpacity
               style={s.inp}
-              onPress={() => { setSecimTipi('bolge'); setSecimModalAcik(true); }}
+              onPress={() => modalAc('bolge')}
             >
               <Text style={{ color: kayitBolge ? '#1B4965' : '#A3B1B9' }}>
                 {kayitBolge || 'İlçe Seçiniz...'}
               </Text>
             </TouchableOpacity>
 
+            {/* USTA — Çoklu Branş Seçimi */}
             {rol === 'usta' && (
               <>
-                <Text style={s.inputBaslik}>Branşınız</Text>
+                {/* Ana Branş */}
+                <Text style={s.inputBaslik}>Ana Branşınız <Text style={{ color: '#E74C3C' }}>*</Text></Text>
                 <TouchableOpacity
                   style={s.inp}
-                  onPress={() => { setSecimTipi('brans'); setSecimModalAcik(true); }}
+                  onPress={() => modalAc('anaBrans')}
                 >
-                  <Text style={{ color: kayitBrans ? '#1B4965' : '#A3B1B9' }}>
-                    {kayitBrans || 'Branş Seçiniz...'}
+                  <Text style={{ color: anaBrans ? '#1B4965' : '#A3B1B9' }}>
+                    {anaBrans || 'Ana Branş Seçiniz...'}
                   </Text>
                 </TouchableOpacity>
+
+                {/* Yan Branş 1 — Ana seçilmişse göster */}
+                {anaBrans !== '' && (
+                  <>
+                    <Text style={s.inputBaslik}>Yan Branş 1 <Text style={{ color: '#888', fontSize: 12 }}>(İsteğe Bağlı)</Text></Text>
+                    <TouchableOpacity
+                      style={s.inp}
+                      onPress={() => modalAc('yanBrans1')}
+                    >
+                      <Text style={{ color: yanBrans1 ? '#1B4965' : '#A3B1B9' }}>
+                        {yanBrans1 || 'Yan Branş Seçiniz...'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {/* Yan Branş 2 — Yan Branş 1 seçilmişse göster */}
+                {yanBrans1 !== '' && (
+                  <>
+                    <Text style={s.inputBaslik}>Yan Branş 2 <Text style={{ color: '#888', fontSize: 12 }}>(İsteğe Bağlı)</Text></Text>
+                    <TouchableOpacity
+                      style={s.inp}
+                      onPress={() => modalAc('yanBrans2')}
+                    >
+                      <Text style={{ color: yanBrans2 ? '#1B4965' : '#A3B1B9' }}>
+                        {yanBrans2 || 'Yan Branş Seçiniz...'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </>
             )}
 
+            {/* Davet Kodu */}
             <Text style={s.inputBaslik}>Davet Kodu (İsteğe Bağlı)</Text>
             <TextInput
               style={s.inp}
@@ -376,55 +439,99 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={secimModalAcik} transparent animationType="slide">
+      {/* ============================================================
+          SEÇİM MODAL — Tek modal, secimTipi'ne göre içerik değişir
+          Crash fix: Modal içinde TouchableOpacity kullanıyoruz,
+          ayrı component'e taşınmadı — bu sayede state scope sorunu yok
+      ============================================================ */}
+      <Modal
+        visible={secimModalAcik}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSecimModalAcik(false)}
+      >
         <View style={s.modalOverlay}>
           <View style={[s.modalKutu, { maxHeight: '70%' }]}>
-            <Text style={s.modalBaslik}>
-              {secimTipi === 'bolge' ? 'İlçe Seçin' : secimTipi === 'brans' ? 'Branş Seçin' : (asama === 1 ? 'Seçim Yapın' : 'Mahalle Seçin')}
-            </Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {secimTipi === 'bolge' ? (
+            <Text style={s.modalBaslik}>{modalBaslik()}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+              {/* İLÇE SEÇİMİ */}
+              {secimTipi === 'bolge' && (
                 BOLGELER.map((item, index) => (
-                  <TouchableOpacity key={index} style={localStyles.modalSatir} onPress={() => { setKayitBolge(item); setSecimModalAcik(false); }}>
+                  <TouchableOpacity
+                    key={index}
+                    style={localStyles.modalSatir}
+                    onPress={() => { setKayitBolge(item); setSecimModalAcik(false); }}
+                  >
                     <Text style={localStyles.modalSatirYazi}>{item}</Text>
                   </TouchableOpacity>
                 ))
-              ) : secimTipi === 'brans' ? (
-                KATEGORILER.filter(k => k !== 'Tümü').map((item, index) => (
-                  <TouchableOpacity key={index} style={localStyles.modalSatir} onPress={() => { setKayitBrans(item); setSecimModalAcik(false); }}>
-                    <Text style={localStyles.modalSatirYazi}>{item}</Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                asama === 1 ? (
-                  Object.keys(MAHALLE_HIYERARSISI[kayitBolge] || {}).map((grup, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[localStyles.modalSatir, { backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10 }]}
-                      onPress={() => { setMahalleGrubu(grup); setAsama(2); }}
-                    >
-                      <Text style={[localStyles.modalSatirYazi, { fontWeight: 'bold', color: '#1B4965' }]}>{grup} ❯</Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <>
-                    <TouchableOpacity onPress={() => setAsama(1)} style={{ padding: 10 }}>
-                      <Text style={{ color: '#E67E22', fontWeight: 'bold' }}>❮ Geri Dön</Text>
-                    </TouchableOpacity>
-                    {MAHALLE_HIYERARSISI[kayitBolge][mahalleGrubu].map((mahalle, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={localStyles.modalSatir}
-                        onPress={() => { setKayitMahalle(mahalle); setSecimModalAcik(false); }}
-                      >
-                        <Text style={localStyles.modalSatirYazi}>{mahalle}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </>
-                )
               )}
+
+              {/* ANA BRANŞ SEÇİMİ */}
+              {secimTipi === 'anaBrans' && (
+                KATEGORILER.filter(k => k !== 'Tümü').map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={localStyles.modalSatir}
+                    onPress={() => {
+                      setAnaBrans(item);
+                      // Ana branş değişince yan branşları sıfırla
+                      setYanBrans1('');
+                      setYanBrans2('');
+                      setSecimModalAcik(false);
+                    }}
+                  >
+                    <Text style={[
+                      localStyles.modalSatirYazi,
+                      item === anaBrans && { fontWeight: 'bold', color: '#588157' }
+                    ]}>{item} {item === anaBrans ? '✓' : ''}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+
+              {/* YAN BRANŞ 1 SEÇİMİ */}
+              {secimTipi === 'yanBrans1' && (
+                yanBransSecenekleri('yanBrans1').map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={localStyles.modalSatir}
+                    onPress={() => {
+                      setYanBrans1(item);
+                      // Yan branş 1 değişince yan branş 2'yi sıfırla
+                      setYanBrans2('');
+                      setSecimModalAcik(false);
+                    }}
+                  >
+                    <Text style={[
+                      localStyles.modalSatirYazi,
+                      item === yanBrans1 && { fontWeight: 'bold', color: '#588157' }
+                    ]}>{item} {item === yanBrans1 ? '✓' : ''}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+
+              {/* YAN BRANŞ 2 SEÇİMİ */}
+              {secimTipi === 'yanBrans2' && (
+                yanBransSecenekleri('yanBrans2').map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={localStyles.modalSatir}
+                    onPress={() => bransSecildi(item)}
+                  >
+                    <Text style={[
+                      localStyles.modalSatirYazi,
+                      item === yanBrans2 && { fontWeight: 'bold', color: '#588157' }
+                    ]}>{item} {item === yanBrans2 ? '✓' : ''}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+
             </ScrollView>
-            <TouchableOpacity style={[s.girisBtn, { marginTop: 15, backgroundColor: '#FF4444' }]} onPress={() => setSecimModalAcik(false)}>
+            <TouchableOpacity
+              style={[s.girisBtn, { marginTop: 15, backgroundColor: '#FF4444' }]}
+              onPress={() => setSecimModalAcik(false)}
+            >
               <Text style={s.anaBtnY}>VAZGEÇ</Text>
             </TouchableOpacity>
           </View>
