@@ -33,8 +33,8 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         return;
       }
       const hedefPaket = offerings.current.availablePackages.find(
-        (p) => p.product.identifier === urunId
-      );
+  (p) => p.identifier === urunId
+);
       if (!hedefPaket) {
         Alert.alert(
           'Paket Bulunamadı',
