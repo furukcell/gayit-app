@@ -110,7 +110,14 @@ export function SohbetEkrani({
 
   const mesajGonder = async () => {
     if (!yeniMesaj.trim() || !sohbetId || sohbetKilitli) return;
-
+    await fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        musteriUid: secilenIlan.sahipUid,
+        ustaUid: aktifSohbetTeklif.ustaUid,
+      }),
+    }).catch(() => {});
     const mesajMetni = yeniMesaj.trim();
     const mesaj = {
       metin: mesajMetni,
