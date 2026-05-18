@@ -505,7 +505,7 @@ export function AnasayfaEkrani({
 // Hem usta hem müşteri için çalışır.
 // ============================================================
 export function SohbetlerimEkrani({
-  kullanici, ilanlar, adminMesajlari,
+  kullanici, ilanlar, adminMesajlari, token,
   setEkran, setSecilenIlan, setAktifSohbetTeklif, setAnlasmaSaglandi,
   s
 }) {
@@ -548,7 +548,7 @@ export function SohbetlerimEkrani({
 
           try {
             const res = await fetch(
-              `${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?orderBy="tarih"&limitToLast=1`
+              `${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}&orderBy="tarih"&limitToLast=1`
             );
             const data = await res.json();
 
