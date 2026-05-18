@@ -446,9 +446,9 @@ export function SohbetEkrani({
           </Text>
         </View>
       ) : (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
           <View style={{
-            flexDirection: 'row', padding: 10, paddingBottom: 20,
+            flexDirection: 'row', padding: 10, paddingBottom: Platform.OS === 'android' ? 8 : 20,
             backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'flex-end',
           }}>
             <TouchableOpacity
