@@ -47,9 +47,6 @@ export async function haberUcur(hedefUid, baslik, mesaj) {
 }
 
 // --- Bildirimi Firebase Geçmişine Kaydet ---
-// DÜZELTİLDİ: 'Content-Type' header eklendi — eksik olduğu için
-// bildirimler Firebase'e JSON olarak kaydedilemiyordu,
-// bildirim geçmişi boş görünüyordu.
 export async function bildirimKaydet(hedefUid, baslik, mesaj) {
   try {
     await fetch(`${DB_URL}/bildirimler/${hedefUid}.json`, {
@@ -68,9 +65,9 @@ export async function bildirimKaydet(hedefUid, baslik, mesaj) {
 }
 
 // --- Bildirimleri Getir ---
-export async function bildirimleriGetir(uid) {
+export async function bildirimleriGetir(uid, token) {
   try {
-    const res = await fetch(`${DB_URL}/bildirimler/${uid}.json`);
+    const res = await fetch(`${DB_URL}/bildirimler/${uid}.json?auth=${token}`);
     const data = await res.json();
     if (!data) return [];
     return Object.keys(data)
