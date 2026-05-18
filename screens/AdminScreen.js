@@ -45,11 +45,11 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     setYukleniyor(true);
     try {
       const [kulRes, ilanRes, sikRes, mesRes, kuponRes] = await Promise.all([
-        fetch(`${DB_URL}/kullanicilar.json`),
-        fetch(`${DB_URL}/ilanlar.json`),
-        fetch(`${DB_URL}/sikayetler.json`),
-        fetch(`${DB_URL}/iletisim.json`),
-        fetch(`${DB_URL}/kuponlar.json`),
+       fetch(`${DB_URL}/kullanicilar.json?auth=${token}`),
+       fetch(`${DB_URL}/ilanlar.json?auth=${token}`),
+       fetch(`${DB_URL}/sikayetler.json?auth=${token}`),
+       fetch(`${DB_URL}/iletisim.json?auth=${token}`),
+       fetch(`${DB_URL}/kuponlar.json?auth=${token}`),
       ]);
       const [kulData, ilanData, sikData, mesData, kuponData] = await Promise.all([
         kulRes.json(), ilanRes.json(), sikRes.json(), mesRes.json(), kuponRes.json(),
@@ -157,7 +157,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
 
     // Mevcut yanıtları yükle
     try {
-      const res = await fetch(`${DB_URL}/iletisim/${mesaj.id}/yanıtlar.json`);
+      const res = await fetch(`${DB_URL}/iletisim/${mesaj.id}/yanıtlar.json?auth=${token}`);
       const data = await res.json();
       if (data) {
         const liste = Object.entries(data).map(([id, v]) => ({ id, ...v })).sort((a, b) => a.tarih - b.tarih);
