@@ -422,7 +422,7 @@ export default function App() {
     if (ekran === 'iletisim') return <IletisimEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
     if (ekran === 'hakkimizda') return <HakkimizdaEkrani setEkran={setEkran} s={st} />;
     if (ekran === 'hizmet_kosullari') return <HizmetKosullariEkrani setEkran={setEkran} setSozlesmeKabul={setSozlesmeKabul} kayittan={!kullanici} s={st} />;
-    if (ekran === 'bildirimler') return <BildirimEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
+    if (ekran === 'bildirimler') return <BildirimEkrani kullanici={kullanici} token={token} setEkran={setEkran} s={st} />;
 
     if (ekran === 'admin') return (
       <AdminEkrani
