@@ -91,7 +91,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
     };
 
     try {
-      await fetch(`${DB_URL}/ilanlar.json`, {
+      await fetch(`${DB_URL}/ilanlar.json?auth=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(yeniIlan),
@@ -122,7 +122,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 
       onVeriYukle().catch(() => {});
       try {
-        const kulRes = await fetch(`${DB_URL}/kullanicilar.json?orderBy="bolge"&equalTo="${ilanIlce}"`);
+        const kulRes = await fetch(`${DB_URL}/kullanicilar.json?auth=${token}&orderBy="bolge"&equalTo="${ilanIlce}"`);
         const kulData = await kulRes.json();
         if (kulData) {
           const hedefUstalar = Object.values(kulData).filter(
@@ -642,7 +642,7 @@ export function TekliflerEkrani({
     setUstaProfilYukleniyor(true);
     setUstaProfilModalAcik(true);
     try {
-      const res = await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json`);
+      const res = await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`);
       const data = await res.json();
       if (data) {
         setUstaProfil({ ...data, ad: ustaAd });
@@ -666,7 +666,7 @@ export function TekliflerEkrani({
 
     try {
       // Mevcut mesaj var mı kontrol et
-      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?orderBy="tarih"&limitToLast=1`);
+      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}&orderBy="tarih"&limitToLast=1`);
       const mevcutData = await res.json();
 
       // Eğer hiç mesaj yoksa sistem mesajı yaz (sohbetin açıldığını işaretle)
