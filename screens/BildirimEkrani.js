@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-na
 import { DB_URL, zamanFarki } from '../constants';
 import { bildirimleriGetir } from '../notifications';
 
-export function BildirimEkrani({ kullanici, setEkran, s }) {
+export function BildirimEkrani({ kullanici, token, setEkran, s }) {
   const [bildirimler, setBildirimler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
@@ -18,7 +18,7 @@ export function BildirimEkrani({ kullanici, setEkran, s }) {
     if (!kullanici?.uid) return;
     try {
       // notifications.js'teki hazır fonksiyonu kullan
-      const liste = await bildirimleriGetir(kullanici.uid);
+      const liste = await bildirimleriGetir(kullanici.uid, token);
       setBildirimler(liste);
 
       // Okunmamışları okundu yap
