@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { DB_URL } from '../constants';
 
-export function IletisimEkrani({ kullanici, setEkran, s }) {
+export function IletisimEkrani({ kullanici, token, setEkran, s }) {
   const [iletisimKonu, setIletisimKonu] = useState('');
   const [yeniMesaj, setYeniMesaj] = useState('');
   const [gecmisMesajlar, setGecmisMesajlar] = useState([]);
@@ -21,7 +21,7 @@ export function IletisimEkrani({ kullanici, setEkran, s }) {
   const mesajlariYukle = async () => {
     if (!kullanici?.email) return;
     try {
-      const res = await fetch(`${DB_URL}/iletisim.json`);
+      const res = await fetch(`${DB_URL}/iletisim.json?auth=${token}`);
       const data = await res.json();
       if (!data) { setGecmisMesajlar([]); setYukleniyor(false); return; }
 
@@ -33,7 +33,7 @@ export function IletisimEkrani({ kullanici, setEkran, s }) {
       const mesajlarVeYanitlar = await Promise.all(
         benimMesajlar.map(async (m) => {
           try {
-            const yanitRes = await fetch(`${DB_URL}/iletisim/${m.id}/yan%C4%B1tlar.json`);
+            const yanitRes = await fetch(`${DB_URL}/iletisim/${m.id}/yan%C4%B1tlar.json?auth=${token}`);
             const yanitData = await yanitRes.json();
             const yanitlar = yanitData
               ? Object.entries(yanitData).map(([yid, y]) => ({ id: yid, ...y })).sort((a, b) => a.tarih - b.tarih)
