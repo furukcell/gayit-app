@@ -10,8 +10,15 @@ import {
   FlatList, KeyboardAvoidingView, Platform, Alert, Linking, RefreshControl, Modal
 } from 'react-native';
 import * as Location from 'expo-location';
-import { DB_URL } from '../constants';
+import { DB_URL, API_KEY } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
+import { initializeApp, getApps } from 'firebase/app';
+import { getDatabase, ref, onValue } from 'firebase/database';
+
+// Firebase SDK başlat — daha önce başlatılmışsa tekrar başlatma
+const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getDatabase(firebaseApp);
 
 function MesajTik({ durum }) {
   if (durum === 'okundu') return <Text style={{ fontSize: 11, color: '#4FC3F7' }}>✓✓</Text>;
@@ -64,18 +71,19 @@ export function SohbetEkrani({
     }
   }, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
 
-  const mesajlariYukle = async () => {
-    if (!sohbetId || !secilenIlan?.id) return;
-    try {
-      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`);
-      const data = await res.json();
+  // YENİ: Gerçek zamanlı mesaj dinleyici — Firebase onValue
+  // Ekran açık olduğu sürece dinler, kapanınca durur
+  useEffect(() => {
+    if (!sohbetId) return;
+    setYukleniyor(true);
+    const mesajRef = ref(db, `sohbetler/${sohbetId}/mesajlar`);
+    const unsubscribe = onValue(mesajRef, async (snapshot) => {
+      const data = snapshot.val();
       if (data) {
         const liste = Object.keys(data)
           .map(key => ({ id: key, ...data[key] }))
-          // DEĞİŞİKLİK: Sistem mesajlarını filtrele, kullanıcıya gösterme
           .filter(m => m.tip !== 'sistem')
           .sort((a, b) => a.tarih - b.tarih);
-
         const okunacaklar = liste.filter(m => m.gonderen !== kullanici?.uid && m.durum !== 'okundu');
         if (okunacaklar.length > 0) {
           await Promise.all(okunacaklar.map(m =>
@@ -85,25 +93,19 @@ export function SohbetEkrani({
               body: JSON.stringify({ durum: 'okundu' }),
             }).catch(() => {})
           ));
-          const guncellenmisListe = liste.map(m =>
+          setMesajlar(liste.map(m =>
             okunacaklar.find(o => o.id === m.id) ? { ...m, durum: 'okundu' } : m
-          );
-          setMesajlar(guncellenmisListe);
+          ));
         } else {
           setMesajlar(liste);
         }
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       } else {
         setMesajlar([]);
       }
-    } catch (e) {
-      console.log('Mesajlar yüklenemedi:', e);
-    } finally {
       setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    mesajlariYukle();
+    });
+    return () => unsubscribe();
   }, [sohbetId]);
 
   const mesajGonder = async () => {
@@ -147,8 +149,6 @@ export function SohbetEkrani({
         await bildirimGonderVeKaydet(hedefUid, kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`, mesajMetni);
       }
 
-      await mesajlariYukle();
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (e) {
       Alert.alert('Hata', 'Mesaj gönderilemedi gari!');
     }
@@ -193,8 +193,6 @@ export function SohbetEkrani({
               if (hedefUid) {
                 await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
               }
-              await mesajlariYukle();
-              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
             } catch (e) {
               Alert.alert('Hata', 'Konum alınamadı gari!');
             }
@@ -357,7 +355,6 @@ export function SohbetEkrani({
         refreshControl={
           <RefreshControl
             refreshing={yukleniyor}
-            onRefresh={mesajlariYukle}
             colors={['#1B4965']}
           />
         }
