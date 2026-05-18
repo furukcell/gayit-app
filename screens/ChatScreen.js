@@ -1,8 +1,7 @@
 // ============================================================
 // ChatScreen.js
-// Bildirim ve sohbet açılma sorunları giderildi
-// YENİ: Usta müşterinin numarasını, müşteri ustanın numarasını görür
-// YENİ: Sohbette usta profili görüntüleme eklendi
+// DEĞİŞİKLİK: ilan.puanlandi === true ise mesaj alanı kilitli
+// Sistem mesajları (tip: 'sistem') gizli gösteriliyor
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -44,9 +43,9 @@ export function SohbetEkrani({
     ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaId.replace(/[.@]/g, '_')}`
     : null;
 
-  // ============================================================
-  // Usta görüntülüyorsa müşterinin numarasını ve ADINI Firebase'den çek
-  // ============================================================
+  // DEĞİŞİKLİK: Puanlama yapıldıysa sohbet kilitli
+  const sohbetKilitli = secilenIlan?.puanlandi === true;
+
   useEffect(() => {
     if (rol === 'usta' && secilenIlan?.sahipUid) {
       fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
@@ -73,6 +72,8 @@ export function SohbetEkrani({
       if (data) {
         const liste = Object.keys(data)
           .map(key => ({ id: key, ...data[key] }))
+          // DEĞİŞİKLİK: Sistem mesajlarını filtrele, kullanıcıya gösterme
+          .filter(m => m.tip !== 'sistem')
           .sort((a, b) => a.tarih - b.tarih);
 
         const okunacaklar = liste.filter(m => m.gonderen !== kullanici?.uid && m.durum !== 'okundu');
@@ -106,7 +107,7 @@ export function SohbetEkrani({
   }, [sohbetId]);
 
   const mesajGonder = async () => {
-    if (!yeniMesaj.trim() || !sohbetId) return;
+    if (!yeniMesaj.trim() || !sohbetId || sohbetKilitli) return;
 
     const mesajMetni = yeniMesaj.trim();
     const mesaj = {
@@ -154,6 +155,7 @@ export function SohbetEkrani({
   };
 
   const konumGonder = async () => {
+    if (sohbetKilitli) return;
     Alert.alert(
       '📍 Konum Paylaş',
       'Anlık konumunuzu karşı tarafa göndermek istiyor musunuz?',
@@ -185,12 +187,9 @@ export function SohbetEkrani({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(mesaj),
               });
-              let hedefUid = null;
-              if (rol === 'musteri') {
-                hedefUid = aktifSohbetTeklif?.ustaUid || null;
-              } else {
-                hedefUid = secilenIlan?.sahipUid || null;
-              }
+              let hedefUid = rol === 'musteri'
+                ? aktifSohbetTeklif?.ustaUid || null
+                : secilenIlan?.sahipUid || null;
               if (hedefUid) {
                 await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
               }
@@ -241,9 +240,6 @@ export function SohbetEkrani({
     );
   };
 
-  // ============================================================
-  // Usta profil modalını aç — sadece müşteri görebilir
-  // ============================================================
   const ustaProfilGoster = async () => {
     if (rol !== 'musteri') return;
     setUstaProfilYukleniyor(true);
@@ -261,32 +257,20 @@ export function SohbetEkrani({
 
   const benimMesajim = (mesaj) => mesaj.gonderen === kullanici?.uid;
 
-  // ============================================================
-  // Numarayı arama uygulamasıyla aç
-  // ============================================================
   const numaraAra = (numara) => {
     if (!numara || numara === 'Numara Yok') return;
     Linking.openURL(`tel:${numara}`);
   };
 
-  // ============================================================
-  // Role göre gösterilecek numara ve isim
-  // ============================================================
-  const gosterilecekNumara = rol === 'musteri'
-    ? ustaTelefon
-    : musteriTelefon;
+  const gosterilecekNumara = rol === 'musteri' ? ustaTelefon : musteriTelefon;
 
   let hamIsim = rol === 'musteri'
     ? (aktifSohbetTeklif?.ustaAd || 'Usta')
     : (musteriAd || secilenIlan?.sahip || 'Müşteri');
 
-  if (hamIsim.includes('@')) {
-    hamIsim = hamIsim.split('@')[0];
-  }
-
+  if (hamIsim.includes('@')) hamIsim = hamIsim.split('@')[0];
   let ilkIsim = hamIsim.split(/[\s.]/)[0];
   const gosterilecekIsim = ilkIsim.charAt(0).toUpperCase() + ilkIsim.slice(1);
-
   const numaraEtiketi = rol === 'musteri' ? '📞 Usta Telefonu' : '📞 Müşteri Telefonu';
 
   return (
@@ -323,7 +307,16 @@ export function SohbetEkrani({
           {aktifSohbetTeklif?.fiyat || '-'}
         </Text>
 
-        {anlasmaSaglandi ? (
+        {/* DEĞİŞİKLİK: Sohbet kilitliyse bant göster */}
+        {sohbetKilitli && (
+          <View style={{ marginTop: 6, backgroundColor: 'rgba(255,68,68,0.3)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 }}>
+            <Text style={{ color: '#FFB3B3', fontSize: 11, textAlign: 'center' }}>
+              🔒 İş tamamlandı, sohbet kapatıldı
+            </Text>
+          </View>
+        )}
+
+        {!sohbetKilitli && anlasmaSaglandi ? (
           <TouchableOpacity
             onPress={() => numaraAra(gosterilecekNumara)}
             style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}
@@ -347,7 +340,7 @@ export function SohbetEkrani({
                 : 'Numara bulunamadı'}
             </Text>
           </TouchableOpacity>
-        ) : (
+        ) : !sohbetKilitli && (
           <View style={{ marginTop: 6, backgroundColor: 'rgba(0,0,0,0.2)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, alignSelf: 'flex-start' }}>
             <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>
               🔒 Numara anlaşma sağlandıktan sonra görünür
@@ -427,8 +420,8 @@ export function SohbetEkrani({
         )}
       />
 
-      {/* İŞ TAMAMLANDI BUTONU */}
-      {anlasmaSaglandi && (
+      {/* İŞ TAMAMLANDI BUTONU — sadece anlaşma varsa ve kilitli değilse */}
+      {anlasmaSaglandi && !sohbetKilitli && (
         <TouchableOpacity
           style={{ backgroundColor: '#588157', margin: 10, padding: 12, borderRadius: 12, alignItems: 'center' }}
           onPress={anlasmayiTamamla}
@@ -438,38 +431,48 @@ export function SohbetEkrani({
       )}
 
       {/* MESAJ YAZMA ALANI */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+      {/* DEĞİŞİKLİK: Sohbet kilitliyse mesaj alanı yerine bilgi mesajı göster */}
+      {sohbetKilitli ? (
         <View style={{
-          flexDirection: 'row', padding: 10, paddingBottom: 20,
-          backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'flex-end',
+          padding: 16, backgroundColor: '#F5F5F0',
+          borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'center'
         }}>
-          <TouchableOpacity
-            onPress={konumGonder}
-            style={{ backgroundColor: '#E1F2FE', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 8 }}
-          >
-            <Text style={{ fontSize: 20 }}>📍</Text>
-          </TouchableOpacity>
-
-          <TextInput
-            style={{ flex: 1, backgroundColor: '#F5F5F0', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100, color: '#1B4965' }}
-            placeholder="Mesajınızı yazın..."
-            value={yeniMesaj}
-            onChangeText={setYeniMesaj}
-            multiline
-          />
-          <TouchableOpacity
-            onPress={mesajGonder}
-            style={{ backgroundColor: yeniMesaj.trim() ? '#1B4965' : '#D1D9E0', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginLeft: 8 }}
-            disabled={!yeniMesaj.trim()}
-          >
-            <Text style={{ color: '#FFF', fontSize: 18 }}>➤</Text>
-          </TouchableOpacity>
+          <Text style={{ color: '#A3B1B9', fontSize: 13 }}>
+            🔒 Puanlama tamamlandı, bu sohbet kapatıldı.
+          </Text>
         </View>
-      </KeyboardAvoidingView>
+      ) : (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+          <View style={{
+            flexDirection: 'row', padding: 10, paddingBottom: 20,
+            backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'flex-end',
+          }}>
+            <TouchableOpacity
+              onPress={konumGonder}
+              style={{ backgroundColor: '#E1F2FE', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 8 }}
+            >
+              <Text style={{ fontSize: 20 }}>📍</Text>
+            </TouchableOpacity>
 
-      {/* ============================================================
-          USTA PROFİL MODALI — Sadece müşteri görebilir
-      ============================================================ */}
+            <TextInput
+              style={{ flex: 1, backgroundColor: '#F5F5F0', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100, color: '#1B4965' }}
+              placeholder="Mesajınızı yazın..."
+              value={yeniMesaj}
+              onChangeText={setYeniMesaj}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={mesajGonder}
+              style={{ backgroundColor: yeniMesaj.trim() ? '#1B4965' : '#D1D9E0', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginLeft: 8 }}
+              disabled={!yeniMesaj.trim()}
+            >
+              <Text style={{ color: '#FFF', fontSize: 18 }}>➤</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* USTA PROFİL MODALI */}
       <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
@@ -503,7 +506,6 @@ export function SohbetEkrani({
                       {ustaProfil.anaBrans || ustaProfil.meslek || '—'}
                     </Text>
                   </View>
-
                   {ustaProfil.yanBranslar?.length > 0 && (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔧 Yan Branş</Text>
@@ -512,12 +514,10 @@ export function SohbetEkrani({
                       </Text>
                     </View>
                   )}
-
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>📍 Bölge</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>
                   </View>
-
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>⭐ Puan</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
@@ -526,7 +526,6 @@ export function SohbetEkrani({
                         : 'Henüz değerlendirilmedi'}
                     </Text>
                   </View>
-
                   {ustaProfil.hakkinda && (
                     <View>
                       <Text style={{ color: '#A3B1B9', fontSize: 13, marginBottom: 4 }}>💬 Hakkında</Text>
@@ -539,7 +538,6 @@ export function SohbetEkrani({
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }

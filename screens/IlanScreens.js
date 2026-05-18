@@ -2,6 +2,7 @@
 // ADIM 6 — IlanScreens.js
 // İlan Ver, İlanlarım/Tekliflerim, Teklif Ver, Teklifler ekranları
 // YENİ: İlan silme, 24 saat kapanma, usta profil görme
+// DEĞİŞİKLİK: "Sohbet Et" tıklanınca Firebase'e sohbet node'u oluşturuluyor
 // ============================================================
 
 import { useState, useEffect } from 'react';
@@ -90,14 +91,12 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
     };
 
     try {
-      // 1. İlanı kaydet
       await fetch(`${DB_URL}/ilanlar.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(yeniIlan),
       });
 
-      // 2. Hak düşür
       let gYH = kullanici?.yeniKullaniciHakki || 0;
       let gH = kullanici?.hak || 0;
       let gAH = kullanici?.acilHak || 0;
@@ -116,13 +115,11 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
         setKullanici({ ...kullanici, yeniKullaniciHakki: gYH, hak: gH, acilHak: gAH });
       }
 
-      // 3. Formu temizle ve anasayfaya git
       setIlanBaslik(''); setIlanDetay(''); setIlanIlce(''); setIlanMahalle('');
       setIsTarihiTip('Bugün'); setOzelTarih(''); setIlanAcil(false);
       Alert.alert('Başarılı! 🎉', `İlanınız ${ilanAcil ? 'ACİL olarak ' : ''}yayınlandı usta!`);
       setEkran('anasayfa');
 
-      // 4. Arka planda veri yenile ve bildirim gönder — hata verse bile ilan kaydedildi
       onVeriYukle().catch(() => {});
       try {
         const kulRes = await fetch(`${DB_URL}/kullanicilar.json?orderBy="bolge"&equalTo="${ilanIlce}"`);
@@ -316,7 +313,6 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 
 // ============================================================
 // İLANLARIM / TEKLİFLERİM EKRANI
-// Müşteri burada kendi ilanlarını görür + silebilir
 // ============================================================
 export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setSecilenIlan, ustaTeklifTiklandi, onVeriYukle, s }) {
 
@@ -324,9 +320,6 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
     ? ilanlar.filter(ilan => ilan.teklifler && ilan.teklifler.some(t => t.ustaId === kullanici?.email))
     : ilanlar.filter(ilan => ilan.sahip === kullanici?.email);
 
-  // ============================================================
-  // İLAN SİLME — sadece anlaşma olmayan ilanlar silinebilir
-  // ============================================================
   const ilanSil = (ilan) => {
     if (ilan.anlasmaVar) {
       if (Platform.OS === 'web') window.alert('Anlaşma sağlanmış ilanı silemezsin usta.');
@@ -334,8 +327,6 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
       return;
     }
 
-    // Silme işlemini yapan asıl fonksiyon
-    // DÜZELTİLDİ: ?auth=${token} eklendi, Firebase silme yetkisi için gerekli
     const silmeIslemi = async () => {
       try {
         await fetch(`${DB_URL}/ilanlar/${ilan.id}.json?auth=${token}`, { method: 'DELETE' });
@@ -350,9 +341,7 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
 
     if (Platform.OS === 'web') {
       const onay = window.confirm(`"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`);
-      if (onay) {
-        silmeIslemi();
-      }
+      if (onay) silmeIslemi();
     } else {
       Alert.alert(
         'İlanı Sil',
@@ -389,7 +378,6 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
                 </View>
               )}
 
-              {/* Karta tıklanabilir alan — sil butonu hariç her yer */}
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => {
@@ -418,7 +406,6 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
                 </View>
               </TouchableOpacity>
 
-              {/* Sil butonu — karttan bağımsız, sadece çöp kutusu ikonu */}
               {rol === 'musteri' && !item.anlasmaVar && (
                 <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
                   <TouchableOpacity
@@ -609,7 +596,8 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
 
 // ============================================================
 // TEKLİFLER EKRANI (MÜŞTERİ)
-// YENİ: Usta profil modalı + 24 saat kapanma
+// DEĞİŞİKLİK: "Sohbet Et" ve "Anlaş" tıklanınca Firebase'e
+// sohbet node'u oluşturuluyor ki usta sohbetlerim ekranında görsün
 // ============================================================
 export function TekliflerEkrani({
   kullanici, secilenIlan, ilanlar, token, setEkran,
@@ -624,7 +612,6 @@ export function TekliflerEkrani({
   const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
 
-  // 🔒 YETKİ KONTROLÜ: Sadece ilan sahibi görebilir
   if (!ilan || ilan.sahip !== kullanici?.email) {
     return (
       <SafeAreaView style={s.con}>
@@ -669,6 +656,51 @@ export function TekliflerEkrani({
     }
   };
 
+  // DEĞİŞİKLİK: Sohbet başlatıldığında Firebase'e bir "sohbetBasladi" işaret mesajı yazılıyor
+  // Bu sayede usta sohbetlerim ekranında bu sohbeti görebiliyor
+  const sohbetiBaslat = async (teklif, anlasmaDurumu) => {
+    const ustaUid = teklif.ustaUid || teklif.ustaId;
+    if (!ustaUid) return;
+
+    const sohbetId = `${ilan.id}_${ustaUid.replace(/[.@]/g, '_')}`;
+
+    try {
+      // Mevcut mesaj var mı kontrol et
+      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?orderBy="tarih"&limitToLast=1`);
+      const mevcutData = await res.json();
+
+      // Eğer hiç mesaj yoksa sistem mesajı yaz (sohbetin açıldığını işaretle)
+      if (!mevcutData || Object.keys(mevcutData).length === 0) {
+        await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metin: '💬 Sohbet başlatıldı.',
+            gonderen: kullanici.uid,
+            gonderenAd: kullanici.ad,
+            tarih: Date.now(),
+            durum: 'iletildi',
+            tip: 'sistem',
+          }),
+        });
+
+        // Ustaya bildirim gönder
+        await bildirimGonderVeKaydet(
+          ustaUid,
+          `💬 ${kullanici.ad} sohbet başlattı!`,
+          `${ilan.baslik} ilanı için mesajlaşmak istiyor.`
+        );
+      }
+    } catch (e) {
+      console.log('Sohbet node oluşturulamadı:', e);
+    }
+
+    setAktifSohbetTeklif(teklif);
+    setAnlasmaSaglandi(anlasmaDurumu);
+    setSecilenIlan(ilan);
+    setEkran('sohbet');
+  };
+
   const anlasmaYap = async (ilanId, teklif) => {
     Alert.alert(
       'Anlaşmayı Onayla',
@@ -690,10 +722,10 @@ export function TekliflerEkrani({
                 }),
               });
               await onVeriYukle();
-              setAktifSohbetTeklif(teklif);
-              setAnlasmaSaglandi(true);
-              setSecilenIlan(ilanlar.find(i => i.id === ilanId));
-              setEkran('sohbet');
+
+              // DEĞİŞİKLİK: Anlaşma sonrası da sohbet node'u oluştur
+              await sohbetiBaslat(teklif, true);
+
               await bildirimGonderVeKaydet(
                 teklif.ustaUid,
                 '🤝 Anlaşma Sağlandı!',
@@ -772,17 +804,19 @@ export function TekliflerEkrani({
               </TouchableOpacity>
 
               {ilan.anlasilanUsta?.id === teklif.id ? (
+                // Anlaşılan usta — sohbete git
                 <TouchableOpacity
                   style={[s.girisBtn, { backgroundColor: '#588157', marginTop: 10 }]}
-                  onPress={() => { setAktifSohbetTeklif(teklif); setAnlasmaSaglandi(true); setSecilenIlan(ilan); setEkran('sohbet'); }}
+                  onPress={() => sohbetiBaslat(teklif, true)}
                 >
                   <Text style={s.anaBtnY}>💬 SOHBETE GİT</Text>
                 </TouchableOpacity>
               ) : !ilan.anlasmaVar ? (
+                // Henüz anlaşma yok — sohbet et veya anlaş
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                   <TouchableOpacity
                     style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
-                    onPress={() => { setAktifSohbetTeklif(teklif); setAnlasmaSaglandi(false); setSecilenIlan(ilan); setEkran('sohbet'); }}
+                    onPress={() => sohbetiBaslat(teklif, false)}
                   >
                     <Text style={s.anaBtnY}>💬 Sohbet Et</Text>
                   </TouchableOpacity>
@@ -794,6 +828,7 @@ export function TekliflerEkrani({
                   </TouchableOpacity>
                 </View>
               ) : (
+                // Başkasıyla anlaşıldı
                 <View style={[s.girisBtn, { backgroundColor: '#ccc', marginTop: 10 }]}>
                   <Text style={s.anaBtnY}>Başka Ustayla Anlaşıldı</Text>
                 </View>
@@ -812,9 +847,7 @@ export function TekliflerEkrani({
         )}
       </ScrollView>
 
-      {/* ============================================================
-          USTA PROFİL MODALI
-      ============================================================ */}
+      {/* USTA PROFİL MODALI */}
       <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
@@ -841,16 +874,12 @@ export function TekliflerEkrani({
                 </View>
 
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 16, padding: 16, gap: 10 }}>
-
-                  {/* ANA BRANŞ */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔨 Ana Branş</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
                       {ustaProfil.anaBrans || ustaProfil.meslek || '—'}
                     </Text>
                   </View>
-
-                  {/* YAN BRANŞLAR — sadece varsa göster */}
                   {ustaProfil.yanBranslar?.length > 0 && (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔧 Yan Branş</Text>
@@ -859,14 +888,10 @@ export function TekliflerEkrani({
                       </Text>
                     </View>
                   )}
-
-                  {/* BÖLGE */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>📍 Bölge</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>
                   </View>
-
-                  {/* PUAN */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>⭐ Puan</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
@@ -875,15 +900,12 @@ export function TekliflerEkrani({
                         : 'Henüz değerlendirilmedi'}
                     </Text>
                   </View>
-
-                  {/* HAKKINDA */}
                   {ustaProfil.hakkinda && (
                     <View>
                       <Text style={{ color: '#A3B1B9', fontSize: 13, marginBottom: 4 }}>💬 Hakkında</Text>
                       <Text style={{ color: '#526E7F', fontSize: 13 }}>{ustaProfil.hakkinda}</Text>
                     </View>
                   )}
-
                 </View>
               </>
             ) : null}

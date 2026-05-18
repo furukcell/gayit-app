@@ -79,6 +79,7 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
 
 // ============================================================
 // SOL MENÜ (DRAWER)
+// DEĞİŞİKLİK: Sohbetlerim hem usta hem müşteriye gösteriliyor
 // ============================================================
 export function SolMenu({
   kullanici, rol, sistemIst, setEkran, setMenuAcik,
@@ -121,7 +122,7 @@ export function SolMenu({
             ]}>
               <Text style={s.avatarHarf}>{kullanici?.ad?.[0]?.toUpperCase() || '?'}</Text>
             </View>
-            <Text style={s.profilAd}>{kullanici?.ad || 'Usta'}</Text>
+            <Text style={s.profilAd}>{kullanici?.ad || 'Kullanıcı'}</Text>
             <Text style={s.profilDuzenleText}>
               {kullanici?.abonelik === 'vip'
                 ? '👑 VIP ABONE'
@@ -223,11 +224,11 @@ export function SolMenu({
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('ilanlarim'); }}>
             <Text style={s.menuText}>📋 {rol === 'usta' ? 'Tekliflerim' : 'İlanlarım'}</Text>
           </TouchableOpacity>
-          {rol === 'usta' && (
-            <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('sohbetlerim'); }}>
-              <Text style={s.menuText}>💬 Sohbetlerim</Text>
-            </TouchableOpacity>
-          )}
+
+          {/* DEĞİŞİKLİK: Sohbetlerim artık hem usta hem müşteri görür */}
+          <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('sohbetlerim'); }}>
+            <Text style={s.menuText}>💬 Sohbetlerim</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setOdemeAdim('secim'); setEkran('odeme'); }}>
             <Text style={s.menuText}>🎫 Paket & Kupon</Text>
@@ -499,58 +500,98 @@ export function AnasayfaEkrani({
 
 // ============================================================
 // SOHBETLERİM EKRANI
-// Son mesaj gösterimi ile
+// DEĞİŞİKLİK: anlasmaVar koşulu kaldırıldı.
+// Artık Firebase'de sohbet node'u (mesaj) olan her teklif listelenir.
+// Hem usta hem müşteri için çalışır.
 // ============================================================
 export function SohbetlerimEkrani({
   kullanici, ilanlar, adminMesajlari,
   setEkran, setSecilenIlan, setAktifSohbetTeklif, setAnlasmaSaglandi,
   s
 }) {
+  const [aktifSohbetler, setAktifSohbetler] = useState([]);
   const [sonMesajlar, setSonMesajlar] = useState({});
-
-  const aktifSohbetler = (ilanlar || []).filter(i => {
-    try {
-      const benMusteri = i.sahipUid === kullanici?.uid && i.anlasmaVar;
-      const benUsta = i.teklifler?.some(t => t.ustaUid === kullanici?.uid) && i.anlasmaVar;
-      return benMusteri || benUsta;
-    } catch (e) { return false; }
-  });
+  const [yukleniyor, setYukleniyor] = useState(true);
 
   useEffect(() => {
-    const sonMesajlariCek = async () => {
-      const yeniSonMesajlar = {};
-      for (const ilan of aktifSohbetler) {
-        const hedefTeklif = ilan.sahipUid === kullanici?.uid
-          ? ilan.anlasilanUsta
-          : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
-
-        if (!hedefTeklif) continue;
-
-        const ustaUid = hedefTeklif.ustaUid || hedefTeklif.ustaId;
-        if (!ustaUid) continue;
-
-        const sohbetId = `${ilan.id}_${ustaUid.replace(/[.@]/g, '_')}`;
-
-        try {
-          const res = await fetch(
-            `${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?orderBy="tarih"&limitToLast=1`
-          );
-          const data = await res.json();
-          if (data) {
-            const mesajlar = Object.values(data);
-            if (mesajlar.length > 0) {
-              yeniSonMesajlar[ilan.id] = mesajlar[0];
-            }
-          }
-        } catch (e) {}
-      }
-      setSonMesajlar(yeniSonMesajlar);
-    };
-
-    if (aktifSohbetler.length > 0) {
-      sonMesajlariCek();
-    }
+    sohbetleriYukle();
   }, [ilanlar]);
+
+  const sohbetleriYukle = async () => {
+    setYukleniyor(true);
+    try {
+      // Kullanıcının ilgili olduğu tüm ilanları bul
+      // Usta: teklif verdiği ilanlar
+      // Müşteri: kendi ilanları (teklife sahip olanlar)
+      const adayIlanlar = (ilanlar || []).filter(ilan => {
+        if (kullanici?.rol === 'usta') {
+          return ilan.teklifler?.some(t => t.ustaUid === kullanici?.uid);
+        } else {
+          return ilan.sahipUid === kullanici?.uid && (ilan.teklifler?.length > 0);
+        }
+      });
+
+      const bulunanSohbetler = [];
+      const yeniSonMesajlar = {};
+
+      for (const ilan of adayIlanlar) {
+        // Her teklife ait sohbet node'unu kontrol et
+        const ilgiliTeklifler = kullanici?.rol === 'usta'
+          ? ilan.teklifler?.filter(t => t.ustaUid === kullanici?.uid) || []
+          : ilan.teklifler || [];
+
+        for (const teklif of ilgiliTeklifler) {
+          const ustaUid = teklif.ustaUid || teklif.ustaId;
+          if (!ustaUid) continue;
+
+          const sohbetId = `${ilan.id}_${ustaUid.replace(/[.@]/g, '_')}`;
+
+          try {
+            const res = await fetch(
+              `${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?orderBy="tarih"&limitToLast=1`
+            );
+            const data = await res.json();
+
+            // Sohbet node'u varsa listeye ekle
+            if (data && Object.keys(data).length > 0) {
+              const mesajlar = Object.values(data);
+              yeniSonMesajlar[`${ilan.id}_${ustaUid}`] = mesajlar[0];
+
+              // Aynı ilanı iki kez eklememek için kontrol
+              const zatenVar = bulunanSohbetler.find(
+                s => s.ilan.id === ilan.id && s.teklif.ustaUid === ustaUid
+              );
+              if (!zatenVar) {
+                bulunanSohbetler.push({ ilan, teklif });
+              }
+            } else if (ilan.anlasmaVar && ilan.anlasilanUsta?.ustaUid === ustaUid) {
+              // Anlaşma var ama henüz mesaj yok — yine de göster
+              const zatenVar = bulunanSohbetler.find(
+                s => s.ilan.id === ilan.id && s.teklif.ustaUid === ustaUid
+              );
+              if (!zatenVar) {
+                bulunanSohbetler.push({ ilan, teklif });
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Son mesaj tarihine göre sırala (en yeni üstte)
+      bulunanSohbetler.sort((a, b) => {
+        const aMesaj = yeniSonMesajlar[`${a.ilan.id}_${a.teklif.ustaUid}`];
+        const bMesaj = yeniSonMesajlar[`${b.ilan.id}_${b.teklif.ustaUid}`];
+        return (bMesaj?.tarih || 0) - (aMesaj?.tarih || 0);
+      });
+
+      setAktifSohbetler(bulunanSohbetler);
+      setSonMesajlar(yeniSonMesajlar);
+    } catch (e) {
+      console.log('Sohbetler yüklenemedi:', e);
+    } finally {
+      setYukleniyor(false);
+    }
+  };
 
   const zamanFormat = (tarih) => {
     if (!tarih) return '';
@@ -570,11 +611,12 @@ export function SohbetlerimEkrani({
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
-        <Text style={s.headerBaslik}>Mesajlarım</Text>
+        <Text style={s.headerBaslik}>Sohbetlerim</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={s.scroll}>
+        {/* Admin mesajları */}
         {(adminMesajlari || []).length > 0 && (
           <TouchableOpacity
             style={[s.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
@@ -585,46 +627,57 @@ export function SohbetlerimEkrani({
           </TouchableOpacity>
         )}
 
-        {aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
+        {yukleniyor ? (
+          <View style={{ alignItems: 'center', marginTop: 50 }}>
+            <Text style={{ color: '#A3B1B9' }}>Sohbetler yükleniyor...</Text>
+          </View>
+        ) : aktifSohbetler.length === 0 && (adminMesajlari || []).length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 50 }}>
             <Text style={{ fontSize: 40, marginBottom: 10 }}>💬</Text>
             <Text style={{ textAlign: 'center', color: '#A3B1B9' }}>
-              Henüz aktif bir sohbet yok gari.
+              Henüz aktif bir sohbet yok.{'\n'}
+              {kullanici?.rol === 'usta'
+                ? 'Teklif ver, müşteri yazdıkça burada görünür!'
+                : 'İlanına teklif gelince sohbet başlatabilirsin.'}
             </Text>
           </View>
         ) : (
-          aktifSohbetler.map(ilan => {
-            const hedefTeklif = ilan.sahipUid === kullanici?.uid
-              ? ilan.anlasilanUsta
-              : ilan.teklifler?.find(t => t.ustaUid === kullanici?.uid);
-
-            if (!hedefTeklif) return null;
+          aktifSohbetler.map(({ ilan, teklif }) => {
+            const ustaUid = teklif.ustaUid || teklif.ustaId;
+            const sonMesaj = sonMesajlar[`${ilan.id}_${ustaUid}`];
+            const benimMesajim = sonMesaj?.gonderen === kullanici?.uid;
 
             const karsiAd = kullanici?.rol === 'usta'
               ? (ilan.sahip?.split('@')[0] || 'Müşteri')
-              : (hedefTeklif.ustaAd || 'Usta');
-
-            const sonMesaj = sonMesajlar[ilan.id];
-            const benimMesajim = sonMesaj?.gonderen === kullanici?.uid;
+              : (teklif.ustaAd || 'Usta');
 
             return (
               <TouchableOpacity
-                key={ilan.id}
-                style={[s.kart, { borderLeftWidth: 4, borderLeftColor: '#588157', paddingVertical: 14 }]}
+                key={`${ilan.id}_${ustaUid}`}
+                style={[s.kart, {
+                  borderLeftWidth: 4,
+                  borderLeftColor: ilan.anlasmaVar ? '#588157' : '#1B4965',
+                  paddingVertical: 14,
+                }]}
                 onPress={() => {
                   setSecilenIlan(ilan);
-                  setAktifSohbetTeklif(hedefTeklif);
-                  setAnlasmaSaglandi(true);
+                  setAktifSohbetTeklif(teklif);
+                  setAnlasmaSaglandi(ilan.anlasmaVar || false);
                   setEkran('sohbet');
                 }}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <Text style={s.kategoriBadge}>{ilan.kategori}</Text>
-                  {sonMesaj?.tarih && (
-                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
-                      {zamanFormat(sonMesaj.tarih)}
-                    </Text>
-                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {ilan.anlasmaVar && (
+                      <Text style={{ color: '#588157', fontSize: 11, fontWeight: 'bold' }}>✅ Anlaşma</Text>
+                    )}
+                    {sonMesaj?.tarih && (
+                      <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
+                        {zamanFormat(sonMesaj.tarih)}
+                      </Text>
+                    )}
+                  </View>
                 </View>
 
                 <Text style={[s.kartBaslik, { fontSize: 14, marginTop: 0 }]} numberOfLines={1}>
@@ -633,6 +686,10 @@ export function SohbetlerimEkrani({
 
                 <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 2 }}>
                   👤 {karsiAd}
+                </Text>
+
+                <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 1 }}>
+                  💰 {teklif.fiyat}
                 </Text>
 
                 {sonMesaj ? (
