@@ -95,7 +95,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   const kuponUygula = async () => {
     if (!kuponKod.trim()) return;
     try {
-      const res = await fetch(`${DB_URL}/kuponlar.json`);
+      const res = await fetch(`${DB_URL}/kuponlar.json?auth=${token}`);
       const data = await res.json();
       if (!data) {
         setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
@@ -138,7 +138,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           body: JSON.stringify({ hak: yeniHak }),
         });
       }
-      await fetch(`${DB_URL}/kuponlar/${kuponId}.json`, {
+      await fetch(`${DB_URL}/kuponlar/${kuponId}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kullanilanAdet: (kupon.kullanilanAdet || 0) + 1 }),
