@@ -259,7 +259,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           }
         } catch (e) {}
 
-        const kulRes = await fetch(`${DB_URL}/kullanicilar/${data.localId}.json`);
+        const kulRes = await fetch(`${DB_URL}/kullanicilar/${data.localId}.json?auth=${data.idToken}`);
         const kulData = await kulRes.json();
 
         if (kulData) {
