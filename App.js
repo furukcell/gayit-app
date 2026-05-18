@@ -385,6 +385,7 @@ export default function App() {
         kullanici={kullanici}
         ilanlar={ilanlar}
         adminMesajlari={adminMesajlari}
+        token={token}
         setEkran={setEkran}
         setSecilenIlan={setSecilenIlan}
         setAktifSohbetTeklif={setAktifSohbetTeklif}
