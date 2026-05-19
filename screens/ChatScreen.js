@@ -2,7 +2,6 @@
 // ChatScreen.js
 // DEĞİŞİKLİK: ilan.puanlandi === true ise mesaj alanı kilitli
 // Sistem mesajları (tip: 'sistem') gizli gösteriliyor
-// FIX: Firebase auth eklendi (mesajlar yüklenmiyor sorunu)
 // FIX: useSafeAreaInsets eklendi (navigation bar sorunu)
 // ============================================================
 
@@ -16,14 +15,12 @@ import { DB_URL, API_KEY } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, onValue } from 'firebase/database';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Firebase SDK başlat — daha önce başlatılmışsa tekrar başlatma
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getDatabase(firebaseApp);
-const auth = getAuth(firebaseApp);
 
 function MesajTik({ durum }) {
   if (durum === 'okundu') return <Text style={{ fontSize: 11, color: '#4FC3F7' }}>✓✓</Text>;
@@ -42,7 +39,6 @@ export function SohbetEkrani({
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState('');
   const [yukleniyor, setYukleniyor] = useState(true);
-  const [firebaseHazir, setFirebaseHazir] = useState(false);
   const [musteriTelefon, setMusteriTelefon] = useState(null);
   const [ustaTelefon, setUstaTelefon] = useState(null);
   const [musteriAd, setMusteriAd] = useState(null);
@@ -59,23 +55,6 @@ export function SohbetEkrani({
 
   // DEĞİŞİKLİK: Puanlama yapıldıysa sohbet kilitli
   const sohbetKilitli = secilenIlan?.puanlandi === true;
-
-  // FIX: Firebase Auth — anonim giriş yap, SDK auth olmadan rule reddeder
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setFirebaseHazir(true);
-      } else {
-        try {
-          await signInAnonymously(auth);
-        } catch (e) {
-          // Anonim giriş başarısız olsa da devam et
-          setFirebaseHazir(true);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     if (rol === 'usta' && secilenIlan?.sahipUid) {
@@ -95,9 +74,9 @@ export function SohbetEkrani({
     }
   }, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
 
-  // FIX: firebaseHazir olunca mesajları dinle
+  // Gerçek zamanlı mesaj dinleyici
   useEffect(() => {
-    if (!sohbetId || !firebaseHazir) return;
+    if (!sohbetId) return;
     setYukleniyor(true);
     const mesajRef = ref(db, `sohbetler/${sohbetId}/mesajlar`);
     const unsubscribe = onValue(mesajRef, async (snapshot) => {
@@ -133,7 +112,7 @@ export function SohbetEkrani({
       setYukleniyor(false);
     });
     return () => unsubscribe();
-  }, [sohbetId, firebaseHazir]);
+  }, [sohbetId]);
 
   const mesajGonder = async () => {
     if (!yeniMesaj.trim() || !sohbetId || sohbetKilitli) return;
