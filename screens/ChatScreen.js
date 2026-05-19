@@ -1,8 +1,10 @@
 // ============================================================
 // ChatScreen.js
-// DEĞİŞİKLİK: ilan.puanlandi === true ise mesaj alanı kilitli
-// Sistem mesajları (tip: 'sistem') gizli gösteriliyor
-// FIX: useSafeAreaInsets eklendi (navigation bar sorunu)
+// DÜZELTİLDİ:
+//   1. token prop eklendi (App.js'te eksikti)
+//   2. onValue callback'ten async kaldırıldı (crash yapıyordu)
+//   3. Tüm fetch'lere ?auth=${token} eklendi
+//   4. sohbetId null kontrolü güçlendirildi
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -29,7 +31,7 @@ function MesajTik({ durum }) {
 }
 
 export function SohbetEkrani({
-  kullanici, rol, secilenIlan, aktifSohbetTeklif,
+  kullanici, token, rol, secilenIlan, aktifSohbetTeklif,
   anlasmaSaglandi, setEkran,
   setSikayetHedef, setSikayetModalAcik,
   setPuanlananIlan, setPuanModalAcik,
@@ -47,18 +49,19 @@ export function SohbetEkrani({
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
   const flatListRef = useRef(null);
 
-  const sohbetId = (secilenIlan?.id && aktifSohbetTeklif?.ustaUid)
-    ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaUid.replace(/[.@]/g, '_')}`
-    : (secilenIlan?.id && aktifSohbetTeklif?.ustaId)
-    ? `${secilenIlan.id}_${aktifSohbetTeklif.ustaId.replace(/[.@]/g, '_')}`
+  // ustaUid veya ustaId — hangisi varsa onu kullan
+  const ustaUid = aktifSohbetTeklif?.ustaUid || aktifSohbetTeklif?.ustaId || null;
+
+  const sohbetId = (secilenIlan?.id && ustaUid)
+    ? `${secilenIlan.id}_${ustaUid.replace(/[.@]/g, '_')}`
     : null;
 
-  // DEĞİŞİKLİK: Puanlama yapıldıysa sohbet kilitli
+  // Puanlama yapıldıysa sohbet kilitli
   const sohbetKilitli = secilenIlan?.puanlandi === true;
 
   useEffect(() => {
     if (rol === 'usta' && secilenIlan?.sahipUid) {
-      fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json`)
+      fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json?auth=${token}`)
         .then(r => r.json())
         .then(data => {
           if (data?.telefon) setMusteriTelefon(data.telefon);
@@ -66,64 +69,73 @@ export function SohbetEkrani({
         })
         .catch(() => {});
     }
-    if (rol === 'musteri' && aktifSohbetTeklif?.ustaUid) {
-      fetch(`${DB_URL}/kullanicilar/${aktifSohbetTeklif.ustaUid}.json`)
+    if (rol === 'musteri' && ustaUid) {
+      fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`)
         .then(r => r.json())
         .then(data => { if (data?.telefon) setUstaTelefon(data.telefon); })
         .catch(() => {});
     }
-  }, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
+  }, [secilenIlan?.sahipUid, ustaUid, token]);
 
-  // Gerçek zamanlı mesaj dinleyici
+  // FIX: async callback kaldırıldı — onValue async kabul etmez, crash yapıyor
   useEffect(() => {
-    if (!sohbetId) return;
+    if (!sohbetId) {
+      setYukleniyor(false);
+      return;
+    }
     setYukleniyor(true);
     const mesajRef = ref(db, `sohbetler/${sohbetId}/mesajlar`);
-    const unsubscribe = onValue(mesajRef, async (snapshot) => {
+
+    const unsubscribe = onValue(mesajRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const liste = Object.keys(data)
           .map(key => ({ id: key, ...data[key] }))
           .filter(m => m.tip !== 'sistem')
           .sort((a, b) => a.tarih - b.tarih);
-        const okunacaklar = liste.filter(m => m.gonderen !== kullanici?.uid && m.durum !== 'okundu');
+
+        setMesajlar(liste);
+
+        // Okundu işaretleme — ayrı async olarak, callback dışında
+        const okunacaklar = liste.filter(
+          m => m.gonderen !== kullanici?.uid && m.durum !== 'okundu'
+        );
         if (okunacaklar.length > 0) {
-          await Promise.all(okunacaklar.map(m =>
-            fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${m.id}.json`, {
+          okunacaklar.forEach(m => {
+            fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${m.id}.json?auth=${token}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ durum: 'okundu' }),
-            }).catch(() => {})
-          ));
-          setMesajlar(liste.map(m =>
-            okunacaklar.find(o => o.id === m.id) ? { ...m, durum: 'okundu' } : m
-          ));
-        } else {
-          setMesajlar(liste);
+            }).catch(() => {});
+          });
         }
+
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       } else {
         setMesajlar([]);
       }
       setYukleniyor(false);
     }, (error) => {
-      // Rule hatası veya bağlantı sorunu
       console.log('Firebase okuma hatası:', error.message);
       setYukleniyor(false);
     });
+
     return () => unsubscribe();
-  }, [sohbetId]);
+  }, [sohbetId, token]);
 
   const mesajGonder = async () => {
     if (!yeniMesaj.trim() || !sohbetId || sohbetKilitli) return;
-    await fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json`, {
+
+    // FIX: auth token eklendi
+    await fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         musteriUid: secilenIlan.sahipUid,
-        ustaUid: aktifSohbetTeklif.ustaUid,
+        ustaUid: ustaUid,
       }),
     }).catch(() => {});
+
     const mesajMetni = yeniMesaj.trim();
     const mesaj = {
       metin: mesajMetni,
@@ -136,7 +148,8 @@ export function SohbetEkrani({
     setYeniMesaj('');
 
     try {
-      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+      // FIX: auth token eklendi
+      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mesaj),
@@ -144,7 +157,7 @@ export function SohbetEkrani({
       const data = await res.json();
 
       if (data?.name) {
-        await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${data.name}.json`, {
+        await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${data.name}.json?auth=${token}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ durum: 'iletildi' }),
@@ -153,13 +166,17 @@ export function SohbetEkrani({
 
       let hedefUid = null;
       if (rol === 'musteri') {
-        hedefUid = aktifSohbetTeklif?.ustaUid || null;
+        hedefUid = ustaUid;
       } else {
         hedefUid = secilenIlan?.sahipUid || null;
       }
 
       if (hedefUid) {
-        await bildirimGonderVeKaydet(hedefUid, kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`, mesajMetni);
+        await bildirimGonderVeKaydet(
+          hedefUid,
+          kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`,
+          mesajMetni
+        );
       }
 
     } catch (e) {
@@ -195,14 +212,13 @@ export function SohbetEkrani({
                 tip: 'konum',
                 haritaLinki,
               };
-              await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+              // FIX: auth token eklendi
+              await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(mesaj),
               });
-              let hedefUid = rol === 'musteri'
-                ? aktifSohbetTeklif?.ustaUid || null
-                : secilenIlan?.sahipUid || null;
+              let hedefUid = rol === 'musteri' ? ustaUid : secilenIlan?.sahipUid || null;
               if (hedefUid) {
                 await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
               }
@@ -225,7 +241,8 @@ export function SohbetEkrani({
           text: 'Evet, Tamamlandı',
           onPress: async () => {
             try {
-              await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}.json`, {
+              // FIX: auth token eklendi
+              await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}.json?auth=${token}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isTamamlandi: true }),
@@ -256,7 +273,8 @@ export function SohbetEkrani({
     setUstaProfilYukleniyor(true);
     setUstaProfilModalAcik(true);
     try {
-      const res = await fetch(`${DB_URL}/kullanicilar/${aktifSohbetTeklif.ustaUid}.json`);
+      // FIX: auth token eklendi
+      const res = await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`);
       const data = await res.json();
       setUstaProfil(data ? { ...data, ad: aktifSohbetTeklif.ustaAd } : { ad: aktifSohbetTeklif.ustaAd });
     } catch (e) {
@@ -283,6 +301,36 @@ export function SohbetEkrani({
   let ilkIsim = hamIsim.split(/[\s.]/)[0];
   const gosterilecekIsim = ilkIsim.charAt(0).toUpperCase() + ilkIsim.slice(1);
   const numaraEtiketi = rol === 'musteri' ? '📞 Usta Telefonu' : '📞 Müşteri Telefonu';
+
+  // sohbetId null ise hata göster
+  if (!sohbetId) {
+    return (
+      <SafeAreaView style={s.con}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+            <Text style={s.menuSimge}>←</Text>
+          </TouchableOpacity>
+          <Text style={s.headerBaslik}>Sohbet</Text>
+          <View style={{ width: 30 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 }}>
+          <Text style={{ fontSize: 40, marginBottom: 15 }}>⚠️</Text>
+          <Text style={{ color: '#1B4965', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
+            Sohbet yüklenemedi
+          </Text>
+          <Text style={{ color: '#A3B1B9', fontSize: 13, textAlign: 'center', marginTop: 8 }}>
+            Lütfen geri dönüp tekrar deneyin.
+          </Text>
+          <TouchableOpacity
+            style={{ marginTop: 20, backgroundColor: '#1B4965', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
+            onPress={() => setEkran('anasayfa')}
+          >
+            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>← Geri Dön</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.con}>
@@ -318,7 +366,6 @@ export function SohbetEkrani({
           {aktifSohbetTeklif?.fiyat || '-'}
         </Text>
 
-        {/* DEĞİŞİKLİK: Sohbet kilitliyse bant göster */}
         {sohbetKilitli && (
           <View style={{ marginTop: 6, backgroundColor: 'rgba(255,68,68,0.3)', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 }}>
             <Text style={{ color: '#FFB3B3', fontSize: 11, textAlign: 'center' }}>
@@ -430,7 +477,7 @@ export function SohbetEkrani({
         )}
       />
 
-      {/* İŞ TAMAMLANDI BUTONU — sadece anlaşma varsa ve kilitli değilse */}
+      {/* İŞ TAMAMLANDI BUTONU */}
       {anlasmaSaglandi && !sohbetKilitli && (
         <TouchableOpacity
           style={{ backgroundColor: '#588157', margin: 10, padding: 12, borderRadius: 12, alignItems: 'center' }}
