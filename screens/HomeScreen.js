@@ -80,7 +80,6 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
 
 // ============================================================
 // SOL MENÜ (DRAWER)
-// DEĞİŞİKLİK: Sohbetlerim hem usta hem müşteriye gösteriliyor
 // ============================================================
 export function SolMenu({
   kullanici, rol, sistemIst, setEkran, setMenuAcik,
@@ -226,7 +225,6 @@ export function SolMenu({
             <Text style={s.menuText}>📋 {rol === 'usta' ? 'Tekliflerim' : 'İlanlarım'}</Text>
           </TouchableOpacity>
 
-          {/* DEĞİŞİKLİK: Sohbetlerim artık hem usta hem müşteri görür */}
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('sohbetlerim'); }}>
             <Text style={s.menuText}>💬 Sohbetlerim</Text>
           </TouchableOpacity>
@@ -305,19 +303,19 @@ export function SolMenu({
 
           <View style={s.ayrac} />
 
-                      <TouchableOpacity
-              style={s.menuItem}
-              onPress={async () => { 
-                await AsyncStorage.removeItem('oturum_token');
-                await AsyncStorage.removeItem('oturum_kullanici');
-                setKullanici(null); 
-                setToken(null); 
-                setEkran('karsilama'); 
-                setMenuAcik(false); 
-              }}
-            >
-              <Text style={s.cikisY}>ÇIKIŞ YAP</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={s.menuItem}
+            onPress={async () => {
+              await AsyncStorage.removeItem('oturum_token');
+              await AsyncStorage.removeItem('oturum_kullanici');
+              setKullanici(null);
+              setToken(null);
+              setEkran('karsilama');
+              setMenuAcik(false);
+            }}
+          >
+            <Text style={s.cikisY}>ÇIKIŞ YAP</Text>
+          </TouchableOpacity>
           <Text style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 20, marginBottom: 10 }}>
             © 2026 GAYİT Tüm Hakları Saklıdır.
           </Text>
@@ -507,9 +505,10 @@ export function AnasayfaEkrani({
 
 // ============================================================
 // SOHBETLERİM EKRANI
-// DEĞİŞİKLİK: anlasmaVar koşulu kaldırıldı.
-// Artık Firebase'de sohbet node'u (mesaj) olan her teklif listelenir.
-// Hem usta hem müşteri için çalışır.
+// DÜZELTİLDİ:
+//   1. useEffect dependency'e token eklendi — token gelmeden fetch yapılmıyordu
+//   2. ustaUid null guard eklendi — undefined ustaUid crash yapıyordu
+//   3. sohbete tıklanınca teklif.ustaUid yoksa ustaId kullanılıyor
 // ============================================================
 export function SohbetlerimEkrani({
   kullanici, ilanlar, adminMesajlari, token,
@@ -520,19 +519,19 @@ export function SohbetlerimEkrani({
   const [sonMesajlar, setSonMesajlar] = useState({});
   const [yukleniyor, setYukleniyor] = useState(true);
 
+  // DÜZELTİLDİ: token de dependency'e eklendi
   useEffect(() => {
-    sohbetleriYukle();
-  }, [ilanlar]);
+    if (token) {
+      sohbetleriYukle();
+    }
+  }, [ilanlar, token]);
 
   const sohbetleriYukle = async () => {
     setYukleniyor(true);
     try {
-      // Kullanıcının ilgili olduğu tüm ilanları bul
-      // Usta: teklif verdiği ilanlar
-      // Müşteri: kendi ilanları (teklife sahip olanlar)
       const adayIlanlar = (ilanlar || []).filter(ilan => {
         if (kullanici?.rol === 'usta') {
-          return ilan.teklifler?.some(t => t.ustaUid === kullanici?.uid);
+          return ilan.teklifler?.some(t => (t.ustaUid || t.ustaId) === kullanici?.uid);
         } else {
           return ilan.sahipUid === kullanici?.uid && (ilan.teklifler?.length > 0);
         }
@@ -542,12 +541,12 @@ export function SohbetlerimEkrani({
       const yeniSonMesajlar = {};
 
       for (const ilan of adayIlanlar) {
-        // Her teklife ait sohbet node'unu kontrol et
         const ilgiliTeklifler = kullanici?.rol === 'usta'
-          ? ilan.teklifler?.filter(t => t.ustaUid === kullanici?.uid) || []
+          ? ilan.teklifler?.filter(t => (t.ustaUid || t.ustaId) === kullanici?.uid) || []
           : ilan.teklifler || [];
 
         for (const teklif of ilgiliTeklifler) {
+          // DÜZELTİLDİ: ustaUid yoksa ustaId'yi dene, ikisi de yoksa atla
           const ustaUid = teklif.ustaUid || teklif.ustaId;
           if (!ustaUid) continue;
 
@@ -559,22 +558,19 @@ export function SohbetlerimEkrani({
             );
             const data = await res.json();
 
-            // Sohbet node'u varsa listeye ekle
             if (data && Object.keys(data).length > 0) {
               const mesajlar = Object.values(data);
               yeniSonMesajlar[`${ilan.id}_${ustaUid}`] = mesajlar[0];
 
-              // Aynı ilanı iki kez eklememek için kontrol
               const zatenVar = bulunanSohbetler.find(
-                s => s.ilan.id === ilan.id && s.teklif.ustaUid === ustaUid
+                x => x.ilan.id === ilan.id && (x.teklif.ustaUid || x.teklif.ustaId) === ustaUid
               );
               if (!zatenVar) {
                 bulunanSohbetler.push({ ilan, teklif });
               }
             } else if (ilan.anlasmaVar && ilan.anlasilanUsta?.ustaUid === ustaUid) {
-              // Anlaşma var ama henüz mesaj yok — yine de göster
               const zatenVar = bulunanSohbetler.find(
-                s => s.ilan.id === ilan.id && s.teklif.ustaUid === ustaUid
+                x => x.ilan.id === ilan.id && (x.teklif.ustaUid || x.teklif.ustaId) === ustaUid
               );
               if (!zatenVar) {
                 bulunanSohbetler.push({ ilan, teklif });
@@ -584,10 +580,11 @@ export function SohbetlerimEkrani({
         }
       }
 
-      // Son mesaj tarihine göre sırala (en yeni üstte)
       bulunanSohbetler.sort((a, b) => {
-        const aMesaj = yeniSonMesajlar[`${a.ilan.id}_${a.teklif.ustaUid}`];
-        const bMesaj = yeniSonMesajlar[`${b.ilan.id}_${b.teklif.ustaUid}`];
+        const aUid = a.teklif.ustaUid || a.teklif.ustaId;
+        const bUid = b.teklif.ustaUid || b.teklif.ustaId;
+        const aMesaj = yeniSonMesajlar[`${a.ilan.id}_${aUid}`];
+        const bMesaj = yeniSonMesajlar[`${b.ilan.id}_${bUid}`];
         return (bMesaj?.tarih || 0) - (aMesaj?.tarih || 0);
       });
 
@@ -623,7 +620,6 @@ export function SohbetlerimEkrani({
       </View>
 
       <ScrollView style={s.scroll}>
-        {/* Admin mesajları */}
         {(adminMesajlari || []).length > 0 && (
           <TouchableOpacity
             style={[s.kart, { borderLeftWidth: 5, borderLeftColor: '#E67E22', backgroundColor: '#FFF9F2' }]}
@@ -650,6 +646,7 @@ export function SohbetlerimEkrani({
           </View>
         ) : (
           aktifSohbetler.map(({ ilan, teklif }) => {
+            // DÜZELTİLDİ: ustaUid yoksa ustaId'yi kullan
             const ustaUid = teklif.ustaUid || teklif.ustaId;
             const sonMesaj = sonMesajlar[`${ilan.id}_${ustaUid}`];
             const benimMesajim = sonMesaj?.gonderen === kullanici?.uid;
@@ -667,8 +664,10 @@ export function SohbetlerimEkrani({
                   paddingVertical: 14,
                 }]}
                 onPress={() => {
+                  // DÜZELTİLDİ: ustaUid garantili olarak teklif objesine ekleniyor
+                  const guncellenmisT = { ...teklif, ustaUid: ustaUid };
                   setSecilenIlan(ilan);
-                  setAktifSohbetTeklif(teklif);
+                  setAktifSohbetTeklif(guncellenmisT);
                   setAnlasmaSaglandi(ilan.anlasmaVar || false);
                   setEkran('sohbet');
                 }}
