@@ -1,6 +1,7 @@
 // ============================================================
 // AuthScreens.js
 // Karşılama ve Giriş/Kayıt ekranları
+// FIX: Firebase SDK auth eklendi (signInWithEmailAndPassword)
 // ============================================================
 
 import { useState } from 'react';
@@ -11,6 +12,13 @@ import {
 import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur, DAVET_LIMITI } from '../constants';
 import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+
+// Firebase SDK başlat
+const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const firebaseAuth = getAuth(firebaseApp);
 
 // ============================================================
 // KARŞILAMA EKRANI
@@ -73,7 +81,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [yanBrans2, setYanBrans2] = useState('');
 
   // --- Modal ---
-  // secimTipi: 'bolge' | 'anaBrans' | 'yanBrans1' | 'yanBrans2'
   const [secimModalAcik, setSecimModalAcik] = useState(false);
   const [secimTipi, setSecimTipi] = useState('');
 
@@ -90,7 +97,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     setSecimModalAcik(false);
   };
 
-  // Ana branşı çıkar, seçilmiş branşları çıkar — yan branş seçenekleri
   const yanBransSecenekleri = (hangiYan) => {
     const secilmisler = [anaBrans];
     if (hangiYan === 'yanBrans2') secilmisler.push(yanBrans1);
@@ -112,11 +118,10 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     setYukleniyor(true);
     try {
       if (mod === 'kayit') {
-        // Yan branşları temizle (boş olanları alma)
         const yanBranslar = [yanBrans1, yanBrans2].filter(b => b !== '');
 
         // --------------------------------------------------
-        // 1) Firebase Auth — hesap oluştur
+        // 1) Firebase Auth REST — hesap oluştur (token için)
         // --------------------------------------------------
         const res = await fetch(
           `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`,
@@ -130,6 +135,14 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         if (data.error) return Alert.alert('Kayıt Hatası', data.error.message);
 
         setToken(data.idToken);
+
+        // FIX: Firebase SDK'ya da giriş yaptır
+        try {
+          await signInWithEmailAndPassword(firebaseAuth, email, sifre);
+        } catch (e) {
+          // SDK girişi başarısız olsa da devam et
+        }
+
         const cihazToken = await pushTokenAl();
         const refKod = referansKoduOlustur();
 
@@ -138,7 +151,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           ad, email, rol,
           bolge: kayitBolge,
           telefon: '',
-          // Usta ise: anaBrans + yanBranslar; değilse null
           meslek: rol === 'usta' ? anaBrans : null,
           anaBrans: rol === 'usta' ? anaBrans : null,
           yanBranslar: rol === 'usta' ? yanBranslar : [],
@@ -248,6 +260,13 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         setToken(data.idToken);
 
+        // FIX: Firebase SDK'ya da giriş yaptır
+        try {
+          await signInWithEmailAndPassword(firebaseAuth, email, sifre);
+        } catch (e) {
+          // SDK girişi başarısız olsa da devam et
+        }
+
         try {
           const cihazToken = await pushTokenAl();
           if (cihazToken) {
@@ -285,7 +304,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     }
   };
 
-  // Modal başlığı
   const modalBaslik = () => {
     if (secimTipi === 'bolge') return 'İlçe Seçin';
     if (secimTipi === 'anaBrans') return 'Ana Branş Seçin';
@@ -340,39 +358,26 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         {mod === 'kayit' && (
           <>
-            {/* İlçe Seçimi */}
             <Text style={s.inputBaslik}>Bulunduğunuz İlçe</Text>
-            <TouchableOpacity
-              style={s.inp}
-              onPress={() => modalAc('bolge')}
-            >
+            <TouchableOpacity style={s.inp} onPress={() => modalAc('bolge')}>
               <Text style={{ color: kayitBolge ? '#1B4965' : '#A3B1B9' }}>
                 {kayitBolge || 'İlçe Seçiniz...'}
               </Text>
             </TouchableOpacity>
 
-            {/* USTA — Çoklu Branş Seçimi */}
             {rol === 'usta' && (
               <>
-                {/* Ana Branş */}
                 <Text style={s.inputBaslik}>Ana Branşınız <Text style={{ color: '#E74C3C' }}>*</Text></Text>
-                <TouchableOpacity
-                  style={s.inp}
-                  onPress={() => modalAc('anaBrans')}
-                >
+                <TouchableOpacity style={s.inp} onPress={() => modalAc('anaBrans')}>
                   <Text style={{ color: anaBrans ? '#1B4965' : '#A3B1B9' }}>
                     {anaBrans || 'Ana Branş Seçiniz...'}
                   </Text>
                 </TouchableOpacity>
 
-                {/* Yan Branş 1 — Ana seçilmişse göster */}
                 {anaBrans !== '' && (
                   <>
                     <Text style={s.inputBaslik}>Yan Branş 1 <Text style={{ color: '#888', fontSize: 12 }}>(İsteğe Bağlı)</Text></Text>
-                    <TouchableOpacity
-                      style={s.inp}
-                      onPress={() => modalAc('yanBrans1')}
-                    >
+                    <TouchableOpacity style={s.inp} onPress={() => modalAc('yanBrans1')}>
                       <Text style={{ color: yanBrans1 ? '#1B4965' : '#A3B1B9' }}>
                         {yanBrans1 || 'Yan Branş Seçiniz...'}
                       </Text>
@@ -380,14 +385,10 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                   </>
                 )}
 
-                {/* Yan Branş 2 — Yan Branş 1 seçilmişse göster */}
                 {yanBrans1 !== '' && (
                   <>
                     <Text style={s.inputBaslik}>Yan Branş 2 <Text style={{ color: '#888', fontSize: 12 }}>(İsteğe Bağlı)</Text></Text>
-                    <TouchableOpacity
-                      style={s.inp}
-                      onPress={() => modalAc('yanBrans2')}
-                    >
+                    <TouchableOpacity style={s.inp} onPress={() => modalAc('yanBrans2')}>
                       <Text style={{ color: yanBrans2 ? '#1B4965' : '#A3B1B9' }}>
                         {yanBrans2 || 'Yan Branş Seçiniz...'}
                       </Text>
@@ -397,7 +398,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
               </>
             )}
 
-            {/* Davet Kodu */}
             <Text style={s.inputBaslik}>Davet Kodu (İsteğe Bağlı)</Text>
             <TextInput
               style={s.inp}
@@ -439,11 +439,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ============================================================
-          SEÇİM MODAL — Tek modal, secimTipi'ne göre içerik değişir
-          Crash fix: Modal içinde TouchableOpacity kullanıyoruz,
-          ayrı component'e taşınmadı — bu sayede state scope sorunu yok
-      ============================================================ */}
       <Modal
         visible={secimModalAcik}
         transparent
@@ -455,7 +450,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             <Text style={s.modalBaslik}>{modalBaslik()}</Text>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-              {/* İLÇE SEÇİMİ */}
               {secimTipi === 'bolge' && (
                 BOLGELER.map((item, index) => (
                   <TouchableOpacity
@@ -468,7 +462,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                 ))
               )}
 
-              {/* ANA BRANŞ SEÇİMİ */}
               {secimTipi === 'anaBrans' && (
                 KATEGORILER.filter(k => k !== 'Tümü').map((item, index) => (
                   <TouchableOpacity
@@ -476,7 +469,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                     style={localStyles.modalSatir}
                     onPress={() => {
                       setAnaBrans(item);
-                      // Ana branş değişince yan branşları sıfırla
                       setYanBrans1('');
                       setYanBrans2('');
                       setSecimModalAcik(false);
@@ -490,7 +482,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                 ))
               )}
 
-              {/* YAN BRANŞ 1 SEÇİMİ */}
               {secimTipi === 'yanBrans1' && (
                 yanBransSecenekleri('yanBrans1').map((item, index) => (
                   <TouchableOpacity
@@ -498,7 +489,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                     style={localStyles.modalSatir}
                     onPress={() => {
                       setYanBrans1(item);
-                      // Yan branş 1 değişince yan branş 2'yi sıfırla
                       setYanBrans2('');
                       setSecimModalAcik(false);
                     }}
@@ -511,7 +501,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                 ))
               )}
 
-              {/* YAN BRANŞ 2 SEÇİMİ */}
               {secimTipi === 'yanBrans2' && (
                 yanBransSecenekleri('yanBrans2').map((item, index) => (
                   <TouchableOpacity
@@ -541,9 +530,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   );
 }
 
-// ============================================================
-// Modal satır stilleri
-// ============================================================
 const localStyles = StyleSheet.create({
   modalSatir: {
     padding: 16,

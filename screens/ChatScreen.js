@@ -2,6 +2,8 @@
 // ChatScreen.js
 // DEĞİŞİKLİK: ilan.puanlandi === true ise mesaj alanı kilitli
 // Sistem mesajları (tip: 'sistem') gizli gösteriliyor
+// FIX: Firebase auth eklendi (mesajlar yüklenmiyor sorunu)
+// FIX: useSafeAreaInsets eklendi (navigation bar sorunu)
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -14,11 +16,14 @@ import { DB_URL, API_KEY } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, onValue } from 'firebase/database';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Firebase SDK başlat — daha önce başlatılmışsa tekrar başlatma
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getDatabase(firebaseApp);
+const auth = getAuth(firebaseApp);
 
 function MesajTik({ durum }) {
   if (durum === 'okundu') return <Text style={{ fontSize: 11, color: '#4FC3F7' }}>✓✓</Text>;
@@ -33,9 +38,11 @@ export function SohbetEkrani({
   setPuanlananIlan, setPuanModalAcik,
   onVeriYukle, s
 }) {
+  const insets = useSafeAreaInsets();
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState('');
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [firebaseHazir, setFirebaseHazir] = useState(false);
   const [musteriTelefon, setMusteriTelefon] = useState(null);
   const [ustaTelefon, setUstaTelefon] = useState(null);
   const [musteriAd, setMusteriAd] = useState(null);
@@ -52,6 +59,23 @@ export function SohbetEkrani({
 
   // DEĞİŞİKLİK: Puanlama yapıldıysa sohbet kilitli
   const sohbetKilitli = secilenIlan?.puanlandi === true;
+
+  // FIX: Firebase Auth — anonim giriş yap, SDK auth olmadan rule reddeder
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setFirebaseHazir(true);
+      } else {
+        try {
+          await signInAnonymously(auth);
+        } catch (e) {
+          // Anonim giriş başarısız olsa da devam et
+          setFirebaseHazir(true);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (rol === 'usta' && secilenIlan?.sahipUid) {
@@ -71,10 +95,9 @@ export function SohbetEkrani({
     }
   }, [secilenIlan?.sahipUid, aktifSohbetTeklif?.ustaUid]);
 
-  // YENİ: Gerçek zamanlı mesaj dinleyici — Firebase onValue
-  // Ekran açık olduğu sürece dinler, kapanınca durur
+  // FIX: firebaseHazir olunca mesajları dinle
   useEffect(() => {
-    if (!sohbetId) return;
+    if (!sohbetId || !firebaseHazir) return;
     setYukleniyor(true);
     const mesajRef = ref(db, `sohbetler/${sohbetId}/mesajlar`);
     const unsubscribe = onValue(mesajRef, async (snapshot) => {
@@ -104,9 +127,13 @@ export function SohbetEkrani({
         setMesajlar([]);
       }
       setYukleniyor(false);
+    }, (error) => {
+      // Rule hatası veya bağlantı sorunu
+      console.log('Firebase okuma hatası:', error.message);
+      setYukleniyor(false);
     });
     return () => unsubscribe();
-  }, [sohbetId]);
+  }, [sohbetId, firebaseHazir]);
 
   const mesajGonder = async () => {
     if (!yeniMesaj.trim() || !sohbetId || sohbetKilitli) return;
@@ -435,21 +462,29 @@ export function SohbetEkrani({
       )}
 
       {/* MESAJ YAZMA ALANI */}
-      {/* DEĞİŞİKLİK: Sohbet kilitliyse mesaj alanı yerine bilgi mesajı göster */}
       {sohbetKilitli ? (
         <View style={{
           padding: 16, backgroundColor: '#F5F5F0',
-          borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'center'
+          borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'center',
+          paddingBottom: insets.bottom + 16,
         }}>
           <Text style={{ color: '#A3B1B9', fontSize: 13 }}>
             🔒 Puanlama tamamlandı, bu sohbet kapatıldı.
           </Text>
         </View>
       ) : (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
           <View style={{
-            flexDirection: 'row', padding: 10, paddingBottom: Platform.OS === 'android' ? 8 : 20,
-            backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE', alignItems: 'flex-end',
+            flexDirection: 'row',
+            padding: 10,
+            paddingBottom: insets.bottom + 8,
+            backgroundColor: '#FFF',
+            borderTopWidth: 1,
+            borderTopColor: '#EEE',
+            alignItems: 'flex-end',
           }}>
             <TouchableOpacity
               onPress={konumGonder}
@@ -479,7 +514,7 @@ export function SohbetEkrani({
       {/* USTA PROFİL MODALI */}
       <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30, paddingBottom: insets.bottom + 30 }}>
             <TouchableOpacity
               onPress={() => { setUstaProfilModalAcik(false); setUstaProfil(null); }}
               style={{ position: 'absolute', top: 15, right: 20 }}
