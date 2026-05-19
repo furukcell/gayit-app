@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { BOLGELER, KATEGORILER, DB_URL } from '../constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============================================================
 // YARDIMCI: "3 saat önce", "2 gün önce" formatı
@@ -304,13 +305,19 @@ export function SolMenu({
 
           <View style={s.ayrac} />
 
-          <TouchableOpacity
-            style={s.menuItem}
-            onPress={() => { setKullanici(null); setToken(null); setEkran('karsilama'); setMenuAcik(false); }}
-          >
-            <Text style={s.cikisY}>ÇIKIŞ YAP</Text>
-          </TouchableOpacity>
-
+                      <TouchableOpacity
+              style={s.menuItem}
+              onPress={async () => { 
+                await AsyncStorage.removeItem('oturum_token');
+                await AsyncStorage.removeItem('oturum_kullanici');
+                setKullanici(null); 
+                setToken(null); 
+                setEkran('karsilama'); 
+                setMenuAcik(false); 
+              }}
+            >
+              <Text style={s.cikisY}>ÇIKIŞ YAP</Text>
+            </TouchableOpacity>
           <Text style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 20, marginBottom: 10 }}>
             © 2026 GAYİT Tüm Hakları Saklıdır.
           </Text>
