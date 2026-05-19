@@ -12,9 +12,8 @@ import { referansKoduOlustur } from '../constants';
 
 export function DavetEkrani({ kullanici, setEkran, s }) {
   const refKod = kullanici?.referansKodu || referansKoduOlustur();
-  const paylasimMetni = `GAYİT uygulamasını kullanıyorum! Muğla'nın en iyi usta platformu. Davet kodumla kayıt ol, ikimiz de hak kazanalım!\n\nDavet Kodum: ${refKod}\n\nİndirmek için: gayit.com.tr`;
+  const paylasimMetni = 'GAYIT uygulamasını kullanıyorum! Muğla\'nın en iyi usta platformu. Davet kodumla kayıt ol, ikimiz de kazanalım! Kodum: ' + refKod + '\n\nHemen İndir: https://play.google.com/store/apps/details?id=com.gayit.android';
   const [kopyalandi, setKopyalandi] = useState(false);
-
   const kopyala = () => {
     Clipboard.setString(refKod);
     setKopyalandi(true);
