@@ -3,11 +3,13 @@
 // Sadece state yönetimi ve ekran yönlendirme
 // Tüm ekranlar ayrı dosyalara taşındı
 // DÜZELTİLDİ: token gelmeden veri çekilmiyordu
+// EKLENDİ: AsyncStorage ile otomatik giriş (çıkış yapana kadar giriş kalır)
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing, Image } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Ekranlar
 import { KarsilamaEkrani, AuthEkrani } from './screens/AuthScreens';
@@ -112,6 +114,38 @@ export default function App() {
   // --- Sistem İstatistikleri ---
   const [sistemIst, setSistemIst] = useState(null);
   const bildirimDinleyici = useRef();
+
+  // ============================================================
+  // OTOMATİK GİRİŞ — Splash bittikten sonra kaydedilmiş oturumu kontrol et
+  // ============================================================
+  useEffect(() => {
+    if (isLoading) return; // Splash devam ediyorsa bekleme
+    const otomatikGirisKontrol = async () => {
+      try {
+        const kaydedilmisToken = await AsyncStorage.getItem('oturum_token');
+        const kaydedilmisKullanici = await AsyncStorage.getItem('oturum_kullanici');
+        if (kaydedilmisToken && kaydedilmisKullanici) {
+          const kullaniciBilgisi = JSON.parse(kaydedilmisKullanici);
+          setToken(kaydedilmisToken);
+          setKullanici(kullaniciBilgisi);
+          setEkran('anasayfa');
+        }
+      } catch (e) {
+        console.log('Otomatik giriş hatası:', e);
+      }
+    };
+    otomatikGirisKontrol();
+  }, [isLoading]);
+
+  // ============================================================
+  // OTURUMu KAYDET — kullanici ve token set edilince AsyncStorage'a yaz
+  // ============================================================
+  useEffect(() => {
+    if (kullanici && token) {
+      AsyncStorage.setItem('oturum_token', token).catch(() => {});
+      AsyncStorage.setItem('oturum_kullanici', JSON.stringify(kullanici)).catch(() => {});
+    }
+  }, [kullanici, token]);
 
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
