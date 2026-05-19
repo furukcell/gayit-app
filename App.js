@@ -364,21 +364,22 @@ export default function App() {
     );
 
     if (ekran === 'sohbet') return (
-      <SohbetEkrani
-        kullanici={kullanici}
-        rol={rol}
-        secilenIlan={secilenIlan}
-        aktifSohbetTeklif={aktifSohbetTeklif}
-        anlasmaSaglandi={anlasmaSaglandi}
-        setEkran={setEkran}
-        setSikayetHedef={setSikayetHedef}
-        setSikayetModalAcik={setSikayetModalAcik}
-        setPuanlananIlan={setPuanlananIlan}
-        setPuanModalAcik={setPuanModalAcik}
-        onVeriYukle={veriYukle}
-        s={st}
-      />
-    );
+  <SohbetEkrani
+    kullanici={kullanici}
+    token={token}         
+    rol={rol}
+    secilenIlan={secilenIlan}
+    aktifSohbetTeklif={aktifSohbetTeklif}
+    anlasmaSaglandi={anlasmaSaglandi}
+    setEkran={setEkran}
+    setSikayetHedef={setSikayetHedef}
+    setSikayetModalAcik={setSikayetModalAcik}
+    setPuanlananIlan={setPuanlananIlan}
+    setPuanModalAcik={setPuanModalAcik}
+    onVeriYukle={veriYukle}
+    s={st}
+  />
+);
 
     if (ekran === 'sohbetlerim') return (
       <SohbetlerimEkrani
