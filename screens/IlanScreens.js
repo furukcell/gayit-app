@@ -671,7 +671,7 @@ export function TekliflerEkrani({
 
       // Eğer hiç mesaj yoksa sistem mesajı yaz (sohbetin açıldığını işaretle)
       if (!mevcutData || Object.keys(mevcutData).length === 0) {
-        await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+          await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
