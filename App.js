@@ -270,8 +270,9 @@ export default function App() {
       veriYukleToken(mevcutToken, mevcutKullanici);
       sistemIstatistikleriniGuncelleToken(mevcutToken);
     }
+   }
     appState.current = nextState;  
-  })
+  });
   return () => subscription.remove();
 }, []);
   useEffect(() => {
