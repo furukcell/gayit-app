@@ -14,7 +14,7 @@ import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -135,7 +135,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         if (data.error) return Alert.alert('Kayıt Hatası', data.error.message);
 
         setToken(data.idToken);
-
+        await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
         // FIX: Firebase SDK'ya da giriş yaptır
         try {
           await signInWithEmailAndPassword(firebaseAuth, email, sifre);
@@ -259,7 +259,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         if (data.error) return Alert.alert('Hata', 'E-posta veya şifre hatalı usta!');
 
         setToken(data.idToken);
-
+        await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
         // FIX: Firebase SDK'ya da giriş yaptır
         try {
           await signInWithEmailAndPassword(firebaseAuth, email, sifre);
