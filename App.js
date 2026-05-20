@@ -161,39 +161,54 @@ export default function App() {
   // ============================================================
   useEffect(() => {
     if (isLoading) return;
-    const otomatikGirisKontrol = async () => {
-      try {
-        const kaydedilmisToken = await AsyncStorage.getItem('oturum_token');
-        const kaydedilmisKullanici = await AsyncStorage.getItem('oturum_kullanici');
-        if (kaydedilmisToken && kaydedilmisKullanici) {
-          const kullaniciBilgisi = JSON.parse(kaydedilmisKullanici);
+   const otomatikGirisKontrol = async () => {
+  try {
+    const kaydedilmisToken = await AsyncStorage.getItem('oturum_token');
+    const kaydedilmisKullanici = await AsyncStorage.getItem('oturum_kullanici');
+    if (kaydedilmisToken && kaydedilmisKullanici) {
+      const kullaniciBilgisi = JSON.parse(kaydedilmisKullanici);
 
-          // Token expire kontrolü: önce test et, expire ise yenile
-          const testRes = await fetch(
-            `${DB_URL}/ilanlar.json?auth=${kaydedilmisToken}&limitToFirst=1`
-          ).catch(() => null);
+      // Token expire kontrolü: önce test et, expire ise yenile
+      const testRes = await fetch(
+        `${DB_URL}/ilanlar.json?auth=${kaydedilmisToken}&limitToFirst=1`
+      ).catch(() => null);
 
-          let gecerliToken = kaydedilmisToken;
-          if (!testRes || testRes.status === 401) {
-            const yeniToken = await firebaseTokenYenile();
-            if (yeniToken) {
-              gecerliToken = yeniToken;
-            } else {
-              // Token yenilenemedi, giriş yaptır
-              return;
-            }
-          }
-
-          setToken(gecerliToken);
-          setKullanici(kullaniciBilgisi);
-          setEkran('anasayfa');
-          veriYukleToken(gecerliToken, kullaniciBilgisi);
-          sistemIstatistikleriniGuncelleToken(gecerliToken);
+      let gecerliToken = kaydedilmisToken;
+      if (!testRes || testRes.status === 401) {
+        const yeniToken = await firebaseTokenYenile();
+        if (yeniToken) {
+          gecerliToken = yeniToken;
+        } else {
+          // Token yenilenemedi, giriş yaptır
+          return;
         }
-      } catch (e) {
-        console.log('Otomatik giriş hatası:', e);
       }
-    };
+      // 🆕 Firebase'den taze kullanıcı verisini çek
+      let guncelKullanici = kullaniciBilgisi;
+      if (kullaniciBilgisi.uid) {
+        try {
+          const kulRes = await fetch(
+            `${DB_URL}/kullanicilar/${kullaniciBilgisi.uid}.json?auth=${gecerliToken}`
+          );
+          const kulData = await kulRes.json();
+          if (kulData) {
+            guncelKullanici = { ...kullaniciBilgisi, ...kulData, uid: kullaniciBilgisi.uid };
+            await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncelKullanici));
+          }
+        } catch (e) {
+          console.log('Kullanici yenileme hatasi:', e);
+        }
+      }
+      setToken(gecerliToken);
+      setKullanici(guncelKullanici);
+      setEkran('anasayfa');
+      veriYukleToken(gecerliToken, guncelKullanici);
+      sistemIstatistikleriniGuncelleToken(gecerliToken);
+    }
+  } catch (e) {
+    console.log('Otomatik giriş hatası:', e);
+  }
+};
     otomatikGirisKontrol();
   }, [isLoading]);
 
@@ -236,8 +251,22 @@ export default function App() {
             return;
           }
         }
-
-        // Veriyi yenile
+    // Kullanıcı verisini de tazele
+   if (mevcutKullanici?.uid) {
+   try {
+    const kulRes = await fetch(
+      `${DB_URL}/kullanicilar/${mevcutKullanici.uid}.json?auth=${mevcutToken}`
+    );
+    const kulData = await kulRes.json();
+    if (kulData) {
+      const guncel = { ...mevcutKullanici, ...kulData, uid: mevcutKullanici.uid };
+      setKullanici(guncel);
+      await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
+      mevcutKullanici = guncel; // 🆕 aşağıdaki veriYukleToken'a da güncel veri gitsin
+    }
+  } catch (e) {}
+}
+     // Veriyi yenile
         veriYukleToken(mevcutToken, mevcutKullanici);
         sistemIstatistikleriniGuncelleToken(mevcutToken);
       }
