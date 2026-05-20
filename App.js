@@ -271,7 +271,7 @@ export default function App() {
       sistemIstatistikleriniGuncelleToken(mevcutToken);
     }
     appState.current = nextState;  
-  });
+  })
   return () => subscription.remove();
 }, []);
   useEffect(() => {
