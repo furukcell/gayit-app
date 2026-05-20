@@ -264,15 +264,15 @@ export default function App() {
       await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
     }
   } catch (e) {
-    console.log('Arka plan token hatası:', e.message);
-  }
-  // Veriyi yenile
-  veriYukleToken(mevcutToken, mevcutKullanici);
-  sistemIstatistikleriniGuncelleToken(mevcutToken);
-}
-appState.current = nextState;
-});
-return () => subscription.remove();
+        console.log('Arka plan token hatası:', e.message);
+      }
+      // Veriyi yenile
+      veriYukleToken(mevcutToken, mevcutKullanici);
+      sistemIstatistikleriniGuncelleToken(mevcutToken);
+    }
+    appState.current = nextState;  
+  });
+  return () => subscription.remove();
 }, []);
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
