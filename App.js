@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing, Image, AppState } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -576,6 +577,7 @@ export default function App() {
   };
 
   return (
+  <SafeAreaProvider>
     <View style={st.root}>
       <StatusBar
         barStyle={karanlikMod ? 'light-content' : 'dark-content'}
@@ -617,6 +619,7 @@ export default function App() {
         s={st}
       />
     </View>
+    </SafeAreaProvider>
   );
 }
 
