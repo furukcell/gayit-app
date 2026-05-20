@@ -187,6 +187,8 @@ export default function App() {
           setToken(gecerliToken);
           setKullanici(kullaniciBilgisi);
           setEkran('anasayfa');
+          veriYukleToken(gecerliToken, kullaniciBilgisi);
+          sistemIstatistikleriniGuncelleToken(gecerliToken);
         }
       } catch (e) {
         console.log('Otomatik giriş hatası:', e);
