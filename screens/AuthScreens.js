@@ -140,7 +140,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         try {
           await signInWithEmailAndPassword(firebaseAuth, email, sifre);
         } catch (e) {
-          // SDK girişi başarısız olsa da devam et
+       console.log('SDK giriş hatası:', e.message);
         }
 
         const cihazToken = await pushTokenAl();
