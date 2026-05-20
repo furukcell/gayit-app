@@ -264,9 +264,10 @@ export default function App() {
       await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
       mevcutKullanici = guncel; // 🆕 aşağıdaki veriYukleToken'a da güncel veri gitsin
     }
-  } catch (e) {}
-}
-     // Veriyi yenile
+ } catch (e) {
+  console.log('Arka plan token hatası:', e.message);
+ }
+      // Veriyi yenile
         veriYukleToken(mevcutToken, mevcutKullanici);
         sistemIstatistikleriniGuncelleToken(mevcutToken);
       }
