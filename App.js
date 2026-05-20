@@ -4,10 +4,12 @@
 // Tüm ekranlar ayrı dosyalara taşındı
 // DÜZELTİLDİ: token gelmeden veri çekilmiyordu
 // EKLENDİ: AsyncStorage ile otomatik giriş (çıkış yapana kadar giriş kalır)
+// DÜZELTİLDİ: Firebase token expire olunca refresh yapılıyor
+// DÜZELTİLDİ: Arka plandan dönünce veriler yenileniyor
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing, Image, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,7 +26,7 @@ import { PuanModali, SikayetModali } from './screens/Modals';
 import { AdminEkrani } from './screens/AdminScreen';
 
 // Yardımcılar
-import { DB_URL } from './constants';
+import { DB_URL, FIREBASE_API_KEY } from './constants';
 import { pushTokenAl } from './notifications';
 import * as Updates from 'expo-updates';
 
@@ -37,6 +39,37 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+// ============================================================
+// Firebase token yenile (refresh token ile)
+// ============================================================
+async function firebaseTokenYenile() {
+  try {
+    const refreshToken = await AsyncStorage.getItem('oturum_refresh_token');
+    if (!refreshToken) return null;
+
+    const res = await fetch(
+      `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refreshToken }),
+      }
+    );
+    const data = await res.json();
+    if (data.id_token) {
+      await AsyncStorage.setItem('oturum_token', data.id_token);
+      if (data.refresh_token) {
+        await AsyncStorage.setItem('oturum_refresh_token', data.refresh_token);
+      }
+      return data.id_token;
+    }
+    return null;
+  } catch (e) {
+    console.log('Token yenileme hatası:', e);
+    return null;
+  }
+}
 
 export default function App() {
   // --- SPLASH SCREEN ---
@@ -114,19 +147,43 @@ export default function App() {
   // --- Sistem İstatistikleri ---
   const [sistemIst, setSistemIst] = useState(null);
   const bildirimDinleyici = useRef();
+  const appState = useRef(AppState.currentState);
+  const tokenRef = useRef(null);
+  const kullaniciRef = useRef(null);
+
+  // token ve kullanici'yi ref'te de tut (AppState callback'inden erişmek için)
+  useEffect(() => { tokenRef.current = token; }, [token]);
+  useEffect(() => { kullaniciRef.current = kullanici; }, [kullanici]);
 
   // ============================================================
   // OTOMATİK GİRİŞ — Splash bittikten sonra kaydedilmiş oturumu kontrol et
   // ============================================================
   useEffect(() => {
-    if (isLoading) return; // Splash devam ediyorsa bekleme
+    if (isLoading) return;
     const otomatikGirisKontrol = async () => {
       try {
         const kaydedilmisToken = await AsyncStorage.getItem('oturum_token');
         const kaydedilmisKullanici = await AsyncStorage.getItem('oturum_kullanici');
         if (kaydedilmisToken && kaydedilmisKullanici) {
           const kullaniciBilgisi = JSON.parse(kaydedilmisKullanici);
-          setToken(kaydedilmisToken);
+
+          // Token expire kontrolü: önce test et, expire ise yenile
+          const testRes = await fetch(
+            `${DB_URL}/ilanlar.json?auth=${kaydedilmisToken}&limitToFirst=1`
+          ).catch(() => null);
+
+          let gecerliToken = kaydedilmisToken;
+          if (!testRes || testRes.status === 401) {
+            const yeniToken = await firebaseTokenYenile();
+            if (yeniToken) {
+              gecerliToken = yeniToken;
+            } else {
+              // Token yenilenemedi, giriş yaptır
+              return;
+            }
+          }
+
+          setToken(gecerliToken);
           setKullanici(kullaniciBilgisi);
           setEkran('anasayfa');
         }
@@ -147,6 +204,45 @@ export default function App() {
     }
   }, [kullanici, token]);
 
+  // ============================================================
+  // ARKA PLANDAN DÖNÜNCE — token yenile + veri yükle
+  // ============================================================
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        const mevcutKullanici = kullaniciRef.current;
+        let mevcutToken = tokenRef.current;
+
+        if (!mevcutKullanici || !mevcutToken) return;
+
+        // Token hala geçerli mi kontrol et
+        const testRes = await fetch(
+          `${DB_URL}/ilanlar.json?auth=${mevcutToken}&limitToFirst=1`
+        ).catch(() => null);
+
+        if (!testRes || testRes.status === 401) {
+          const yeniToken = await firebaseTokenYenile();
+          if (yeniToken) {
+            mevcutToken = yeniToken;
+            setToken(yeniToken);
+          } else {
+            // Token yenilenemedi, çıkış yaptır
+            setKullanici(null);
+            setToken(null);
+            setEkran('karsilama');
+            return;
+          }
+        }
+
+        // Veriyi yenile
+        veriYukleToken(mevcutToken, mevcutKullanici);
+        sistemIstatistikleriniGuncelleToken(mevcutToken);
+      }
+      appState.current = nextState;
+    });
+    return () => subscription.remove();
+  }, []);
+
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
       if (kullanici) {
@@ -156,7 +252,7 @@ export default function App() {
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
   }, [kullanici]);
 
-  // DÜZELTİLDİ: kullanici VE token ikisi de geldikten sonra veri çek
+  // kullanici VE token ikisi de geldikten sonra veri çek
   useEffect(() => {
     if (kullanici && token) {
       veriYukle();
@@ -173,11 +269,13 @@ export default function App() {
     }
   }, [kullanici, token]);
 
-  // --- VERİ YÜKLEME ---
-  const veriYukle = async () => {
+  // --- VERİ YÜKLEME (token parametre alabilir) ---
+  const veriYukleToken = async (t, k) => {
+    const aktifToken = t || token;
+    const aktifKullanici = k || kullanici;
     setYenileniyor(true);
     try {
-      const res = await fetch(`${DB_URL}/ilanlar.json?auth=${token}`);
+      const res = await fetch(`${DB_URL}/ilanlar.json?auth=${aktifToken}`);
       const data = await res.json();
       if (!data) { setIlanlar([]); return; }
 
@@ -197,8 +295,8 @@ export default function App() {
         })
       );
 
-      if (kullanici?.uid) {
-        fetch(`${DB_URL}/adminMesajlari/${kullanici.uid}.json?auth=${token}`)
+      if (aktifKullanici?.uid) {
+        fetch(`${DB_URL}/adminMesajlari/${aktifKullanici.uid}.json?auth=${aktifToken}`)
           .then(r => r.json())
           .then(adData => {
             if (adData) setAdminMesajlari(Object.keys(adData).map(k => ({ id: k, ...adData[k] })));
@@ -212,10 +310,13 @@ export default function App() {
     }
   };
 
+  const veriYukle = () => veriYukleToken(token, kullanici);
+
   // --- SİSTEM İSTATİSTİKLERİ ---
-  const sistemIstatistikleriniGuncelle = async () => {
+  const sistemIstatistikleriniGuncelleToken = async (t) => {
+    const aktifToken = t || token;
     try {
-      const res = await fetch(`${DB_URL}/kullanicilar.json?auth=${token}`);
+      const res = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
       const data = await res.json();
       if (!data) return;
 
@@ -241,6 +342,8 @@ export default function App() {
       console.log('Sistem istatistik hatası:', e);
     }
   };
+
+  const sistemIstatistikleriniGuncelle = () => sistemIstatistikleriniGuncelleToken(token);
 
   const ustaTeklifTiklandi = (ilan) => {
     setSecilenIlan(ilan);
@@ -398,22 +501,22 @@ export default function App() {
     );
 
     if (ekran === 'sohbet') return (
-  <SohbetEkrani
-    kullanici={kullanici}
-    token={token}         
-    rol={rol}
-    secilenIlan={secilenIlan}
-    aktifSohbetTeklif={aktifSohbetTeklif}
-    anlasmaSaglandi={anlasmaSaglandi}
-    setEkran={setEkran}
-    setSikayetHedef={setSikayetHedef}
-    setSikayetModalAcik={setSikayetModalAcik}
-    setPuanlananIlan={setPuanlananIlan}
-    setPuanModalAcik={setPuanModalAcik}
-    onVeriYukle={veriYukle}
-    s={st}
-  />
-);
+      <SohbetEkrani
+        kullanici={kullanici}
+        token={token}
+        rol={rol}
+        secilenIlan={secilenIlan}
+        aktifSohbetTeklif={aktifSohbetTeklif}
+        anlasmaSaglandi={anlasmaSaglandi}
+        setEkran={setEkran}
+        setSikayetHedef={setSikayetHedef}
+        setSikayetModalAcik={setSikayetModalAcik}
+        setPuanlananIlan={setPuanlananIlan}
+        setPuanModalAcik={setPuanModalAcik}
+        onVeriYukle={veriYukle}
+        s={st}
+      />
+    );
 
     if (ekran === 'sohbetlerim') return (
       <SohbetlerimEkrani
