@@ -180,7 +180,7 @@ export function SohbetEkrani({
       }
 
     } catch (e) {
-      Alert.alert('Hata', 'Mesaj gönderilemedi gari!');
+      Alert.alert('Hata', 'Mesaj gönderilemedi, internet bağlantınızı kontrol edin.');
     }
   };
 
