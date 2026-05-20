@@ -251,9 +251,9 @@ export default function App() {
             return;
           }
         }
-    // Kullanıcı verisini de tazele
-   if (mevcutKullanici?.uid) {
-   try {
+   // Kullanıcı verisini de tazele
+ if (mevcutKullanici?.uid) {
+  try {
     const kulRes = await fetch(
       `${DB_URL}/kullanicilar/${mevcutKullanici.uid}.json?auth=${mevcutToken}`
     );
@@ -263,18 +263,17 @@ export default function App() {
       setKullanici(guncel);
       await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
     }
- } catch (e) {
-  console.log('Arka plan token hatası:', e.message);
- }
-      // Veriyi yenile
-        veriYukleToken(mevcutToken, mevcutKullanici);
-        sistemIstatistikleriniGuncelleToken(mevcutToken);
-      }
-      appState.current = nextState;
-    });
-    return () => subscription.remove();
-  }, []);
-
+  } catch (e) {
+    console.log('Arka plan token hatası:', e.message);
+  }
+  // Veriyi yenile
+  veriYukleToken(mevcutToken, mevcutKullanici);
+  sistemIstatistikleriniGuncelleToken(mevcutToken);
+}
+appState.current = nextState;
+});
+return () => subscription.remove();
+}, []);
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
       if (kullanici) {
