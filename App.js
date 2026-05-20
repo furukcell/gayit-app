@@ -262,7 +262,7 @@ export default function App() {
       const guncel = { ...mevcutKullanici, ...kulData, uid: mevcutKullanici.uid };
       setKullanici(guncel);
       await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
-      mevcutKullanici = guncel; // 🆕 aşağıdaki veriYukleToken'a da güncel veri gitsin
+      mevcutKullanici = guncel; // 🆕 // update mevcutKullanici with latest data
     }
  } catch (e) {
   console.log('Arka plan token hatası:', e.message);
