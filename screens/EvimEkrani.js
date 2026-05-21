@@ -147,39 +147,6 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
     }
   };
 
-  // Abonelik yoksa kilitli ekran
-  if (!isPremium) {
-    return (
-      <SafeAreaView style={s.con}>
-        <View style={s.header}>
-          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
-            <Text style={s.menuSimge}>←</Text>
-          </TouchableOpacity>
-          <Text style={s.headerBaslik}>🏡 Evim</Text>
-          <View style={{ width: 24 }} />
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 }}>
-          <Text style={{ fontSize: 60, marginBottom: 20 }}>🏡</Text>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1B4965', textAlign: 'center', marginBottom: 12 }}>
-            Evim Özelliği
-          </Text>
-          <Text style={{ color: '#526E7F', textAlign: 'center', fontSize: 14, lineHeight: 22, marginBottom: 8 }}>
-            Ev eşyalarını kaydet, garanti takibi yap, tamir geçmişini tut.
-          </Text>
-          <Text style={{ color: '#526E7F', textAlign: 'center', fontSize: 14, lineHeight: 22, marginBottom: 30 }}>
-            Bu özellik <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>200 TL Premium</Text> ve üzeri abonelikte kullanılabilir.
-          </Text>
-          <TouchableOpacity
-            style={[s.girisBtn, { paddingHorizontal: 40 }]}
-            onPress={() => setEkran('odeme')}
-          >
-            <Text style={s.anaBtnY}>📦 Paketleri İncele</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={s.con}>
       {/* HEADER */}
@@ -214,7 +181,7 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>
               AI Ev Analizi — Çok Yakında!
-            </Text>
+           </Text>
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 }}>
               {isVip ? 'Muğla şivesiyle kişisel ev yorumun geliyor 😄' : '400 TL VIP pakette aktif olacak'}
             </Text>
@@ -223,7 +190,19 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
             <Text style={{ color: '#FFF', fontSize: 11, fontWeight: 'bold' }}>YAKINDA</Text>
           </View>
         </TouchableOpacity>
-      ) : null}
+      ) : (
+  <TouchableOpacity
+    style={{ margin: 15, marginBottom: 5, backgroundColor: '#E1F2FE', borderRadius: 14, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+    onPress={() => setEkran('odeme')}
+  >
+    <Text style={{ fontSize: 28 }}>🤖</Text>
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 14 }}>AI Ev Analizi — Premium</Text>
+      <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 2 }}>200 TL pakette aktif olur 🔒</Text>
+    </View>
+    <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>Paket Al →</Text>
+  </TouchableOpacity>
+)}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
