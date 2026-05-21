@@ -229,6 +229,10 @@ export function SolMenu({
             <Text style={s.menuText}>💬 Sohbetlerim</Text>
           </TouchableOpacity>
 
+           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setEkran('evim'); }}>
+              <Text style={s.menuText}>🏡 Evim</Text>
+           </TouchableOpacity>
+
           <TouchableOpacity style={s.menuItem} onPress={() => { setMenuAcik(false); setOdemeAdim('secim'); setEkran('odeme'); }}>
             <Text style={s.menuText}>🎫 Paket & Kupon</Text>
           </TouchableOpacity>
