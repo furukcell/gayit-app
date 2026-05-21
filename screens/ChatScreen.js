@@ -18,6 +18,7 @@ import { bildirimGonderVeKaydet } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import UstaIstatistikModali from './UstaIstatistikModali';
 
 // Firebase SDK başlat — daha önce başlatılmışsa tekrar başlatma
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
@@ -30,13 +31,14 @@ function MesajTik({ durum }) {
   return <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>✓</Text>;
 }
 
-export function SohbetEkrani({
+export function SohbetEkrani({ 
   kullanici, token, rol, secilenIlan, aktifSohbetTeklif,
   anlasmaSaglandi, setEkran,
   setSikayetHedef, setSikayetModalAcik,
   setPuanlananIlan, setPuanModalAcik,
   onVeriYukle, s
 }) {
+  const [istatistikModalAcik, setIstatistikModalAcik] = useState(false);
   const insets = useSafeAreaInsets();
   const [mesajlar, setMesajlar] = useState([]);
   const [yeniMesaj, setYeniMesaj] = useState('');
@@ -284,20 +286,9 @@ export function SohbetEkrani({
     );
   };
 
-  const ustaProfilGoster = async () => {
+  const ustaProfilGoster = () => {
     if (rol !== 'musteri') return;
-    setUstaProfilYukleniyor(true);
-    setUstaProfilModalAcik(true);
-    try {
-      // FIX: auth token eklendi
-      const res = await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`);
-      const data = await res.json();
-      setUstaProfil(data ? { ...data, ad: aktifSohbetTeklif.ustaAd } : { ad: aktifSohbetTeklif.ustaAd });
-    } catch (e) {
-      setUstaProfil({ ad: aktifSohbetTeklif.ustaAd });
-    } finally {
-      setUstaProfilYukleniyor(false);
-    }
+    setIstatistikModalAcik(true);
   };
 
   const benimMesajim = (mesaj) => mesaj.gonderen === kullanici?.uid;
@@ -619,6 +610,12 @@ export function SohbetEkrani({
           </View>
         </View>
       </Modal>
+              <UstaIstatistikModali
+  ustaId={ustaUid}
+  ustaAd={aktifSohbetTeklif?.ustaAd}
+  visible={istatistikModalAcik}
+  onClose={() => setIstatistikModalAcik(false)}
+/>
     </SafeAreaView>
   );
 }
