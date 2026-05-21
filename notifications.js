@@ -27,6 +27,7 @@ export async function pushTokenAl() {
 // --- Push Bildirimi Gönder (Expo Push API) ---
 export async function haberUcur(hedefUid, baslik, mesaj) {
   try {
+    // pushToken okumak için auth gerektirmez (public okuma varsa)
     const usRes = await fetch(`${DB_URL}/kullanicilar/${hedefUid}.json`);
     const hedefData = await usRes.json();
     if (hedefData?.pushToken) {
@@ -47,9 +48,14 @@ export async function haberUcur(hedefUid, baslik, mesaj) {
 }
 
 // --- Bildirimi Firebase Geçmişine Kaydet ---
-export async function bildirimKaydet(hedefUid, baslik, mesaj) {
+// DÜZELTİLDİ: token parametresi eklendi
+export async function bildirimKaydet(hedefUid, baslik, mesaj, token) {
   try {
-    await fetch(`${DB_URL}/bildirimler/${hedefUid}.json`, {
+    const url = token
+      ? `${DB_URL}/bildirimler/${hedefUid}.json?auth=${token}`
+      : `${DB_URL}/bildirimler/${hedefUid}.json`;
+
+    await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -80,7 +86,8 @@ export async function bildirimleriGetir(uid, token) {
 }
 
 // --- Hem Gönder Hem Kaydet (Kısa yol) ---
-export async function bildirimGonderVeKaydet(hedefUid, baslik, mesaj) {
+// DÜZELTİLDİ: token parametresi eklendi
+export async function bildirimGonderVeKaydet(hedefUid, baslik, mesaj, token) {
   await haberUcur(hedefUid, baslik, mesaj);
-  await bildirimKaydet(hedefUid, baslik, mesaj);
+  await bildirimKaydet(hedefUid, baslik, mesaj, token);
 }
