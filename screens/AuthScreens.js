@@ -171,6 +171,19 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(yeniKul),
         });
+        // 3) İstatistik sayacını artır
+       try {
+       const istatistikAlani = rol === 'usta' ? 'kayitliUsta' : 'kayitliKullanici';
+       const istatRes = await fetch(`${DB_URL}/istatistikler/${istatistikAlani}.json`);
+       const mevcutSayi = (await istatRes.json()) || 0;
+       await fetch(`${DB_URL}/istatistikler/${istatistikAlani}.json?auth=${data.idToken}`, {
+       method: 'PUT',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(mevcutSayi + 1),
+  });
+} catch (e) {
+  console.log('İstatistik güncelleme hatası:', e);
+}
 
         // --------------------------------------------------
         // 3) Davet kodu kontrolü
