@@ -133,6 +133,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
               usta.uid,
               `🔔 Yeni ${ilanKategori} İlanı!`,
               `${ilanIlce} bölgesinde yeni bir iş ilanı var: ${ilanBaslik}`
+              , token
             );
           }
         }
@@ -502,7 +503,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fiyat: teklifFiyat + ' TL', not: teklifNot, revizeTarihi: Date.now() }),
         });
-        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '🔄 Teklif Revize Edildi!', `${kullanici.ad} usta teklifini güncelledi: ${teklifFiyat} TL`);
+        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '🔄 Teklif Revize Edildi!', `${kullanici.ad} usta teklifini güncelledi: ${teklifFiyat} TL` , token );
       } else {
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler.json`, {
           method: 'POST',
@@ -513,7 +514,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
             telefon: kullanici.telefon || 'Numara Yok', tarih: Date.now(),
           }),
         });
-        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '💰 Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!`);
+        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '💰 Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!` , token );
       }
 
       await onVeriYukle();
@@ -688,7 +689,7 @@ export function TekliflerEkrani({
         await bildirimGonderVeKaydet(
           ustaUid,
           `💬 ${kullanici.ad} sohbet başlattı!`,
-          `${ilan.baslik} ilanı için mesajlaşmak istiyor.`
+          `${ilan.baslik} ilanı için mesajlaşmak istiyor.`, token
         );
       }
     } catch (e) {
@@ -729,7 +730,7 @@ export function TekliflerEkrani({
               await bildirimGonderVeKaydet(
                 teklif.ustaUid,
                 '🤝 Anlaşma Sağlandı!',
-                'Müşteri teklifini kabul etti, iş sende usta!'
+                'Müşteri teklifini kabul etti, iş sende usta!', token
               );
             } catch (e) {
               Alert.alert('Hata', 'Anlaşma kaydedilemedi!');
