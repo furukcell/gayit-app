@@ -25,7 +25,7 @@ export async function pushTokenAl() {
 }
 
 // --- Push Bildirimi Gönder (Expo Push API) ---
-export async function haberUcur(hedefUid, baslik, mesaj) {
+export async function haberUcur(hedefUid, baslik, mesaj, ekran = 'anasayfa') {
   try {
     // pushToken okumak için auth gerektirmez (public okuma varsa)
     const usRes = await fetch(`${DB_URL}/kullanicilar/${hedefUid}.json`);
@@ -38,7 +38,7 @@ export async function haberUcur(hedefUid, baslik, mesaj) {
           to: hedefData.pushToken,
           title: baslik,
           body: mesaj,
-          data: { data: 'bildirim' },
+          data: { ekran },
         }),
       });
     }
@@ -87,7 +87,8 @@ export async function bildirimleriGetir(uid, token) {
 
 // --- Hem Gönder Hem Kaydet (Kısa yol) ---
 // DÜZELTİLDİ: token parametresi eklendi
-export async function bildirimGonderVeKaydet(hedefUid, baslik, mesaj, token) {
-  await haberUcur(hedefUid, baslik, mesaj);
+// YENİ:
+export async function bildirimGonderVeKaydet(hedefUid, baslik, mesaj, token, ekran = 'anasayfa') {
+  await haberUcur(hedefUid, baslik, mesaj, ekran);
   await bildirimKaydet(hedefUid, baslik, mesaj, token);
 }
