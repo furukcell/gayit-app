@@ -67,13 +67,18 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
   const [notModalAcik, setNotModalAcik] = useState(false);
   const [secilenEsya, setSecilenEsya] = useState(null);
   const [secilenKategori, setSecilenKategori] = useState('Tümü');
+  const [raporModalAcik, setRaporModalAcik] = useState(false);
+  const [gecmisRaporlar, setGecmisRaporlar] = useState([]);
+  const [raporYukleniyor, setRaporYukleniyor] = useState(false);
 
-  // Abonelik kontrolü
-  const isVip = kullanici?.abonelik === 'vip';
-  const isPremium = kullanici?.abonelik === 'premium' || isVip;
+  // Abonelik kontrolü — hem usta hem müşteri için çalışır
+  const abonelik = kullanici?.abonelik || kullanici?.paket || '';
+  const isVip = abonelik === 'vip';
+  const isPremium = abonelik === 'premium' || isVip;
 
   useEffect(() => {
     esyalariYukle();
+    if (isVip) gecmisRaporlariYukle();
   }, []);
 
   const esyalariYukle = async () => {
@@ -95,7 +100,25 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
     }
   };
 
-  const filtrelenmis = secilenKategori === 'Tümü'
+  const gecmisRaporlariYukle = async () => {
+    setRaporYukleniyor(true);
+    try {
+      const res = await fetch(`${DB_URL}/evRaporlari/${kullanici.uid}.json?auth=${token}`);
+      const data = await res.json();
+      if (data) {
+        const liste = Object.keys(data)
+          .map(key => ({ id: key, ...data[key] }))
+          .sort((a, b) => b.tarih - a.tarih);
+        setGecmisRaporlar(liste);
+      } else {
+        setGecmisRaporlar([]);
+      }
+    } catch (e) {
+      console.log('Raporlar yüklenemedi:', e);
+    } finally {
+      setRaporYukleniyor(false);
+    }
+  };
     ? esyalar
     : esyalar.filter(e => e.kategori === secilenKategori);
 
@@ -180,13 +203,10 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
             borderRadius: 14, padding: 15,
             flexDirection: 'row', alignItems: 'center', gap: 10,
           }}
-          onPress={() =>
-            Alert.alert(
-              '🤖 AI Analiz',
-              'Bu özellik çok yakında aktif olacak! Evinizi kayıt altına alın, AI yorumları hazır olsun.',
-              [{ text: 'Tamam' }]
-            )
-          }
+          onPress={() => {
+            setRaporModalAcik(true);
+            gecmisRaporlariYukle();
+          }}
         >
           <Text style={{ fontSize: 28 }}>🤖</Text>
           <View style={{ flex: 1 }}>
@@ -354,7 +374,107 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
           s={s}
         />
       )}
+
+      {/* RAPOR MODALİ */}
+      <RaporModal
+        gorunur={raporModalAcik}
+        setGorunur={setRaporModalAcik}
+        raporlar={gecmisRaporlar}
+        yukleniyor={raporYukleniyor}
+        s={s}
+      />
+
     </SafeAreaView>
+  );
+}
+
+// ============================================================
+// RAPOR MODALİ
+// ============================================================
+function RaporModal({ gorunur, setGorunur, raporlar, yukleniyor, s }) {
+  return (
+    <Modal visible={gorunur} transparent animationType="slide">
+      <View style={s.modalOverlay}>
+        <View style={[s.modalKutu, { maxHeight: '90%' }]}>
+          {/* Başlık */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1B4965' }}>
+              🤖 AI Ev Analizi
+            </Text>
+            <TouchableOpacity onPress={() => setGorunur(false)}>
+              <Text style={{ color: '#A3B1B9', fontSize: 22 }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Yakında Banner */}
+          <View style={{
+            backgroundColor: '#FFF8E7',
+            borderRadius: 14,
+            padding: 16,
+            marginBottom: 20,
+            borderWidth: 1,
+            borderColor: '#F39C12',
+            alignItems: 'center',
+          }}>
+            <Text style={{ fontSize: 36, marginBottom: 8 }}>🚀</Text>
+            <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 15, textAlign: 'center', marginBottom: 6 }}>
+              Çok Yakında Geliyor!
+            </Text>
+            <Text style={{ color: '#526E7F', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>
+              Evinizin tüm eşyalarını analiz edip bakım zamanlarını, garanti durumlarını ve önerilerini size özel rapor halinde sunacağız.
+            </Text>
+            <View style={{ marginTop: 12, backgroundColor: '#F39C12', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 }}>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>
+                📦 Eşyalarınızı şimdiden kaydedin, hazır olsun!
+              </Text>
+            </View>
+          </View>
+
+          {/* Geçmiş Raporlar */}
+          <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 14, marginBottom: 12 }}>
+            📋 Geçmiş Raporlar
+          </Text>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {yukleniyor ? (
+              <Text style={{ color: '#A3B1B9', textAlign: 'center', marginVertical: 20 }}>
+                Yükleniyor...
+              </Text>
+            ) : raporlar.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 30 }}>
+                <Text style={{ fontSize: 36, marginBottom: 10 }}>📭</Text>
+                <Text style={{ color: '#A3B1B9', fontSize: 13, textAlign: 'center' }}>
+                  Henüz rapor bulunmuyor.{'\n'}Özellik aktif olduğunda raporlarınız burada görünecek.
+                </Text>
+              </View>
+            ) : (
+              raporlar.map(rapor => (
+                <View
+                  key={rapor.id}
+                  style={{
+                    backgroundColor: '#F0F4F8',
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 10,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#1B4965',
+                  }}
+                >
+                  <Text style={{ color: '#A3B1B9', fontSize: 11, marginBottom: 6 }}>
+                    📅 {new Date(rapor.tarih).toLocaleDateString('tr-TR', {
+                      day: 'numeric', month: 'long', year: 'numeric'
+                    })}
+                  </Text>
+                  <Text style={{ color: '#1B4965', fontSize: 13, lineHeight: 20 }}>
+                    {rapor.rapor}
+                  </Text>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
