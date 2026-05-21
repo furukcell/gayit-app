@@ -16,7 +16,9 @@ export async function pushTokenAl() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') return '';
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+  projectId: 'bedf51a1-744f-4b74-a9ac-1c5dfc366127'
+});
     return tokenData.data;
   } catch (error) {
     console.log('Token alınamadı:', error);
