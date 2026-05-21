@@ -872,21 +872,24 @@ export function TekliflerEkrani({
           ))
         )}
 
-        {ilan?.anlasmaVar && !ilan?.puanlandi && ilan?.sahip === kullanici?.email && (
-          <TouchableOpacity
-            style={[s.girisBtn, { backgroundColor: '#F39C12', marginTop: 10, marginBottom: 30 }]}
-            onPress={() => { setPuanlananIlan(ilan); setPuanModalAcik(true); }}
-          >
-            <Text style={s.anaBtnY}>⭐ İŞ BİTTİ, USTAYI PUANLA</Text>
-          </TouchableOpacity>
-         <UstaIstatistikModali
-          ustaId={istatistikModalUsta?.id}
-          ustaAd={istatistikModalUsta?.ad}
-          visible={!!istatistikModalUsta}
-          onClose={() => setIstatistikModalUsta(null)}
-       />
-        )}
-      </ScrollView>
+{ilan?.anlasmaVar && !ilan?.puanlandi && ilan?.sahip === kullanici?.email && (
+  <>
+    <TouchableOpacity
+      style={{ ...s.girisBtn, backgroundColor: '#FF8A57', marginTop: 10, marginBottom: 30 }}
+      onPress={() => { setPuanlanacakIlan(ilan); setPuanModalAcik(true); }}
+    >
+      <Text style={s.anatext}>⭐ İŞ BİTTİ, USTAYI PUANLA</Text>
+    </TouchableOpacity>
+
+    <UstaIstatistikModali 
+      ustaId={istatistikModalUsta?.id}
+      ustaAd={istatistikModalUsta?.ad}
+      visible={istatistikModalUsta !== null}
+      onClose={() => setIstatistikModalUsta(null)}
+    />
+  </>
+)}
+</ScrollView>
 
       {/* USTA PROFİL MODALI */}
       <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
