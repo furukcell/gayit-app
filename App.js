@@ -321,10 +321,15 @@ export default function App() {
 }, []);
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      if (kullanici) {
-        setEkran('bildirimler');
-      }
-    });
+  if (kullanici) {
+    const data = response.notification.request.content.data;
+    if (data?.ekran) {
+      setEkran(data.ekran);
+    } else {
+      setEkran('anasayfa');
+    }
+  }
+});
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
   }, [kullanici]);
 
