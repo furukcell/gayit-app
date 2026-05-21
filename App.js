@@ -25,6 +25,7 @@ import { ProfilEkrani } from './screens/ProfileScreens';
 import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat } from './screens';
 import { PuanModali, SikayetModali } from './screens/Modals';
 import { AdminEkrani } from './screens/AdminScreen';
+import { EvimEkrani } from './screens/EvimEkrani';
 
 // Yardımcılar
 import { DB_URL, FIREBASE_API_KEY } from './constants';
@@ -647,7 +648,14 @@ export default function App() {
         s={st}
       />
     );
-
+     if (ekran === 'evim') return (
+     <EvimEkrani
+        kullanici={kullanici}
+        token={token}
+        setEkran={setEkran}
+        s={st}
+  />
+);
     return null;
   };
 
