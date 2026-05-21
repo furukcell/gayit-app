@@ -172,6 +172,29 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           body: JSON.stringify(yeniKul),
         });
         // 3) İstatistik sayacını artır
+        // usta ise istatistik node'u oluştur
+if (rol === 'usta') {
+  try {
+    await fetch(`${DB_URL}/istatistikler/${data.localId}.json?auth=${data.idToken}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toplamIs: 0,
+        toplamTeklif: 0,
+        tamamlanan: 0,
+        ortalamaPuan: 0,
+        toplamPuanSayisi: 0,
+        ortalamaYanisSuresiDk: 0,
+        ortalamaTamamlamaSaati: 0,
+        gayitteGunSayisi: 0,
+        kategoriler: {},
+        ilceler: {},
+        sonGuncelleme: Date.now(),
+        skorlar: { muglaGenelKategoriSira: {}, ilceKategoriSira: {}, teklifSkoru: 0 },
+      }),
+    });
+  } catch(e) { console.log('usta istatistik node hatası:', e); }
+}
        try {
        const istatistikAlani = rol === 'usta' ? 'kayitliUsta' : 'kayitliKullanici';
        const istatRes = await fetch(`${DB_URL}/istatistikler/${istatistikAlani}.json`);
