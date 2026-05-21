@@ -30,6 +30,26 @@ import { AdminEkrani } from './screens/AdminScreen';
 import { DB_URL, FIREBASE_API_KEY } from './constants';
 import { pushTokenAl } from './notifications';
 import * as Updates from 'expo-updates';
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as TaskManager from 'expo-task-manager';
+
+// ============================================================
+// ARKA PLAN TOKEN YENİLEME GÖREVİ
+// ============================================================
+const TOKEN_YENILE_GOREVI = 'token-yenile';
+
+TaskManager.defineTask(TOKEN_YENILE_GOREVI, async () => {
+  try {
+    const yeniToken = await firebaseTokenYenile();
+    if (yeniToken) {
+      await AsyncStorage.setItem('oturum_token', yeniToken);
+      return BackgroundFetch.BackgroundFetchResult.NewData;
+    }
+    return BackgroundFetch.BackgroundFetchResult.NoData;
+  } catch (e) {
+    return BackgroundFetch.BackgroundFetchResult.Failed;
+  }
+});
 
 // Bildirim ayarı
 revenueCatBaslat();
@@ -221,6 +241,18 @@ export default function App() {
       if (yeniToken) setToken(yeniToken);
     }, 50 * 60 * 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // ============================================================
+  // ARKA PLAN TOKEN YENİLEME — Uygulama kapalıyken de çalışır
+  // ============================================================
+  useEffect(() => {
+    BackgroundFetch.registerTaskAsync(TOKEN_YENILE_GOREVI, {
+      minimumInterval: 50 * 60,
+      stopOnTerminate: false,
+      startOnBoot: true,
+    }).catch(() => {});
+    return () => BackgroundFetch.unregisterTaskAsync(TOKEN_YENILE_GOREVI).catch(() => {});
   }, []);
 
   // ============================================================
