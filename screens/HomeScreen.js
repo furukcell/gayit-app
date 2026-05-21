@@ -537,7 +537,7 @@ export function SohbetlerimEkrani({
         if (kullanici?.rol === 'usta') {
           return ilan.teklifler?.some(t => (t.ustaUid || t.ustaId) === kullanici?.uid);
         } else {
-          return ilan.sahipUid === kullanici?.uid && (ilan.teklifler?.length > 0);
+          return (ilan.sahipUid === kullanici?.uid || ilan.sahip === kullanici?.email) && (ilan.teklifler?.length > 0);
         }
       });
 
