@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla } from '../constants';
 import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { bildirimGonderVeKaydet } from '../notifications';
+import UstaIstatistikModali, { UstaMiniKart } from './UstaIstatistikModali';
 
 // ============================================================
 // İLAN VER EKRANI
@@ -316,7 +317,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 // İLANLARIM / TEKLİFLERİM EKRANI
 // ============================================================
 export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setSecilenIlan, ustaTeklifTiklandi, onVeriYukle, s }) {
-
+  const [istatistikModalUsta, setIstatistikModalUsta] = useState(null);
   const benimIlanlarim = rol === 'usta'
     ? ilanlar.filter(ilan => ilan.teklifler && ilan.teklifler.some(t => t.ustaId === kullanici?.email))
     : ilanlar.filter(ilan => ilan.sahip === kullanici?.email);
@@ -817,6 +818,11 @@ export function TekliflerEkrani({
                     {teklif.ustaAd} 👤
                   </Text>
                 </TouchableOpacity>
+                      <UstaMiniKart
+                     ustaId={teklif.ustaUid}
+                     ustaAd={teklif.ustaAd}
+                     onPress={() => setIstatistikModalUsta({ id: teklif.ustaUid, ad: teklif.ustaAd })}
+                />
                 <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>{teklif.fiyat}</Text>
               </View>
 
@@ -873,6 +879,12 @@ export function TekliflerEkrani({
           >
             <Text style={s.anaBtnY}>⭐ İŞ BİTTİ, USTAYI PUANLA</Text>
           </TouchableOpacity>
+         <UstaIstatistikModali
+          ustaId={istatistikModalUsta?.id}
+          ustaAd={istatistikModalUsta?.ad}
+          visible={!!istatistikModalUsta}
+          onClose={() => setIstatistikModalUsta(null)}
+       />
         )}
       </ScrollView>
 
