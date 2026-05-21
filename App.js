@@ -213,6 +213,17 @@ export default function App() {
   }, [isLoading]);
 
   // ============================================================
+  // PERİYODİK TOKEN YENİLEME — Her 50 dakikada bir yenile
+  // ============================================================
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const yeniToken = await firebaseTokenYenile();
+      if (yeniToken) setToken(yeniToken);
+    }, 50 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ============================================================
   // OTURUMu KAYDET — kullanici ve token set edilince AsyncStorage'a yaz
   // ============================================================
   useEffect(() => {
