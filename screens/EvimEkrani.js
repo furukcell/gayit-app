@@ -645,8 +645,6 @@ function EsyaEkleModal({ gorunur, setGorunur, kullanici, token, onKaydet, s }) {
 }
 
 // ============================================================
-// EŞYA DETAY MODALİ
-// ============================================================
 function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, token, onGuncelle, onSil, s }) {
   const [yeniNot, setYeniNot] = useState('');
   const [notEkleniyor, setNotEkleniyor] = useState(false);
@@ -821,4 +819,6 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
       </View>
     </Modal>
   );
+}
+
 }
