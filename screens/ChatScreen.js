@@ -249,6 +249,21 @@ export function SohbetEkrani({
                 body: JSON.stringify({ isTamamlandi: true }),
               });
               await onVeriYukle();
+              try {
+             const ustaUid = aktifSohbetTeklif?.ustaUid || aktifSohbetTeklif?.ustaId;
+       const istSnap = await fetch(`${DB_URL}/istatistikler/${ustaUid}.json`).then(r => r.json()) || {};
+       const eskiToplam = (istSnap.ortalamaTamamlamaSaati || 0) * (istSnap.tamamlanan || 0);             
+       const yeniTamamlanan = (istSnap.tamamlanan || 0) + 1;
+       const tamamlamaSaati = ((Date.now() - (secilenIlan?.tarih || Date.now())) / 3600000); 
+      await fetch(`${DB_URL}/istatistikler/${ustaUid}.json?auth=${token}`, {
+         method: 'PATCH',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+         ortalamaTamamlamaSaati: (eskiToplam + tamamlamaSaati) / yeniTamamlanan,
+         sonGuncelleme: Date.now(),
+    }),
+  });
+} catch(e) { console.log('istatistik hatası:', e); }
               Alert.alert('Tebrikler! 🎉', 'İş tamamlandı! Şimdi ustayı puanlayabilirsin.', [
                 {
                   text: 'Ustayı Puanla ⭐',
