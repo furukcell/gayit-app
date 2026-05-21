@@ -515,8 +515,23 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
           }),
         });
         await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '💰 Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!` , token );
+      try {
+    const ilanTarihi = secilenIlan?.tarih || Date.now();
+    const yanısSuresiMs = Date.now() - ilanTarihi;
+    const istSnap = await fetch(`${DB_URL}/istatistikler/${kullanici.uid}.json`).then(r => r.json()) || {};
+    const eskiToplam = (istSnap.ortalamaYanisSuresiDk || 0) * (istSnap.toplamTeklif || 0);
+    const yeniTeklif = (istSnap.toplamTeklif || 0) + 1;
+    await fetch(`${DB_URL}/istatistikler/${kullanici.uid}.json?auth=${token}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toplamTeklif: yeniTeklif,
+      ortalamaYanisSuresiDk: (eskiToplam + (yanısSuresiMs / 60000)) / yeniTeklif,
+      sonGuncelleme: Date.now(),
+     }),
+    });
+    } catch(e) { console.log('istatistik hatası:', e); }
       }
-
       await onVeriYukle();
       setGonderildi(true);
       setTimeout(() => { setGonderildi(false); setEkran('anasayfa'); }, 1500);
@@ -726,7 +741,20 @@ export function TekliflerEkrani({
 
               // DEĞİŞİKLİK: Anlaşma sonrası da sohbet node'u oluştur
               await sohbetiBaslat(teklif, true);
-
+             
+              try {
+              const ustaUid = teklif.ustaUid || teklif.ustaId;
+              const istSnap = await fetch(`${DB_URL}/istatistikler/${ustaUid}.json`).then(r => r.json()) || {};
+              await fetch(`${DB_URL}/istatistikler/${ustaUid}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+        tamamlanan: (istSnap.tamamlanan || 0) + 1,
+        toplamIs: (istSnap.toplamIs || 0) + 1,
+        sonGuncelleme: Date.now(),
+    }),
+  });
+}      catch(e) { console.log('istatistik hatası:', e); }
               await bildirimGonderVeKaydet(
                 teklif.ustaUid,
                 '🤝 Anlaşma Sağlandı!',
