@@ -15,13 +15,13 @@ jobs:
       - name: 🟢 Node.js Kur
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: 🚀 EAS CLI Kur
         run: npm install -g eas-cli
 
       - name: 📦 Bağımlılıkları Yükle
-        run: npx expo install
+        run: npm install
 
       - name: 📡 OTA Güncelleme Gönder
         run: eas update --channel preview --message "Otomatik güncelleme" --non-interactive
