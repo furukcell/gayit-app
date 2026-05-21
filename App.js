@@ -387,32 +387,33 @@ export default function App() {
 
   const veriYukle = () => veriYukleToken(token, kullanici);
 
-  // --- SİSTEM İSTATİSTİKLERİ ---
   const sistemIstatistikleriniGuncelleToken = async (t) => {
     const aktifToken = t || token;
     try {
-      const res = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
-      const data = await res.json();
-      if (!data) return;
+      const istRes = await fetch(`${DB_URL}/istatistikler.json`);
+      const istData = await istRes.json();
+
+      const kulRes = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
+      const data = await kulRes.json();
 
       const bolgeUsta = {};
-      let ustaSayisi = 0;
-      let musteriSayisi = 0;
-      Object.values(data).forEach(kul => {
-        if (kul.rol === 'usta') {
-          ustaSayisi++;
-          if (kul.bolge) {
+      if (data) {
+        Object.values(data).forEach(kul => {
+          if (kul.rol === 'usta' && kul.bolge) {
             if (!bolgeUsta[kul.bolge]) bolgeUsta[kul.bolge] = { toplam: 0, detay: {} };
             bolgeUsta[kul.bolge].toplam += 1;
             if (kul.meslek) {
               bolgeUsta[kul.bolge].detay[kul.meslek] = (bolgeUsta[kul.bolge].detay[kul.meslek] || 0) + 1;
             }
           }
-        } else if (kul.rol === 'musteri') {
-          musteriSayisi++;
-        }
+        });
+      }
+
+      setSistemIst({
+        bolgeUsta,
+        usta: istData?.kayitliUsta || 0,
+        musteri: istData?.kayitliKullanici || 0,
       });
-      setSistemIst({ bolgeUsta, usta: ustaSayisi, musteri: musteriSayisi });
     } catch (e) {
       console.log('Sistem istatistik hatası:', e);
     }
