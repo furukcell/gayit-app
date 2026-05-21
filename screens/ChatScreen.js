@@ -175,7 +175,8 @@ export function SohbetEkrani({
         await bildirimGonderVeKaydet(
           hedefUid,
           kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`,
-          mesajMetni
+          mesajMetni,
+          token
         );
       }
 
@@ -220,7 +221,7 @@ export function SohbetEkrani({
               });
               let hedefUid = rol === 'musteri' ? ustaUid : secilenIlan?.sahipUid || null;
               if (hedefUid) {
-                await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı');
+                await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı', token );
               }
             } catch (e) {
               Alert.alert('Hata', 'Konum alınamadı gari!');
