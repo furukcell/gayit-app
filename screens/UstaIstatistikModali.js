@@ -7,7 +7,7 @@ import {
   View, Text, Modal, TouchableOpacity, ScrollView,
   StyleSheet, Animated, ActivityIndicator, Dimensions
 } from 'react-native';
-import { database } from '../firebaseConfig'; // kendi path'ini ayarla
+import { database } from '../firebase'; 
 import { ref, get } from 'firebase/database';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
