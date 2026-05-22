@@ -74,8 +74,10 @@ export function UstaMiniKart({ ustaId, ustaAd, onPress }) {
   const [ist, setIst] = useState(null);
 
   useEffect(() => {
-    const r = ref(database, `istatistikler/${ustaId}`);
-    get(r).then(snap => snap.exists() && setIst(snap.val()));
+   fetch(`${DB_URL}/istatistikler/${ustaId}.json`)
+  .then(r => r.json())
+  .then(data => data && setIst(data))
+  .catch(() => {});
   }, [ustaId]);
 
   const tamamlamaPct = ist
@@ -131,11 +133,10 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, visible, onClose 
     if (!visible || !ustaId) return;
     setYuk(true);
 
-    const r = ref(database, `istatistikler/${ustaId}`);
-    get(r).then(snap => {
-      setIst(snap.exists() ? snap.val() : null);
-      setYuk(false);
-    }).catch(() => setYuk(false));
+   fetch(`${DB_URL}/istatistikler/${ustaId}.json`)
+  .then(r => r.json())
+  .then(data => { setIst(data || null); setYuk(false); })
+  .catch(() => setYuk(false));
   }, [visible, ustaId]);
 
   useEffect(() => {
