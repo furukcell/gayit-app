@@ -286,10 +286,17 @@ export function SohbetEkrani({
     );
   };
 
-  const ustaProfilGoster = () => {
-    if (rol !== 'musteri') return;
-    setIstatistikModalAcik(true);
-  };
+ const ustaProfilGoster = async () => {
+  if (rol !== 'musteri') return;
+  setUstaProfilYukleniyor(true);
+  setUstaProfilModalAcik(true);
+  try {
+    const res = await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`);
+    const data = await res.json();
+    if (data) setUstaProfil({ ...data });
+  } catch (e) {}
+  finally { setUstaProfilYukleniyor(false); }
+};
 
   const benimMesajim = (mesaj) => mesaj.gonderen === kullanici?.uid;
 
