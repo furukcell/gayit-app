@@ -1,6 +1,10 @@
 // UstaIstatistikModali.js
 // Kullanım: TekliflerEkrani.js ve SohbetEkrani.js'e import edilir
-// <UstaIstatistikModali ustaId="uid_usta1" visible={true} onClose={() => {}} />
+// <UstaIstatistikModali ustaId="uid_usta1" ustaAd="Ali Usta" visible={true} onClose={() => {}} abonelikTipi={kullanici.abonelik} />
+// abonelikTipi: false | "premium" | "vip"
+// false        → Sadece isim, şehir, branş, ortalama puan gösterilir + kilit ekranı
+// "premium"    → Tüm istatistikler açık
+// "vip"        → Tüm istatistikler açık (premium ile aynı, ileride ekstra özellik eklenebilir)
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -11,6 +15,11 @@ import { DB_URL } from '../constants';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
+// ─── Abonelik kontrol yardımcısı ─────────────────────────────
+function isPremium(abonelikTipi) {
+  return abonelikTipi === 'premium' || abonelikTipi === 'vip';
+}
+
 // ─── Renk sistemi ────────────────────────────────────────────────
 function getRenk(tip, deger) {
   if (tip === 'puan') {
@@ -18,12 +27,12 @@ function getRenk(tip, deger) {
     if (deger >= 3.5) return '#f59e0b';
     return '#ef4444';
   }
-  if (tip === 'yanis') { // dakika
+  if (tip === 'yanis') {
     if (deger <= 15) return '#22c55e';
     if (deger <= 60) return '#f59e0b';
     return '#ef4444';
   }
-  if (tip === 'tamamlama') { // yüzde
+  if (tip === 'tamamlama') {
     if (deger >= 90) return '#22c55e';
     if (deger >= 70) return '#f59e0b';
     return '#ef4444';
@@ -42,14 +51,14 @@ function getRenkAdi(renk) {
   return 'düşük';
 }
 
-// ─── Tekliف Skoru Hesaplama ───────────────────────────────────────
+// ─── Teklif Skoru Hesaplama ───────────────────────────────────────
 function teklifSkoruHesapla(ist, tumUstalar = []) {
   const maxIs = Math.max(...tumUstalar.map(u => u.toplamIs || 1), ist.toplamIs || 1);
-  const maxSaat = 10; // referans max tamamlama süresi
+  const maxSaat = 10;
 
-  const isAgirligi   = ((ist.toplamIs || 0) / maxIs * 100) * 0.35;
-  const puanAgirligi = ((ist.ortalamaPuan || 0) / 5 * 100) * 0.30;
-  const yanisAgirligi = Math.max(0, 100 - (ist.ortalamaYanisSuresiDk || 0)) * 0.20;
+  const isAgirligi        = ((ist.toplamIs || 0) / maxIs * 100) * 0.35;
+  const puanAgirligi      = ((ist.ortalamaPuan || 0) / 5 * 100) * 0.30;
+  const yanisAgirligi     = Math.max(0, 100 - (ist.ortalamaYanisSuresiDk || 0)) * 0.20;
   const tamamlamaAgirligi = Math.max(0, 100 - ((ist.ortalamaTamamlamaSaati || 0) / maxSaat * 100)) * 0.15;
 
   return Math.min(100, isAgirligi + puanAgirligi + yanisAgirligi + tamamlamaAgirligi);
@@ -69,52 +78,67 @@ function formatGun(gun) {
   return `${ay} ay`;
 }
 
-// ─── Mini Kart (TekliflerEkrani ve SohbetEkrani'nda kullanılır) ───
-export function UstaMiniKart({ ustaId, ustaAd, onPress }) {
+// ─── Mini Kart ────────────────────────────────────────────────────
+// abonelikTipi: false → sadece puan göster | "premium"/"vip" → tüm chipler
+export function UstaMiniKart({ ustaId, ustaAd, abonelikTipi, onPress }) {
   const [ist, setIst] = useState(null);
 
   useEffect(() => {
-   fetch(`${DB_URL}/istatistikler/${ustaId}.json`)
-  .then(r => r.json())
-  .then(data => data && setIst(data))
-  .catch(() => {});
+    fetch(`${DB_URL}/istatistikler/${ustaId}.json`)
+      .then(r => r.json())
+      .then(data => data && setIst(data))
+      .catch(() => {});
   }, [ustaId]);
 
   const tamamlamaPct = ist
     ? Math.round(((ist.tamamlanan || 0) / (ist.toplamIs || 1)) * 100)
     : null;
 
+  const premium = isPremium(abonelikTipi);
+
   return (
     <TouchableOpacity style={styles.miniKart} onPress={onPress} activeOpacity={0.8}>
-      <Text style={styles.miniUstaAd} numberOfLines={1}>{ustaAd || 'Usta'}</Text>
+      <View style={styles.miniUstaAdRow}>
+        <Text style={styles.miniUstaAd} numberOfLines={1}>{ustaAd || 'Usta'}</Text>
+        {!premium && (
+          <View style={styles.miniKilitRozet}>
+            <Text style={styles.miniKilitIkon}>🔒</Text>
+            <Text style={styles.miniKilitYazi}>Premium</Text>
+          </View>
+        )}
+      </View>
+
       {ist ? (
         <View style={styles.miniSatir}>
-          {/* Puan */}
+          {/* Puan — herkese göster */}
           <View style={styles.miniChip}>
             <Text style={styles.miniEmoji}>⭐</Text>
             <Text style={[styles.miniDeger, { color: getRenk('puan', ist.ortalamaPuan) }]}>
               {ist.ortalamaPuan?.toFixed(1) || '—'}
             </Text>
           </View>
-          {/* İş sayısı */}
-          <View style={styles.miniChip}>
-            <Text style={styles.miniEmoji}>🔨</Text>
-            <Text style={styles.miniDeger}>{ist.tamamlanan || 0} iş</Text>
-          </View>
-          {/* Tamamlama % */}
-          <View style={styles.miniChip}>
-            <Text style={styles.miniEmoji}>✅</Text>
-            <Text style={[styles.miniDeger, { color: getRenk('tamamlama', tamamlamaPct) }]}>
-              %{tamamlamaPct ?? '—'}
-            </Text>
-          </View>
-          {/* Yanıt süresi */}
-          <View style={styles.miniChip}>
-            <Text style={styles.miniEmoji}>⚡</Text>
-            <Text style={[styles.miniDeger, { color: getRenk('yanis', ist.ortalamaYanisSuresiDk) }]}>
-              {formatSure(ist.ortalamaYanisSuresiDk)}
-            </Text>
-          </View>
+
+          {/* Aşağıdakiler sadece premium/vip'e */}
+          {premium && (
+            <>
+              <View style={styles.miniChip}>
+                <Text style={styles.miniEmoji}>🔨</Text>
+                <Text style={styles.miniDeger}>{ist.tamamlanan || 0} iş</Text>
+              </View>
+              <View style={styles.miniChip}>
+                <Text style={styles.miniEmoji}>✅</Text>
+                <Text style={[styles.miniDeger, { color: getRenk('tamamlama', tamamlamaPct) }]}>
+                  %{tamamlamaPct ?? '—'}
+                </Text>
+              </View>
+              <View style={styles.miniChip}>
+                <Text style={styles.miniEmoji}>⚡</Text>
+                <Text style={[styles.miniDeger, { color: getRenk('yanis', ist.ortalamaYanisSuresiDk) }]}>
+                  {formatSure(ist.ortalamaYanisSuresiDk)}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       ) : (
         <Text style={styles.miniYukleniyor}>istatistik yükleniyor...</Text>
@@ -124,19 +148,21 @@ export function UstaMiniKart({ ustaId, ustaAd, onPress }) {
 }
 
 // ─── Ana Modal Bileşeni ───────────────────────────────────────────
-export default function UstaIstatistikModali({ ustaId, ustaAd, visible, onClose }) {
-  const [ist, setIst]       = useState(null);
+// abonelikTipi: false | "premium" | "vip"
+export default function UstaIstatistikModali({ ustaId, ustaAd, ustaBolge, ustaMeslek, visible, onClose, abonelikTipi, onPremiumeGec }) {
+  const [ist, setIst]        = useState(null);
   const [yukleniyor, setYuk] = useState(true);
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
+
+  const premium = isPremium(abonelikTipi);
 
   useEffect(() => {
     if (!visible || !ustaId) return;
     setYuk(true);
-
-   fetch(`${DB_URL}/istatistikler/${ustaId}.json`)
-  .then(r => r.json())
-  .then(data => { setIst(data || null); setYuk(false); })
-  .catch(() => setYuk(false));
+    fetch(`${DB_URL}/istatistikler/${ustaId}.json`)
+      .then(r => r.json())
+      .then(data => { setIst(data || null); setYuk(false); })
+      .catch(() => setYuk(false));
   }, [visible, ustaId]);
 
   useEffect(() => {
@@ -165,19 +191,16 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, visible, onClose 
     : 0;
   const skor = ist ? teklifSkoruHesapla(ist) : 0;
 
-  // En çok kategori
   const enCokKategori = ist?.kategoriler
     ? Object.entries(ist.kategoriler).sort((a, b) => b[1] - a[1])[0]
     : null;
 
-  // Çalışılan ilçeler (sıralı)
   const ilceler = ist?.ilceler
     ? Object.entries(ist.ilceler).sort((a, b) => b[1] - a[1])
     : [];
 
-  // ─ İlçe + kategori sıralaması ─
-  const ilceKategoriSira = ist?.skorlar?.ilceKategoriSira || {};
-  const muglaKategoriSira = ist?.skorlar?.muglaGenelKategoriSira || {};
+  const ilceKategoriSira    = ist?.skorlar?.ilceKategoriSira || {};
+  const muglaKategoriSira   = ist?.skorlar?.muglaGenelKategoriSira || {};
 
   return (
     <Modal
@@ -197,14 +220,16 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, visible, onClose 
 
             {/* Başlık */}
             <View style={styles.header}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.ustaAd}>{ustaAd || 'Usta'}</Text>
-                {ist?.ilceler && (
-                  <Text style={styles.ilceTxt}>{ilceler[0]?.[0]} · Muğla</Text>
-                )}
+                {/* Şehir ve branş herkese gösterilir */}
+                <Text style={styles.ilceTxt}>
+                  {ustaBolge ? `${ustaBolge} · Muğla` : (ilceler[0]?.[0] ? `${ilceler[0][0]} · Muğla` : 'Muğla')}
+                  {ustaMeslek ? `  ·  ${ustaMeslek}` : ''}
+                </Text>
               </View>
-              {/* Teklif Skoru Rozeti */}
-              {ist && (
+              {/* Skor rozeti sadece premium'a */}
+              {ist && premium && (
                 <View style={[styles.skorRozet, { borderColor: getRenk('skor', skor) }]}>
                   <Text style={[styles.skorSayi, { color: getRenk('skor', skor) }]}>
                     {skor.toFixed(0)}
@@ -222,113 +247,130 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, visible, onClose 
             ) : ist ? (
               <ScrollView showsVerticalScrollIndicator={false}>
 
-                {/* ─ Mini özet satırı ─ */}
-                <View style={styles.ozetSatir}>
-                  <OzetKart baslik="Puan" deger={ist.ortalamaPuan?.toFixed(1) || '—'} renk={getRenk('puan', ist.ortalamaPuan)} ikon="⭐" />
-                  <OzetKart baslik="İş" deger={ist.tamamlanan || 0} renk="#6b7280" ikon="🔨" />
-                  <OzetKart baslik="Tamamlama" deger={`%${tamamlamaPct}`} renk={getRenk('tamamlama', tamamlamaPct)} ikon="✅" />
-                  <OzetKart baslik="Yanıt" deger={formatSure(ist.ortalamaYanisSuresiDk)} renk={getRenk('yanis', ist.ortalamaYanisSuresiDk)} ikon="⚡" />
+                {/* ── Ortalama Puan — herkese göster ── */}
+                <View style={styles.puanBlok}>
+                  <Text style={styles.puanIkon}>⭐</Text>
+                  <Text style={[styles.puanDeger, { color: getRenk('puan', ist.ortalamaPuan) }]}>
+                    {ist.ortalamaPuan?.toFixed(1) || '—'}
+                  </Text>
+                  <Text style={styles.puanAlt}>
+                    {ist.toplamPuanSayisi ? `${ist.toplamPuanSayisi} değerlendirme` : 'Henüz değerlendirme yok'}
+                  </Text>
                 </View>
 
-                {/* ─ Detay listesi ─ */}
-                <View style={styles.blok}>
-                  <Text style={styles.blokBaslik}>Performans</Text>
-                  <DetayRow label="Gayit'te süre" deger={formatGun(ist.gayitteGunSayisi)} />
-                  <DetayRow
-                    label="Teklif / kabul oranı"
-                    deger={`${ist.toplamTeklif || 0} teklif → %${teklifKabulPct}`}
-                    renk={getRenk('tamamlama', teklifKabulPct)}
-                  />
-                  <DetayRow
-                    label="Ortalama yanıt süresi"
-                    deger={formatSure(ist.ortalamaYanisSuresiDk)}
-                    renk={getRenk('yanis', ist.ortalamaYanisSuresiDk)}
-                  />
-                  <DetayRow
-                    label="Ortalama tamamlama"
-                    deger={ist.ortalamaTamamlamaSaati
-                      ? `${ist.ortalamaTamamlamaSaati.toFixed(1)} sa`
-                      : '—'}
-                  />
-                  <DetayRow
-                    label="Toplam değerlendirme"
-                    deger={`${ist.toplamPuanSayisi || 0} müşteri`}
-                  />
-                  {enCokKategori && (
-                    <DetayRow
-                      label="En çok çalıştığı alan"
-                      deger={`${enCokKategori[0]} (${enCokKategori[1]} iş)`}
-                    />
-                  )}
-                </View>
-
-                {/* ─ Kategori sıralaması (Muğla geneli) ─ */}
-                {Object.keys(muglaKategoriSira).length > 0 && (
-                  <View style={styles.blok}>
-                    <Text style={styles.blokBaslik}>Muğla Geneli Sıralama</Text>
-                    {Object.entries(muglaKategoriSira).map(([kat, sira]) => (
-                      <SiraRow
-                        key={kat}
-                        label={kat}
-                        sira={sira}
-                        bolgeTxt="Muğla"
-                      />
-                    ))}
+                {/* ── Premium değilse kilit ekranı göster ── */}
+                {!premium ? (
+                  <View style={styles.kilitBlok}>
+                    <Text style={styles.kilitBuyukIkon}>🔒</Text>
+                    <Text style={styles.kilitBaslik}>Premium Özellik</Text>
+                    <Text style={styles.kilitAciklama}>
+                      Ustanın detaylı istatistiklerini, tamamlama oranını, yanıt süresini, bölge sıralamasını ve teklif skorunu görmek için Premium'a geç.
+                    </Text>
+                    {onPremiumeGec && (
+                      <TouchableOpacity style={styles.premiumBtn} onPress={onPremiumeGec}>
+                        <Text style={styles.premiumBtnYazi}>✨ Premium'a Geç</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                )}
-
-                {/* ─ İlçe + kategori sıralaması ─ */}
-                {Object.keys(ilceKategoriSira).length > 0 && (
-                  <View style={styles.blok}>
-                    <Text style={styles.blokBaslik}>İlçe Sıralaması</Text>
-                    {Object.entries(ilceKategoriSira).map(([key, sira]) => {
-                      const [ilce, ...katArr] = key.split('_');
-                      const kat = katArr.join(' ');
-                      return (
-                        <SiraRow
-                          key={key}
-                          label={kat}
-                          sira={sira}
-                          bolgeTxt={ilce}
-                        />
-                      );
-                    })}
-                  </View>
-                )}
-
-                {/* ─ Çalıştığı ilçeler ─ */}
-                {ilceler.length > 0 && (
-                  <View style={styles.blok}>
-                    <Text style={styles.blokBaslik}>Çalıştığı İlçeler</Text>
-                    <View style={styles.ilceChipSatir}>
-                      {ilceler.map(([ilce, sayi]) => (
-                        <View key={ilce} style={styles.ilceChip}>
-                          <Text style={styles.ilceChipTxt}>{ilce}</Text>
-                          <Text style={styles.ilceChipSayi}>{sayi} iş</Text>
-                        </View>
-                      ))}
+                ) : (
+                  <>
+                    {/* ─ Mini özet satırı ─ */}
+                    <View style={styles.ozetSatir}>
+                      <OzetKart baslik="Puan"       deger={ist.ortalamaPuan?.toFixed(1) || '—'} renk={getRenk('puan', ist.ortalamaPuan)} ikon="⭐" />
+                      <OzetKart baslik="İş"         deger={ist.tamamlanan || 0}                 renk="#6b7280"                            ikon="🔨" />
+                      <OzetKart baslik="Tamamlama"  deger={`%${tamamlamaPct}`}                  renk={getRenk('tamamlama', tamamlamaPct)} ikon="✅" />
+                      <OzetKart baslik="Yanıt"      deger={formatSure(ist.ortalamaYanisSuresiDk)} renk={getRenk('yanis', ist.ortalamaYanisSuresiDk)} ikon="⚡" />
                     </View>
-                  </View>
-                )}
 
-                {/* ─ Teklif skoru detayı ─ */}
-                <View style={[styles.blok, styles.skorBlok]}>
-                  <Text style={styles.blokBaslik}>Teklif Skoru</Text>
-                  <View style={styles.skorBar}>
-                    <View
-                      style={[
-                        styles.skorDolum,
-                        { width: `${skor}%`, backgroundColor: getRenk('skor', skor) }
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.skorAciklama, { color: getRenk('skor', skor) }]}>
-                    {skor.toFixed(1)} / 100 — {getRenkAdi(getRenk('skor', skor))}
-                  </Text>
-                  <Text style={styles.skorFormul}>
-                    İş sayısı (%35) + Puan (%30) + Yanıt hızı (%20) + Tamamlama hızı (%15)
-                  </Text>
-                </View>
+                    {/* ─ Detay listesi ─ */}
+                    <View style={styles.blok}>
+                      <Text style={styles.blokBaslik}>Performans</Text>
+                      <DetayRow label="Gayit'te süre" deger={formatGun(ist.gayitteGunSayisi)} />
+                      <DetayRow
+                        label="Teklif / kabul oranı"
+                        deger={`${ist.toplamTeklif || 0} teklif → %${teklifKabulPct}`}
+                        renk={getRenk('tamamlama', teklifKabulPct)}
+                      />
+                      <DetayRow
+                        label="Ortalama yanıt süresi"
+                        deger={formatSure(ist.ortalamaYanisSuresiDk)}
+                        renk={getRenk('yanis', ist.ortalamaYanisSuresiDk)}
+                      />
+                      <DetayRow
+                        label="Ortalama tamamlama"
+                        deger={ist.ortalamaTamamlamaSaati
+                          ? `${ist.ortalamaTamamlamaSaati.toFixed(1)} sa`
+                          : '—'}
+                      />
+                      <DetayRow
+                        label="Toplam değerlendirme"
+                        deger={`${ist.toplamPuanSayisi || 0} müşteri`}
+                      />
+                      {enCokKategori && (
+                        <DetayRow
+                          label="En çok çalıştığı alan"
+                          deger={`${enCokKategori[0]} (${enCokKategori[1]} iş)`}
+                        />
+                      )}
+                    </View>
+
+                    {/* ─ Muğla Geneli Sıralama ─ */}
+                    {Object.keys(muglaKategoriSira).length > 0 && (
+                      <View style={styles.blok}>
+                        <Text style={styles.blokBaslik}>Muğla Geneli Sıralama</Text>
+                        {Object.entries(muglaKategoriSira).map(([kat, sira]) => (
+                          <SiraRow key={kat} label={kat} sira={sira} bolgeTxt="Muğla" />
+                        ))}
+                      </View>
+                    )}
+
+                    {/* ─ İlçe Sıralaması ─ */}
+                    {Object.keys(ilceKategoriSira).length > 0 && (
+                      <View style={styles.blok}>
+                        <Text style={styles.blokBaslik}>İlçe Sıralaması</Text>
+                        {Object.entries(ilceKategoriSira).map(([key, sira]) => {
+                          const [ilce, ...katArr] = key.split('_');
+                          const kat = katArr.join(' ');
+                          return <SiraRow key={key} label={kat} sira={sira} bolgeTxt={ilce} />;
+                        })}
+                      </View>
+                    )}
+
+                    {/* ─ Çalıştığı İlçeler ─ */}
+                    {ilceler.length > 0 && (
+                      <View style={styles.blok}>
+                        <Text style={styles.blokBaslik}>Çalıştığı İlçeler</Text>
+                        <View style={styles.ilceChipSatir}>
+                          {ilceler.map(([ilce, sayi]) => (
+                            <View key={ilce} style={styles.ilceChip}>
+                              <Text style={styles.ilceChipTxt}>{ilce}</Text>
+                              <Text style={styles.ilceChipSayi}>{sayi} iş</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* ─ Teklif Skoru ─ */}
+                    <View style={[styles.blok, styles.skorBlok]}>
+                      <Text style={styles.blokBaslik}>Teklif Skoru</Text>
+                      <View style={styles.skorBar}>
+                        <View
+                          style={[
+                            styles.skorDolum,
+                            { width: `${skor}%`, backgroundColor: getRenk('skor', skor) }
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.skorAciklama, { color: getRenk('skor', skor) }]}>
+                        {skor.toFixed(1)} / 100 — {getRenkAdi(getRenk('skor', skor))}
+                      </Text>
+                      <Text style={styles.skorFormul}>
+                        İş sayısı (%35) + Puan (%30) + Yanıt hızı (%20) + Tamamlama hızı (%15)
+                      </Text>
+                    </View>
+                  </>
+                )}
 
                 <View style={{ height: 32 }} />
               </ScrollView>
@@ -386,12 +428,29 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     marginVertical: 4,
   },
+  miniUstaAdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   miniUstaAd: {
     fontSize: 13,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 6,
+    flex: 1,
   },
+  miniKilitRozet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    gap: 3,
+  },
+  miniKilitIkon: { fontSize: 10 },
+  miniKilitYazi: { fontSize: 10, fontWeight: '600', color: '#92400e' },
   miniSatir: {
     flexDirection: 'row',
     gap: 8,
@@ -465,6 +524,56 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#94a3b8',
     fontWeight: '500',
+  },
+
+  // Puan bloku — herkese gösterilir
+  puanBlok: {
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  puanIkon: { fontSize: 28, marginBottom: 4 },
+  puanDeger: { fontSize: 32, fontWeight: '800', color: '#1e293b' },
+  puanAlt: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
+
+  // Kilit bloğu — standart kullanıcıya gösterilir
+  kilitBlok: {
+    alignItems: 'center',
+    backgroundColor: '#fefce8',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  kilitBuyukIkon: { fontSize: 40, marginBottom: 12 },
+  kilitBaslik: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#92400e',
+    marginBottom: 8,
+  },
+  kilitAciklama: {
+    fontSize: 13,
+    color: '#78350f',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  premiumBtn: {
+    backgroundColor: '#f59e0b',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+  },
+  premiumBtnYazi: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
 
   // Özet satırı
