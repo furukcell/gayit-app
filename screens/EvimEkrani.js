@@ -797,8 +797,7 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
         </View>
         </TouchableOpacity>
     ))
-              ))
-            )}
+        )}
 
             {/* Sil Butonu */}
             <TouchableOpacity
