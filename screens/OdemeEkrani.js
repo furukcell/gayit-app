@@ -92,65 +92,84 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   };
 
   // ── Kupon ───────────────────────────────────────────────────
-  const kuponUygula = async () => {
-    if (!kuponKod.trim()) return;
-    try {
-      const res = await fetch(`${DB_URL}/kuponlar.json?auth=${token}`);
-      const data = await res.json();
-      if (!data) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      const kuponEntry = Object.entries(data).find(
-        ([, k]) => k.ad === kuponKod.trim().toUpperCase() && k.aktif
-      );
-      if (!kuponEntry) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz veya pasif kupon kodu.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      const [kuponId, kupon] = kuponEntry;
-      if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun süresi dolmuş.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      if (kupon.kullanilanAdet >= kupon.adet) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun kullanım hakkı dolmuş.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      if (kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
-        setKuponMesaj({
-          tip: 'hata',
-          metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.`,
-        });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      const yeniHak = (kullanici?.hak || 0) + (kupon.icerik || 1);
-      setKullanici({ ...kullanici, hak: yeniHak });
-      if (token && kullanici?.uid) {
-        await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hak: yeniHak }),
-        });
-      }
-      await fetch(`${DB_URL}/kuponlar/${kuponId}.json?auth=${token}`, {
+const kuponUygula = async () => {
+  if (!kuponKod.trim()) return;
+  try {
+    const res = await fetch(`${DB_URL}/kuponlar.json?auth=${token}`);
+    const data = await res.json();
+    if (!data) {
+      setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
+      setTimeout(() => setKuponMesaj(null), 2500);
+      return;
+    }
+    const kuponEntry = Object.entries(data).find(
+      ([, k]) => k.ad === kuponKod.trim().toUpperCase() && k.aktif
+    );
+    if (!kuponEntry) {
+      setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz veya pasif kupon kodu.' });
+      setTimeout(() => setKuponMesaj(null), 2500);
+      return;
+    }
+    const [kuponId, kupon] = kuponEntry;
+
+    if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) {
+      setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun süresi dolmuş.' });
+      setTimeout(() => setKuponMesaj(null), 2500);
+      return;
+    }
+
+    const kullanilanAdet = kupon.kullanilanAdet ?? 0;
+
+    if (kullanilanAdet >= kupon.adet) {
+      setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun kullanım hakkı dolmuş.' });
+      setTimeout(() => setKuponMesaj(null), 2500);
+      return;
+    }
+
+    if (kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
+      setKuponMesaj({
+        tip: 'hata',
+        metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.`,
+      });
+      setTimeout(() => setKuponMesaj(null), 2500);
+      return;
+    }
+
+    // Aynı kullanıcı daha önce kullandı mı?
+    if (kupon.kullananlar && kupon.kullananlar[kullanici.uid]) {
+      setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponu daha önce kullandın.' });
+      setTimeout(() => setKuponMesaj(null), 2500);
+      return;
+    }
+
+    const yeniHak = (kullanici?.hak || 0) + (kupon.icerik || 1);
+    setKullanici({ ...kullanici, hak: yeniHak });
+
+    if (token && kullanici?.uid) {
+      await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kullanilanAdet: (kupon.kullanilanAdet || 0) + 1 }),
+        body: JSON.stringify({ hak: yeniHak }),
       });
-      setKuponMesaj({ tip: 'basarili', metin: `🎉 Kupon uygulandı! ${kupon.icerik} hak eklendi.` });
-      setTimeout(() => setEkran('anasayfa'), 2000);
-    } catch (e) {
-      setKuponMesaj({ tip: 'hata', metin: '❌ Bağlantı hatası, tekrar dene.' });
-      setTimeout(() => setKuponMesaj(null), 2500);
     }
-  };
 
+    // kullanilanAdet artır + kullananlar listesine ekle
+    await fetch(`${DB_URL}/kuponlar/${kuponId}.json?auth=${token}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kullanilanAdet: kullanilanAdet + 1,
+        [`kullananlar/${kullanici.uid}`]: true,
+      }),
+    });
+
+    setKuponMesaj({ tip: 'basarili', metin: `🎉 Kupon uygulandı! ${kupon.icerik} hak eklendi.` });
+    setTimeout(() => setEkran('anasayfa'), 2000);
+  } catch (e) {
+    setKuponMesaj({ tip: 'hata', metin: '❌ Bağlantı hatası, tekrar dene.' });
+    setTimeout(() => setKuponMesaj(null), 2500);
+  }
+};
   // ── Paket satın al (RevenueCat onayı sonrası) ───────────────
   const paketSatinAl = async (paketTipi, customerInfo) => {
     let yeniHak = kullanici?.hak || 0;
