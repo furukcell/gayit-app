@@ -506,7 +506,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
         });
         await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '🔄 Teklif Revize Edildi!', `${kullanici.ad} usta teklifini güncelledi: ${teklifFiyat} TL` , token );
       } else {
-        await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler.json`, {
+        await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler.json?auth=${token}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -624,7 +624,7 @@ export function TekliflerEkrani({
   s
 }) {
   const ilan = ilanlar.find(i => i.id === secilenIlan?.id);
-
+  const [istatistikModalUsta, setIstatistikModalUsta] = useState(null);
   const [ustaProfil, setUstaProfil] = useState(null);
   const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
@@ -729,7 +729,7 @@ export function TekliflerEkrani({
           onPress: async () => {
             try {
               const kapanmaTarihi = Date.now() + 24 * 60 * 60 * 1000;
-              await fetch(`${DB_URL}/ilanlar/${ilanId}.json`, {
+              await fetch(`${DB_URL}/ilanlar/${ilanId}.json?auth=${token}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
