@@ -629,6 +629,7 @@ function EsyaEkleModal({ gorunur, setGorunur, kullanici, token, onKaydet, s }) {
 function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, token, onGuncelle, onSil, s }) {
   const [yeniNot, setYeniNot] = useState('');
   const [notEkleniyor, setNotEkleniyor] = useState(false);
+  const [duzenlenecekNot, setDuzenlenecekNot] = useState(null);
 
   const garanti = garantiDurumu(esya.alisTarihi, esya.garantiYil);
   const yas = esyaYasi(esya.alisTarihi);
@@ -640,30 +641,35 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
         .sort((a, b) => b.tarih - a.tarih)
     : [];
 
-  const notEkle = async () => {
-    if (!yeniNot.trim()) return;
-    setNotEkleniyor(true);
-    try {
+  const notKaydet = async () => {
+  if (!yeniNot.trim()) return;
+  setNotEkleniyor(true);
+  try {
+    if (duzenlenecekNot) {
+      await fetch(`${DB_URL}/evEsyalari/${kullanici.uid}/${esya.id}/notlar/${duzenlenecekNot.id}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metin: yeniNot.trim() }),
+      });
+      setDuzenlenecekNot(null);
+    } else {
       await fetch(`${DB_URL}/evEsyalari/${kullanici.uid}/${esya.id}/notlar.json?auth=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metin: yeniNot.trim(),
-          tarih: Date.now(),
-        }),
+        body: JSON.stringify({ metin: yeniNot.trim(), tarih: Date.now() }),
       });
-      setYeniNot('');
-      await onGuncelle();
-      // secilenEsya'yı da güncelle
-      const res = await fetch(`${DB_URL}/evEsyalari/${kullanici.uid}/${esya.id}.json?auth=${token}`);
-      const data = await res.json();
-      if (data) setSecilenEsya({ id: esya.id, ...data });
-    } catch (e) {
-      Alert.alert('Hata', 'Not eklenemedi!');
-    } finally {
-      setNotEkleniyor(false);
     }
-  };
+    setYeniNot('');
+    await onGuncelle();
+    const res = await fetch(`${DB_URL}/evEsyalari/${kullanici.uid}/${esya.id}.json?auth=${token}`);
+    const data = await res.json();
+    if (data) setSecilenEsya({ id: esya.id, ...data });
+  } catch (e) {
+    Alert.alert('Hata', 'İşlem başarısız!');
+  } finally {
+    setNotEkleniyor(false);
+  }
+};
 
   const notSil = async (notId) => {
     try {
@@ -750,7 +756,7 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
                   borderRadius: 12, paddingHorizontal: 14,
                   justifyContent: 'center', alignItems: 'center',
                 }}
-                onPress={notEkle}
+                onPress={notKaydet}
                 disabled={!yeniNot.trim() || notEkleniyor}
               >
                 <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
@@ -765,27 +771,32 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
                 Henüz not yok.
               </Text>
             ) : (
-              notlar.map(not => (
-                <View
-                  key={not.id}
-                  style={{
-                    backgroundColor: '#FFF',
-                    borderRadius: 10, padding: 12,
-                    marginBottom: 8,
-                    borderLeftWidth: 3, borderLeftColor: '#1B4965',
-                    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#1B4965', fontSize: 13 }}>{not.metin}</Text>
-                    <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 4 }}>
-                      {new Date(not.tarih).toLocaleDateString('tr-TR')}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => notSil(not.id)} style={{ padding: 4 }}>
-                    <Text style={{ color: '#FF4444', fontSize: 16 }}>🗑️</Text>
-                  </TouchableOpacity>
-                </View>
+             notlar.map(not => (
+  <TouchableOpacity
+    key={not.id}
+    style={{
+      backgroundColor: '#FFF',
+      borderRadius: 10, padding: 12,
+      marginBottom: 8,
+      borderLeftWidth: 3, borderLeftColor: '#1B4965',
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    }}
+    onLongPress={() => {
+      Alert.alert('Not', not.metin, [
+        { text: 'Düzenle ✏️', onPress: () => { setDuzenlenecekNot(not); setYeniNot(not.metin); }},
+        { text: 'Sil 🗑️', style: 'destructive', onPress: () => notSil(not.id) },
+        { text: 'Vazgeç', style: 'cancel' },
+      ]);
+    }}
+  >
+       <View style={{ flex: 1 }}>
+       <Text style={{ color: '#1B4965', fontSize: 13 }}>{not.metin}</Text>
+       <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 4 }}>
+        {new Date(not.tarih).toLocaleDateString('tr-TR')}
+        </Text>
+        </View>
+        </TouchableOpacity>
+    ))
               ))
             )}
 
