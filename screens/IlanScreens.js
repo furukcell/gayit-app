@@ -876,7 +876,7 @@ export function TekliflerEkrani({
   <>
     <TouchableOpacity
       style={{ ...s.girisBtn, backgroundColor: '#FF8A57', marginTop: 10, marginBottom: 30 }}
-      onPress={() => { setPuanlanacakIlan(ilan); setPuanModalAcik(true); }}
+      onPress={() => { setPuanlananIlan(ilan); setPuanModalAcik(true); }}
     >
       <Text style={s.anatext}>⭐ İŞ BİTTİ, USTAYI PUANLA</Text>
     </TouchableOpacity>
