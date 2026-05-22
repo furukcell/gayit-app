@@ -799,13 +799,6 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
     ))
         )}
 
-            {/* Sil Butonu */}
-            <TouchableOpacity
-              style={{ marginTop: 20, marginBottom: 30, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#FF4444', alignItems: 'center' }}
-              onPress={() => onSil(esya)}
-            >
-              <Text style={{ color: '#FF4444', fontWeight: 'bold' }}>🗑️ Eşyayı Sil</Text>
-            </TouchableOpacity>
           </ScrollView>
         </View>
       </View>
