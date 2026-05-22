@@ -157,7 +157,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
 
     // Mevcut yanıtları yükle
     try {
-      const res = await fetch(`${DB_URL}/iletisim/${mesaj.id}/yanıtlar.json?auth=${token}`);
+      const res = await fetch(`${DB_URL}/iletisim/${mesaj.id}/yanitlar.json?auth=${token}`);
       const data = await res.json();
       if (data) {
         const liste = Object.entries(data).map(([id, v]) => ({ id, ...v })).sort((a, b) => a.tarih - b.tarih);
@@ -182,8 +182,8 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     };
 
     try {
-      await fetch(`${DB_URL}/iletisim/${secilenMesaj.id}/yanıtlar.json`, {
-        method: 'POST',
+      await fetch(`${DB_URL}/iletisim/${secilenMesaj.id}/yanitlar.json?auth=${token}`, {
+     method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(yeniYanit),
       });
