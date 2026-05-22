@@ -3,7 +3,7 @@
 // Admin Paneli — sadece rol === 'admin' olan hesaplarda görünür
 // ============================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, TextInput, Image, Linking,
@@ -39,9 +39,9 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [kuponyukleniyor, setKuponyukleniyor] = useState(false);
   const [mevcutKuponlar, setMevcutKuponlar] = useState([]);
 
-  useEffect(() => { veriYukle(); }, []);
+  useEffect(() => { if (token) veriYukle(); }, [token]);
 
-  const veriYukle = async () => {
+  const veriYukle = useCallback(async () => {
     setYukleniyor(true);
     try {
       const [kulRes, ilanRes, sikRes, mesRes, kuponRes] = await Promise.all([
@@ -65,7 +65,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     } finally {
       setYukleniyor(false);
     }
-  };
+  }, [token]);
 
   const istatistikler = {
     toplamKullanici: kullanicilar.length,
