@@ -69,6 +69,8 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
   const [raporModalAcik, setRaporModalAcik] = useState(false);
   const [gecmisRaporlar, setGecmisRaporlar] = useState([]);
   const [raporYukleniyor, setRaporYukleniyor] = useState(false);
+  const [duzenleModalAcik, setDuzenleModalAcik] = useState(false);
+  const [duzenlenecekEsya, setDuzenlenecekEsya] = useState(null);
 
   // Abonelik kontrolü — hem usta hem müşteri için çalışır
   const abonelik = kullanici?.abonelik || kullanici?.paket || '';
@@ -288,6 +290,13 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
                   borderLeftColor: garanti?.renk || '#D1D9E0',
                 }]}
                 onPress={() => { setSecilenEsya(esya); setDetayModalAcik(true); }}
+                onLongPress={() => {
+                  Alert.alert(esya.isim, 'Ne yapmak istiyorsunuz?', [
+                    { text: 'Düzenle ✏️', onPress: () => { setDuzenlenecekEsya(esya); setDuzenleModalAcik(true); } },
+                    { text: 'Sil 🗑️', style: 'destructive', onPress: () => esyaSil(esya) },
+                    { text: 'Vazgeç', style: 'cancel' },
+                  ]);
+                }}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1 }}>
@@ -352,6 +361,19 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
           token={token}
           onGuncelle={esyalariYukle}
           onSil={esyaSil}
+          s={s}
+        />
+      )}
+
+      {/* DÜZENLEME MODALİ */}
+      {duzenlenecekEsya && (
+        <EsyaDuzenleModal
+          gorunur={duzenleModalAcik}
+          setGorunur={setDuzenleModalAcik}
+          esya={duzenlenecekEsya}
+          kullanici={kullanici}
+          token={token}
+          onKaydet={esyalariYukle}
           s={s}
         />
       )}
@@ -806,4 +828,150 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
   );
 }
 
+// ============================================================
+// EŞYA DÜZENLEME MODALİ
+// ============================================================
+function EsyaDuzenleModal({ gorunur, setGorunur, esya, kullanici, token, onKaydet, s }) {
+  const [isim, setIsim] = useState(esya.isim || '');
+  const [marka, setMarka] = useState(esya.marka || '');
+  const [kategori, setKategori] = useState(esya.kategori || 'Beyaz Eşya');
+  const [garantiYil, setGarantiYil] = useState(esya.garantiYil ? String(esya.garantiYil) : '');
+  const [alisTarihi, setAlisTarihi] = useState(esya.alisTarihi || '');
+  const [takvimAcik, setTakvimAcik] = useState(false);
+  const [takvimDegeri, setTakvimDegeri] = useState(esya.alisTarihi ? new Date(esya.alisTarihi) : new Date());
+  const [kaydediliyor, setKaydediliyor] = useState(false);
+
+  const kaydet = async () => {
+    if (!isim.trim()) {
+      Alert.alert('Eksik', 'Eşya adını girin!');
+      return;
+    }
+    setKaydediliyor(true);
+    try {
+      await fetch(`${DB_URL}/evEsyalari/${kullanici.uid}/${esya.id}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isim: isim.trim(),
+          marka: marka.trim(),
+          kategori,
+          garantiYil: garantiYil ? parseInt(garantiYil) : null,
+          alisTarihi: alisTarihi || null,
+        }),
+      });
+      setGorunur(false);
+      await onKaydet();
+    } catch (e) {
+      Alert.alert('Hata', 'Güncellenemedi!');
+    } finally {
+      setKaydediliyor(false);
+    }
+  };
+
+  return (
+    <Modal visible={gorunur} transparent animationType="slide">
+      <View style={s.modalOverlay}>
+        <View style={[s.modalKutu, { maxHeight: '90%' }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={s.modalBaslik}>Eşyayı Düzenle ✏️</Text>
+            <TouchableOpacity onPress={() => setGorunur(false)}>
+              <Text style={{ color: '#A3B1B9', fontSize: 22 }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={s.inputBaslik}>Eşya Adı *</Text>
+            <TextInput
+              style={s.inp}
+              value={isim}
+              onChangeText={setIsim}
+              placeholder="Eşya adı..."
+            />
+
+            <Text style={s.inputBaslik}>Marka</Text>
+            <TextInput
+              style={s.inp}
+              value={marka}
+              onChangeText={setMarka}
+              placeholder="Marka..."
+            />
+
+            <Text style={s.inputBaslik}>Kategori</Text>
+            <View style={s.chipAlan}>
+              {ESYA_KATEGORILER.map(k => (
+                <TouchableOpacity
+                  key={k.label}
+                  style={[s.chip, kategori === k.label && s.chipAktif]}
+                  onPress={() => setKategori(k.label)}
+                >
+                  <Text style={[s.chipY, kategori === k.label && s.chipYAktif]}>
+                    {k.ikon} {k.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={s.inputBaslik}>Alış Tarihi</Text>
+            {Platform.OS === 'web' ? (
+              <input
+                type="date"
+                max={new Date().toISOString().split('T')[0]}
+                value={alisTarihi}
+                style={{
+                  width: '100%', padding: 14, borderRadius: 12,
+                  border: '1px solid #E8E8E0', fontSize: 15,
+                  color: '#1B4965', backgroundColor: '#FFF', marginBottom: 12,
+                  boxSizing: 'border-box',
+                }}
+                onChange={(e) => setAlisTarihi(e.target.value)}
+              />
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[s.inp, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                  onPress={() => setTakvimAcik(true)}
+                >
+                  <Text style={{ color: alisTarihi ? '#1B4965' : '#A3B1B9', fontSize: 15 }}>
+                    {alisTarihi || 'Tarih seçin...'}
+                  </Text>
+                  <Text style={{ color: '#A3B1B9' }}>📅</Text>
+                </TouchableOpacity>
+                {takvimAcik && (
+                  <DateTimePicker
+                    value={takvimDegeri}
+                    mode="date"
+                    maximumDate={new Date()}
+                    onChange={(event, date) => {
+                      setTakvimAcik(false);
+                      if (date) {
+                        setTakvimDegeri(date);
+                        setAlisTarihi(date.toISOString().split('T')[0]);
+                      }
+                    }}
+                  />
+                )}
+              </>
+            )}
+
+            <Text style={s.inputBaslik}>Garanti Süresi (Yıl)</Text>
+            <TextInput
+              style={s.inp}
+              value={garantiYil}
+              onChangeText={setGarantiYil}
+              keyboardType="numeric"
+              placeholder="Örn: 2"
+            />
+
+            <TouchableOpacity
+              style={[s.girisBtn, { marginTop: 10, marginBottom: 20, opacity: kaydediliyor ? 0.6 : 1 }]}
+              onPress={kaydet}
+              disabled={kaydediliyor}
+            >
+              <Text style={s.anaBtnY}>{kaydediliyor ? 'Kaydediliyor...' : '💾 GÜNCELLE'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 }
