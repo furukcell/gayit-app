@@ -76,9 +76,11 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
   const isPremium = abonelik === 'premium' || isVip;
 
   useEffect(() => {
+  if (token) {
     esyalariYukle();
     if (isVip) gecmisRaporlariYukle();
-  }, []);
+  }
+}, [token]);
 
   const esyalariYukle = async () => {
     setYukleniyor(true);
@@ -674,7 +676,8 @@ function EsyaDetayModal({ gorunur, setGorunur, esya, setSecilenEsya, kullanici, 
       if (data) setSecilenEsya({ id: esya.id, ...data });
     } catch (e) {
       Alert.alert('Hata', 'Not silinemedi!');
-    }
+   }
+  };
 
   return (
     <Modal visible={gorunur} transparent animationType="slide">
