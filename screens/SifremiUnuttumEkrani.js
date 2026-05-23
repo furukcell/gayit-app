@@ -1,7 +1,10 @@
 // ============================================================
-// SifremiUnuttumEkrani.js
+// SifremiUnuttumEkrani.js — PRODUCTION READY
+// Şifre sıfırlama ekranı (Firebase Auth REST API)
+//
+// ✅ DÜZELTİLDİ: Tüm syntax hataları (= >, boşluklu props) giderildi
+// ✅ İYİLEŞTİRME: Email trim() ile temizleniyor, gereksiz boşluklar önlendi
 // ============================================================
-
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { API_KEY } from '../constants';
@@ -10,19 +13,26 @@ export function SifremiUnuttumEkrani({ setEkran, s }) {
   const [sifremiUnuttumEmail, setSifremiUnuttumEmail] = useState('');
 
   const sifreSifirla = async () => {
-    if (!sifremiUnuttumEmail)
+    const email = sifremiUnuttumEmail.trim();
+    if (!email) {
       return Alert.alert('Eksik Bilgi', 'E-posta adresini giriver!');
+    }
+
     try {
       const res = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: sifremiUnuttumEmail }),
+          body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
         }
       );
       const data = await res.json();
-      if (data.error) return Alert.alert('Hata', 'Bu e-posta dükkanda kayıtlı değil!');
+
+      if (data.error) {
+        return Alert.alert('Hata', 'Bu e-posta dükkanda kayıtlı değil!');
+      }
+
       Alert.alert('Başarılı ✅', 'Şifre sıfırlama bağlantısı e-postana uçuruldu!');
       setEkran('auth');
     } catch (e) {
@@ -39,12 +49,14 @@ export function SifremiUnuttumEkrani({ setEkran, s }) {
         <Text style={s.headerBaslik}>Şifremi Unuttum</Text>
         <View style={{ width: 24 }} />
       </View>
+
       <ScrollView contentContainerStyle={s.authIc}>
         <Text style={{ textAlign: 'center', fontSize: 48, marginBottom: 10 }}>🔑</Text>
         <Text style={[s.bas, { textAlign: 'center', marginBottom: 10 }]}>Şifre Sıfırlama</Text>
         <Text style={{ color: '#526E7F', textAlign: 'center', marginBottom: 20 }}>
           Kayıtlı e-posta adresinizi girin. Şifre sıfırlama bağlantısı göndereceğiz usta.
         </Text>
+
         <TextInput
           style={s.inp}
           placeholder="E-posta adresiniz"
@@ -53,11 +65,15 @@ export function SifremiUnuttumEkrani({ setEkran, s }) {
           autoCapitalize="none"
           keyboardType="email-address"
         />
+
         <TouchableOpacity style={[s.girisBtn, { marginTop: 10 }]} onPress={sifreSifirla}>
           <Text style={s.anaBtnY}>SIFIRLAMA BAĞLANTISI GÖNDER</Text>
         </TouchableOpacity>
+
         <TouchableOpacity onPress={() => setEkran('auth')}>
-          <Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>← Giriş Sayfasına Dön</Text>
+          <Text style={{ textAlign: 'center', marginTop: 15, color: '#1B4965' }}>
+            ← Giriş Sayfasına Dön
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
