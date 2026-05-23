@@ -266,7 +266,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
       const aySayi = parseInt(promoAy);
       const yeniPromo = {
         ad: promoAd.trim().toUpperCase(),
-        tip: 'promosyon', // OdemeEkrani.js bu tipi tanır
+        tip: 'promosyon',
         hedef: promoHedef,
         paket: promoPaket,
         ay: aySayi,
