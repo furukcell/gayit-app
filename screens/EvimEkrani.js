@@ -722,6 +722,7 @@ export function EvimEkrani({ kullanici, token, setEkran, s }) {
             isVip={isVip}
             s={s}
           />
+        </> 
       )}
     </SafeAreaView>
   );
