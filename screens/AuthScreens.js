@@ -19,6 +19,7 @@ import { pushTokenAl } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Purchases from 'react-native-purchases';
 
 // Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
@@ -134,6 +135,8 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         setToken(data.idToken);
         await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
+        // RevenueCat'e kullanıcıyı tanıt
+        await Purchases.logIn(data.localId);
 
         // Firebase SDK'ya da giriş yaptır
         try {
@@ -289,6 +292,8 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         setToken(data.idToken);
         await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
+        // RevenueCat'e kullanıcıyı tanıt
+        await Purchases.logIn(data.localId);
 
         // Firebase SDK'ya da giriş yaptır
         try {
