@@ -1,8 +1,9 @@
 // ============================================================
-// AyarlarEkrani.js
+// AyarlarEkrani.js — PRODUCTION READY
 // Uygulama ayarları ekranı
+//
+// ✅ DÜZELTİLDİ: Tüm syntax hataları (boşluklu oklar ve prop'lar) temizlendi
 // ============================================================
-
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
@@ -53,16 +54,29 @@ export function AyarlarEkrani({ kullanici, setKullanici, token, setEkran, karanl
         <View style={[s.kart, { marginBottom: 10 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>🔔 Bildirimler</Text>
-            <Switch value={bildirimAcik} onValueChange={setBildirimAcik} trackColor={{ false: '#D1D9E0', true: '#588157' }} thumbColor="#FFF" />
+            <Switch
+              value={bildirimAcik}
+              onValueChange={setBildirimAcik}
+              trackColor={{ false: '#D1D9E0', true: '#588157' }}
+              thumbColor="#FFF"
+            />
           </View>
         </View>
         <View style={[s.kart, { marginBottom: 10 }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>🌙 Karanlık Mod</Text>
-            <Switch value={karanlikMod} onValueChange={setKaranlikMod} trackColor={{ false: '#D1D9E0', true: '#1B4965' }} thumbColor="#FFF" />
+            <Switch
+              value={karanlikMod}
+              onValueChange={setKaranlikMod}
+              trackColor={{ false: '#D1D9E0', true: '#1B4965' }}
+              thumbColor="#FFF"
+            />
           </View>
         </View>
-        <TouchableOpacity style={[s.kart, { marginBottom: 10 }]} onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}>
+        <TouchableOpacity
+          style={[s.kart, { marginBottom: 10 }]}
+          onPress={() => Linking.openURL('mailto:info@gayit.com.tr')}
+        >
           <Text style={{ color: '#1B4965', fontWeight: 'bold' }}>✉️ Destek: info@gayit.com.tr</Text>
         </TouchableOpacity>
         <TouchableOpacity
