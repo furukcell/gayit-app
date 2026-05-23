@@ -4,7 +4,7 @@
 
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
-export const REVENUECAT_API_KEY = 'goog_yZLkXbIDMWICSMXBWUIZVKxgfP';
+export const REVENUECAT_API_KEY = 'goog_yzCnxGIpNwIcSRAtNVJTZvRxgfr';
 
 // revenuecat offering ID -> Yerel paket tipi eşleşmesi
 export const PAKET_ID_MAP = {
