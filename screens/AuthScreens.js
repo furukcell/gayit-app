@@ -41,7 +41,7 @@ export function KarsilamaEkrani({ setRol, setMod, setEkran, s }) {
               resizeMode="contain"
             />
             <Text style={{ fontSize: 36, fontWeight: '600', color: '#1B4965', letterSpacing: 4, marginLeft: -45, marginTop: 35, fontFamily: 'serif' }}>
-              GAYIT
+              AYIT
             </Text>
           </View>
           <Text style={{ color: '#8B7355', fontSize: 14, fontStyle: 'italic', marginTop: -30 }}>
@@ -347,7 +347,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     return 'Seçim Yapın';
   };
 
-  return (
+   return (
     <SafeAreaView style={s.con}>
       <ScrollView contentContainerStyle={s.authIc}>
         <View style={{ alignItems: 'center', marginBottom: 25 }}>
@@ -358,7 +358,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
               resizeMode="contain"
             />
             <Text style={{ fontSize: 28, fontWeight: '600', color: '#1B4965', letterSpacing: 3, marginLeft: -20, marginTop: 12, fontFamily: 'serif' }}>
-              GAYIT
+              AYIT
             </Text>
           </View>
         </View>
