@@ -2,11 +2,9 @@
 // OdemeEkrani.js — PRODUCTION READY
 // RevenueCat + Google Play Billing ile ödeme & paket ekranı
 //
-// ✅ Hediye kodu oluşturma KALDIRILDI (güvenlik riski idi)
-// ✅ Promosyon kodları artık sadece AdminPanel'den üretilir
+// ✅ Hediye kodu oluşturma KALDIRILDI (güvenlik riski)
+// ✅ Promosyon kodları sadece AdminPanel'den üretilir
 // ✅ Tüm syntax hataları giderildi
-// ✅ setKullanici functional update (stale closure önlendi)
-// ✅ Fetch hatalarına .catch() eklendi
 // ============================================================
 import { useState } from 'react';
 import {
@@ -55,7 +53,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       if (!hedefPaket) {
         Alert.alert(
           'Paket Bulunamadı',
-          `"${urunId}" ürünü RevenueCat panelinde tanımlı değil. Lütfen destek ile iletişime geçin.`
+          `"${urunId}" ürünü RevenueCat panelinde tanımlı değil.`
         );
         return;
       }
@@ -306,7 +304,8 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       >
         {yukleniyor
           ? <ActivityIndicator color="#FFF" />
-          : <Text style={styles.cardBtnText}>{label}</Text>}
+          : <Text style={styles.cardBtnText}>{label}</Text>
+        }
       </TouchableOpacity>
     );
   };
