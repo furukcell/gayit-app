@@ -1,8 +1,11 @@
 // ============================================================
 // ADIM 3 — notifications.js
 // Push token alma, bildirim gönderme, bildirim geçmişi
+//
+// ✅ DÜZELTİLDİ: haberUcur fonksiyonuna token parametresi eklendi
+// ✅ DÜZELTİLDİ: bildirimGonderVeKaydet içinde ekran parametresi doğru iletiliyor
+// ✅ İYİLEŞTİRME: Tüm asenkron işlemler için güvenli try/catch blokları
 // ============================================================
-
 import * as Notifications from 'expo-notifications';
 import { DB_URL } from './constants';
 
@@ -16,9 +19,10 @@ export async function pushTokenAl() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') return '';
+    
     const tokenData = await Notifications.getExpoPushTokenAsync({
-  projectId: 'bedf51a1-744f-4b74-a9ac-1c5dfc366127'
-});
+      projectId: 'bedf51a1-744f-4b74-a9ac-1c5dfc366127'
+    });
     return tokenData.data;
   } catch (error) {
     console.log('Token alınamadı:', error);
@@ -27,11 +31,17 @@ export async function pushTokenAl() {
 }
 
 // --- Push Bildirimi Gönder (Expo Push API) ---
-export async function haberUcur(hedefUid, baslik, mesaj, ekran = 'anasayfa') {
+// ✅ DÜZELTİLDİ: Token parametresi eklendi, Firebase Rules ile uyumlu
+export async function haberUcur(hedefUid, baslik, mesaj, ekran = 'anasayfa', token) {
   try {
-    // pushToken okumak için auth gerektirmez (public okuma varsa)
-    const usRes = await fetch(`${DB_URL}/kullanicilar/${hedefUid}.json`);
+    // Token varsa auth ile güvenli sorgu, yoksa public okuma (eski uyumluluk)
+    const url = token
+      ? `${DB_URL}/kullanicilar/${hedefUid}.json?auth=${token}`
+      : `${DB_URL}/kullanicilar/${hedefUid}.json`;
+      
+    const usRes = await fetch(url);
     const hedefData = await usRes.json();
+    
     if (hedefData?.pushToken) {
       await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
@@ -50,13 +60,12 @@ export async function haberUcur(hedefUid, baslik, mesaj, ekran = 'anasayfa') {
 }
 
 // --- Bildirimi Firebase Geçmişine Kaydet ---
-// DÜZELTİLDİ: token parametresi eklendi
 export async function bildirimKaydet(hedefUid, baslik, mesaj, token) {
   try {
     const url = token
       ? `${DB_URL}/bildirimler/${hedefUid}.json?auth=${token}`
       : `${DB_URL}/bildirimler/${hedefUid}.json`;
-
+      
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -75,9 +84,14 @@ export async function bildirimKaydet(hedefUid, baslik, mesaj, token) {
 // --- Bildirimleri Getir ---
 export async function bildirimleriGetir(uid, token) {
   try {
-    const res = await fetch(`${DB_URL}/bildirimler/${uid}.json?auth=${token}`);
+    const url = token
+      ? `${DB_URL}/bildirimler/${uid}.json?auth=${token}`
+      : `${DB_URL}/bildirimler/${uid}.json`;
+      
+    const res = await fetch(url);
     const data = await res.json();
     if (!data) return [];
+    
     return Object.keys(data)
       .map((key) => ({ id: key, ...data[key] }))
       .sort((a, b) => b.tarih - a.tarih);
@@ -88,9 +102,14 @@ export async function bildirimleriGetir(uid, token) {
 }
 
 // --- Hem Gönder Hem Kaydet (Kısa yol) ---
-// DÜZELTİLDİ: token parametresi eklendi
-// YENİ:
 export async function bildirimGonderVeKaydet(hedefUid, baslik, mesaj, token, ekran = 'anasayfa') {
-  await haberUcur(hedefUid, baslik, mesaj, ekran);
-  await bildirimKaydet(hedefUid, baslik, mesaj, token);
+  try {
+    // 1. Önce push bildirimi gönder
+    await haberUcur(hedefUid, baslik, mesaj, ekran, token);
+    
+    // 2. Sonra geçmişe kaydet
+    await bildirimKaydet(hedefUid, baslik, mesaj, token);
+  } catch (e) {
+    console.log('Bildirim gönderme/kaydetme hatası:', e);
+  }
 }
