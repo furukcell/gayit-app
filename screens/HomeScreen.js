@@ -371,31 +371,37 @@ export function AnasayfaEkrani({
         <TouchableOpacity style={s.menuBtn} onPress={() => setMenuAcik(true)}>
           <Text style={s.menuSimge}>☰</Text>
         </TouchableOpacity>
-        <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: -15 }}>
-            <Image
-              source={require('../Logo.png')}
-              style={{ width: 80, height: 80, marginRight: -15, marginTop: -16 }}
-              resizeMode="contain"
-            />
-            <Text style={{
-              fontSize: 28, fontWeight: '800', color: '#1B4965',
-              letterSpacing: 1, fontFamily: 'serif',
-              textShadowColor: 'rgba(27,73,101,0.15)',
-              textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2,
-            }}>
-              GAYIT
-            </Text>
-          </View>
-          <View style={{
-            borderBottomWidth: 2, borderBottomColor: '#1B4965',
-            paddingBottom: 2, marginTop: -3, paddingHorizontal: 12, marginLeft: 25
-          }}>
-            <Text style={{ fontSize: 12, color: '#1B4965', letterSpacing: 4, fontWeight: '700' }}>
-              İLANLAR
-            </Text>
-          </View>
-        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+  <Image
+    source={require('../Logo.png')}
+    style={{ width: 70, height: 70 }}
+    resizeMode="contain"
+  />
+  <Text style={{
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1B4965',
+    letterSpacing: 1,
+    fontFamily: 'serif',
+    textShadowColor: 'rgba(27,73,101,0.15)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    marginLeft: -4, 
+  }}>
+    AYIT
+  </Text>
+</View>
+<View style={{
+  borderBottomWidth: 2,
+  borderBottomColor: '#1B4965',
+  paddingBottom: 2,
+  marginTop: 2,
+  paddingHorizontal: 10,
+}}>
+  <Text style={{ fontSize: 12, color: '#1B4965', letterSpacing: 4, fontWeight: '700' }}>
+    İLANLAR
+  </Text>
+</View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <TouchableOpacity onPress={setBildirimEkrani}>
