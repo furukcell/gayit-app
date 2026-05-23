@@ -2,14 +2,21 @@
 // ADIM 12 — App.js (ANA DOSYA)
 // Sadece state yönetimi ve ekran yönlendirme
 // Tüm ekranlar ayrı dosyalara taşındı
-// DÜZELTİLDİ: token gelmeden veri çekilmiyordu
-// EKLENDİ: AsyncStorage ile otomatik giriş (çıkış yapana kadar giriş kalır)
-// DÜZELTİLDİ: Firebase token expire olunca refresh yapılıyor
-// DÜZELTİLDİ: Arka plandan dönünce veriler yenileniyor
+//
+// ✅ DÜZELTİLDİ: DEV → __DEV__ (global değişken)
+// ✅ DÜZELTİLDİ: DavetEkrani'na token prop eklendi
+// ✅ DÜZELTİLDİ: 40+ syntax hatası giderildi
+// ✅ DÜZELTİLDİ: token gelmeden veri çekilmiyordu
+// ✅ EKLENDİ: AsyncStorage ile otomatik giriş
+// ✅ DÜZELTİLDİ: Firebase token expire olunca refresh
+// ✅ DÜZELTİLDİ: Arka plandan dönünce veriler yenileniyor
 // ============================================================
-
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing, Image, AppState } from 'react-native';
+import {
+  StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform,
+  BackHandler, Alert, ScrollView, SafeAreaView, Animated, Easing,
+  Image, AppState
+} from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,7 +29,10 @@ import { AnasayfaEkrani, SolMenu, SohbetlerimEkrani } from './screens/HomeScreen
 import { IlanVerEkrani, IlanlarimEkrani, TeklifVerEkrani, TekliflerEkrani } from './screens/IlanScreens';
 import { SohbetEkrani } from './screens/ChatScreen';
 import { ProfilEkrani } from './screens/ProfileScreens';
-import { OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani, HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat } from './screens';
+import {
+  OdemeEkrani, DavetEkrani, AyarlarEkrani, IletisimEkrani,
+  HakkimizdaEkrani, HizmetKosullariEkrani, BildirimEkrani, revenueCatBaslat
+} from './screens';
 import { PuanModali, SikayetModali } from './screens/Modals';
 import { AdminEkrani } from './screens/AdminScreen';
 import { EvimEkrani } from './screens/EvimEkrani';
@@ -38,6 +48,34 @@ import * as TaskManager from 'expo-task-manager';
 // ARKA PLAN TOKEN YENİLEME GÖREVİ
 // ============================================================
 const TOKEN_YENILE_GOREVI = 'token-yenile';
+
+// Firebase token yenile (refresh token ile)
+async function firebaseTokenYenile() {
+  try {
+    const refreshToken = await AsyncStorage.getItem('oturum_refresh_token');
+    if (!refreshToken) return null;
+    const res = await fetch(
+      `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refreshToken }),
+      }
+    );
+    const data = await res.json();
+    if (data.id_token) {
+      await AsyncStorage.setItem('oturum_token', data.id_token);
+      if (data.refresh_token) {
+        await AsyncStorage.setItem('oturum_refresh_token', data.refresh_token);
+      }
+      return data.id_token;
+    }
+    return null;
+  } catch (e) {
+    console.log('Token yenileme hatası:', e);
+    return null;
+  }
+}
 
 TaskManager.defineTask(TOKEN_YENILE_GOREVI, async () => {
   try {
@@ -61,37 +99,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-
-// ============================================================
-// Firebase token yenile (refresh token ile)
-// ============================================================
-async function firebaseTokenYenile() {
-  try {
-    const refreshToken = await AsyncStorage.getItem('oturum_refresh_token');
-    if (!refreshToken) return null;
-
-    const res = await fetch(
-      `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refreshToken }),
-      }
-    );
-    const data = await res.json();
-    if (data.id_token) {
-      await AsyncStorage.setItem('oturum_token', data.id_token);
-      if (data.refresh_token) {
-        await AsyncStorage.setItem('oturum_refresh_token', data.refresh_token);
-      }
-      return data.id_token;
-    }
-    return null;
-  } catch (e) {
-    console.log('Token yenileme hatası:', e);
-    return null;
-  }
-}
 
 export default function App() {
   // --- SPLASH SCREEN ---
@@ -173,68 +180,69 @@ export default function App() {
   const tokenRef = useRef(null);
   const kullaniciRef = useRef(null);
 
-  // token ve kullanici'yi ref'te de tut (AppState callback'inden erişmek için)
+  // token ve kullanici'yi ref'te de tut
   useEffect(() => { tokenRef.current = token; }, [token]);
   useEffect(() => { kullaniciRef.current = kullanici; }, [kullanici]);
 
   // ============================================================
-  // OTOMATİK GİRİŞ — Splash bittikten sonra kaydedilmiş oturumu kontrol et
+  // OTOMATİK GİRİŞ
   // ============================================================
   useEffect(() => {
     if (isLoading) return;
-   const otomatikGirisKontrol = async () => {
-  try {
-    const kaydedilmisToken = await AsyncStorage.getItem('oturum_token');
-    const kaydedilmisKullanici = await AsyncStorage.getItem('oturum_kullanici');
-    if (kaydedilmisToken && kaydedilmisKullanici) {
-      const kullaniciBilgisi = JSON.parse(kaydedilmisKullanici);
+    const otomatikGirisKontrol = async () => {
+      try {
+        const kaydedilmisToken = await AsyncStorage.getItem('oturum_token');
+        const kaydedilmisKullanici = await AsyncStorage.getItem('oturum_kullanici');
+        if (kaydedilmisToken && kaydedilmisKullanici) {
+          const kullaniciBilgisi = JSON.parse(kaydedilmisKullanici);
 
-      // Token expire kontrolü: önce test et, expire ise yenile
-      const testRes = await fetch(
-        `${DB_URL}/ilanlar.json?auth=${kaydedilmisToken}&limitToFirst=1`
-      ).catch(() => null);
+          // Token expire kontrolü
+          const testRes = await fetch(
+            `${DB_URL}/ilanlar.json?auth=${kaydedilmisToken}&limitToFirst=1`
+          ).catch(() => null);
 
-      let gecerliToken = kaydedilmisToken;
-      if (!testRes || testRes.status === 401) {
-        const yeniToken = await firebaseTokenYenile();
-        if (yeniToken) {
-          gecerliToken = yeniToken;
-        } else {
-          // Token yenilenemedi, giriş yaptır
-          return;
-        }
-      }
-      // 🆕 Firebase'den taze kullanıcı verisini çek
-      let guncelKullanici = kullaniciBilgisi;
-      if (kullaniciBilgisi.uid) {
-        try {
-          const kulRes = await fetch(
-            `${DB_URL}/kullanicilar/${kullaniciBilgisi.uid}.json?auth=${gecerliToken}`
-          );
-          const kulData = await kulRes.json();
-          if (kulData) {
-            guncelKullanici = { ...kullaniciBilgisi, ...kulData, uid: kullaniciBilgisi.uid };
-            await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncelKullanici));
+          let gecerliToken = kaydedilmisToken;
+          if (!testRes || testRes.status === 401) {
+            const yeniToken = await firebaseTokenYenile();
+            if (yeniToken) {
+              gecerliToken = yeniToken;
+            } else {
+              return;
+            }
           }
-        } catch (e) {
-          console.log('Kullanici yenileme hatasi:', e);
+
+          // Firebase'den taze kullanıcı verisini çek
+          let guncelKullanici = kullaniciBilgisi;
+          if (kullaniciBilgisi.uid) {
+            try {
+              const kulRes = await fetch(
+                `${DB_URL}/kullanicilar/${kullaniciBilgisi.uid}.json?auth=${gecerliToken}`
+              );
+              const kulData = await kulRes.json();
+              if (kulData) {
+                guncelKullanici = { ...kullaniciBilgisi, ...kulData, uid: kullaniciBilgisi.uid };
+                await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncelKullanici));
+              }
+            } catch (e) {
+              console.log('Kullanici yenileme hatasi:', e);
+            }
+          }
+
+          setToken(gecerliToken);
+          setKullanici(guncelKullanici);
+          setEkran('anasayfa');
+          veriYukleToken(gecerliToken, guncelKullanici);
+          sistemIstatistikleriniGuncelleToken(gecerliToken);
         }
+      } catch (e) {
+        console.log('Otomatik giriş hatası:', e);
       }
-      setToken(gecerliToken);
-      setKullanici(guncelKullanici);
-      setEkran('anasayfa');
-      veriYukleToken(gecerliToken, guncelKullanici);
-      sistemIstatistikleriniGuncelleToken(gecerliToken);
-    }
-  } catch (e) {
-    console.log('Otomatik giriş hatası:', e);
-  }
-};
+    };
     otomatikGirisKontrol();
   }, [isLoading]);
 
   // ============================================================
-  // PERİYODİK TOKEN YENİLEME — Her 50 dakikada bir yenile
+  // PERİYODİK TOKEN YENİLEME
   // ============================================================
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -245,7 +253,7 @@ export default function App() {
   }, []);
 
   // ============================================================
-  // ARKA PLAN TOKEN YENİLEME — Uygulama kapalıyken de çalışır
+  // ARKA PLAN TOKEN YENİLEME
   // ============================================================
   useEffect(() => {
     BackgroundFetch.registerTaskAsync(TOKEN_YENILE_GOREVI, {
@@ -257,7 +265,7 @@ export default function App() {
   }, []);
 
   // ============================================================
-  // OTURUMu KAYDET — kullanici ve token set edilince AsyncStorage'a yaz
+  // OTURUMU KAYDET
   // ============================================================
   useEffect(() => {
     if (kullanici && token) {
@@ -267,7 +275,7 @@ export default function App() {
   }, [kullanici, token]);
 
   // ============================================================
-  // ARKA PLANDAN DÖNÜNCE — token yenile + veri yükle
+  // ARKA PLANDAN DÖNÜNCE
   // ============================================================
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextState) => {
@@ -277,7 +285,6 @@ export default function App() {
 
         if (!mevcutKullanici || !mevcutToken) return;
 
-        // Token hala geçerli mi kontrol et
         const testRes = await fetch(
           `${DB_URL}/ilanlar.json?auth=${mevcutToken}&limitToFirst=1`
         ).catch(() => null);
@@ -288,48 +295,47 @@ export default function App() {
             mevcutToken = yeniToken;
             setToken(yeniToken);
           } else {
-            // Token yenilenemedi, çıkış yaptır
             setKullanici(null);
             setToken(null);
             setEkran('karsilama');
             return;
           }
         }
-   // Kullanıcı verisini de tazele
- if (mevcutKullanici?.uid) {
-  try {
-    const kulRes = await fetch(
-      `${DB_URL}/kullanicilar/${mevcutKullanici.uid}.json?auth=${mevcutToken}`
-    );
-    const kulData = await kulRes.json();
-    if (kulData) {
-      const guncel = { ...mevcutKullanici, ...kulData, uid: mevcutKullanici.uid };
-      setKullanici(guncel);
-      await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
-    }
-  } catch (e) {
-        console.log('Arka plan token hatası:', e.message);
+
+        if (mevcutKullanici?.uid) {
+          try {
+            const kulRes = await fetch(
+              `${DB_URL}/kullanicilar/${mevcutKullanici.uid}.json?auth=${mevcutToken}`
+            );
+            const kulData = await kulRes.json();
+            if (kulData) {
+              const guncel = { ...mevcutKullanici, ...kulData, uid: mevcutKullanici.uid };
+              setKullanici(guncel);
+              await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
+            }
+          } catch (e) {
+            console.log('Arka plan token hatası:', e.message);
+          }
+          veriYukleToken(mevcutToken, mevcutKullanici);
+          sistemIstatistikleriniGuncelleToken(mevcutToken);
+        }
       }
-      // Veriyi yenile
-      veriYukleToken(mevcutToken, mevcutKullanici);
-      sistemIstatistikleriniGuncelleToken(mevcutToken);
-    }
-   }
-    appState.current = nextState;  
-  });
-  return () => subscription.remove();
-}, []);
+      appState.current = nextState;
+    });
+    return () => subscription.remove();
+  }, []);
+
   useEffect(() => {
     bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
-  if (kullanici) {
-    const data = response.notification.request.content.data;
-    if (data?.ekran) {
-      setEkran(data.ekran);
-    } else {
-      setEkran('anasayfa');
-    }
-  }
-});
+      if (kullanici) {
+        const data = response.notification.request.content.data;
+        if (data?.ekran) {
+          setEkran(data.ekran);
+        } else {
+          setEkran('anasayfa');
+        }
+      }
+    });
     return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
   }, [kullanici]);
 
@@ -350,7 +356,7 @@ export default function App() {
     }
   }, [kullanici, token]);
 
-  // --- VERİ YÜKLEME (token parametre alabilir) ---
+  // --- VERİ YÜKLEME ---
   const veriYukleToken = async (t, k) => {
     const aktifToken = t || token;
     const aktifKullanici = k || kullanici;
@@ -610,6 +616,7 @@ export default function App() {
         setSecilenIlan={setSecilenIlan}
         setAktifSohbetTeklif={setAktifSohbetTeklif}
         setAnlasmaSaglandi={setAnlasmaSaglandi}
+        onVeriYukle={veriYukle}
         s={st}
       />
     );
@@ -638,7 +645,7 @@ export default function App() {
       />
     );
 
-    if (ekran === 'davet') return <DavetEkrani kullanici={kullanici} setEkran={setEkran} s={st} />;
+    if (ekran === 'davet') return <DavetEkrani kullanici={kullanici} token={token} setEkran={setEkran} s={st} />;
     if (ekran === 'ayarlar') return <AyarlarEkrani kullanici={kullanici} setKullanici={setKullanici} token={token} setEkran={setEkran} karanlikMod={karanlikMod} setKaranlikMod={setKaranlikMod} s={st} />;
     if (ekran === 'iletisim') return <IletisimEkrani kullanici={kullanici} token={token} setEkran={setEkran} s={st} />;
     if (ekran === 'hakkimizda') return <HakkimizdaEkrani setEkran={setEkran} s={st} />;
@@ -653,60 +660,64 @@ export default function App() {
         s={st}
       />
     );
-     if (ekran === 'evim') return (
-     <EvimEkrani
+
+    if (ekran === 'evim') return (
+      <EvimEkrani
         kullanici={kullanici}
         token={token}
         setEkran={setEkran}
         s={st}
-  />
-);
+      />
+    );
+
     return null;
   };
 
   return (
-  <SafeAreaProvider>
-    <View style={st.root}>
-      <StatusBar
-        barStyle={karanlikMod ? 'light-content' : 'dark-content'}
-        backgroundColor={karanlikMod ? '#121212' : '#F5F5F0'}
-      />
+    <SafeAreaProvider>
+      <View style={st.root}>
+        <StatusBar
+          barStyle={karanlikMod ? 'light-content' : 'dark-content'}
+          backgroundColor={karanlikMod ? '#121212' : '#F5F5F0'}
+        />
 
-      {ekraniGoster()}
+        {ekraniGoster()}
 
-      {menuAcik && kullanici && (
-        <SolMenu
+        {menuAcik && kullanici && (
+          <SolMenu
+            kullanici={kullanici}
+            rol={rol}
+            sistemIst={sistemIst}
+            setEkran={setEkran}
+            setMenuAcik={setMenuAcik}
+            setProfilTel={() => {}}
+            setOdemeAdim={() => {}}
+            setKullanici={setKullanici}
+            setToken={setToken}
+            s={st}
+          />
+        )}
+
+        <PuanModali
+          gorunur={puanModalAcik}
+          setGorunur={setPuanModalAcik}
+          puanlananIlan={puanlananIlan}
           kullanici={kullanici}
-          rol={rol}
-          sistemIst={sistemIst}
-          setEkran={setEkran}
-          setMenuAcik={setMenuAcik}
-          setProfilTel={() => {}}
-          setOdemeAdim={() => {}}
-          setKullanici={setKullanici}
-          setToken={setToken}
+          token={token}
+          ilanlar={ilanlar}
+          setIlanlar={setIlanlar}
           s={st}
         />
-      )}
 
-      <PuanModali
-        gorunur={puanModalAcik}
-        setGorunur={setPuanModalAcik}
-        puanlananIlan={puanlananIlan}
-        kullanici={kullanici}
-        token={token}
-        ilanlar={ilanlar}
-        setIlanlar={setIlanlar}
-        s={st}
-      />
-      <SikayetModali
-        gorunur={sikayetModalAcik}
-        setGorunur={setSikayetModalAcik}
-        sikayetHedef={sikayetHedef}
-        kullanici={kullanici}
-        s={st}
-      />
-    </View>
+        <SikayetModali
+          gorunur={sikayetModalAcik}
+          setGorunur={setSikayetModalAcik}
+          sikayetHedef={sikayetHedef}
+          kullanici={kullanici}
+          token={token}
+          s={st}
+        />
+      </View>
     </SafeAreaProvider>
   );
 }
@@ -737,7 +748,6 @@ function stilOlustur(karanlik) {
     scroll: { flex: 1, padding: 15 },
     ic: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
     authIc: { padding: 25, paddingTop: 10 },
-
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 15, paddingVertical: 12,
