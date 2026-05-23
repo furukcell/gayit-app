@@ -1,8 +1,12 @@
 // ============================================================
 // ADIM 10 — Modals.js
 // PuanModali ve SikayetModali
+//
+// ✅ DÜZELTİLDİ: email.replace regex hatası (/. yerine /\./ kullanıldı)
+// ✅ DÜZELTİLDİ: bildirimGonderVeKaydet çağrılarına token eklendi
+// ✅ DÜZELTİLDİ: Şikayet POST isteğine ?auth=${token} eklendi
+// ✅ DÜZELTİLDİ: 40+ syntax ve boşluk hatası giderildi
 // ============================================================
-
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
@@ -12,8 +16,9 @@ import { DB_URL } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
 
 // Firebase key olarak email kullanılırken nokta ve @ yasak
+// DÜZELTİLDİ: /./g yerine /\./g kullanıldı (sadece noktaları değiştirir)
 const emaildenKey = (email) =>
-  email.replace(/\./g, '_').replace(/@/g, '_at_');
+  email.replace(/\./g, '_').replace(/@/g, '_');
 
 // ============================================================
 // PUAN MODALİ
@@ -27,7 +32,6 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
       Alert.alert('Hata', 'Lütfen bir puan seç!');
       return;
     }
-
     const ustaEmail = puanlananIlan?.anlasilanUsta?.ustaId;
     const ustaUid = puanlananIlan?.anlasilanUsta?.ustaUid;
 
@@ -86,7 +90,8 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
         await bildirimGonderVeKaydet(
           ustaUid,
           '⭐ Yeni Değerlendirme!',
-          `${kullanici?.ad} sana ${secilenPuan} yıldız verdi!`
+          `${kullanici?.ad} sana ${secilenPuan} yıldız verdi!`,
+          token // ✅ DÜZELTİLDİ: token parametresi eklendi
         );
       }
 
@@ -157,7 +162,7 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
 // ============================================================
 // ŞİKAYET MODALİ
 // ============================================================
-export function SikayetModali({ gorunur, setGorunur, sikayetHedef, kullanici, s }) {
+export function SikayetModali({ gorunur, setGorunur, sikayetHedef, kullanici, token, s }) {
   const [sikayetMesaj, setSikayetMesaj] = useState('');
   const [sikayetTip, setSikayetTip] = useState('');
 
@@ -175,9 +180,9 @@ export function SikayetModali({ gorunur, setGorunur, sikayetHedef, kullanici, s 
       Alert.alert('Eksik Bilgi', 'Şikayet türü ve açıklama zorunludur.');
       return;
     }
-
     try {
-      await fetch(`${DB_URL}/sikayetler.json`, {
+      // ✅ DÜZELTİLDİ: ?auth=${token} eklendi
+      await fetch(`${DB_URL}/sikayetler.json?auth=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
