@@ -1590,4 +1590,155 @@ function HizmetDetayModal({ gorunur, setGorunur, hizmet, setSecilenHizmet, kulla
                   </View>
                 ) : null}
                 {bakimlar.length > 0 ? (
-                  <View style={{ marginTop: 1
+                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#E8E8E0' }}>
+                  <Text style={{ color: '#A3B1B9', fontSize: 12, marginBottom: 6 }}>Son İşlem</Text>
+                  {bakimlar.slice(0, 1).map(b => (
+                    <View key={b.id}>
+                      <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
+                        {b.tip} — {b.tarihStr || new Date(b.tarih).toLocaleDateString('tr-TR')}
+                      </Text>
+                      {b.usta ? <Text style={{ color: '#526E7F', fontSize: 12 }}>👤 {b.usta}</Text> : null}
+                      {b.tutar ? <Text style={{ color: '#526E7F', fontSize: 12 }}>💰 {b.tutar}</Text> : null}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              </View>
+            )}
+
+            {/* BAKIM GEÇMİŞİ SEKMESİ */}
+            {aktifSekme === 'bakim' && (
+              <View>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#1B4965', borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 14 }}
+                  onPress={() => setBakimEkleAcik(!bakimEkleAcik)}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: 'bold' }}>➕ Yeni İşlem Ekle</Text>
+                </TouchableOpacity>
+
+                {bakimEkleAcik && (
+                  <View style={{ backgroundColor: '#F0F4F8', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+                    <Text style={s.inputBaslik}>İşlem Tipi</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      {['Bakım', 'Tamir', 'Kontrol', 'Değişim'].map(tip => (
+                        <TouchableOpacity
+                          key={tip}
+                          style={{ borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: bakimTip === tip ? '#1B4965' : '#E1F2FE' }}
+                          onPress={() => setBakimTip(tip)}
+                        >
+                          <Text style={{ color: bakimTip === tip ? '#FFF' : '#1B4965', fontSize: 13 }}>{tip}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <Text style={s.inputBaslik}>Tarih *</Text>
+                    <TextInput style={s.inp} value={bakimTarih} onChangeText={setBakimTarih} placeholder="YYYY-AA-GG" />
+                    <Text style={s.inputBaslik}>Usta / Firma</Text>
+                    <TextInput style={s.inp} value={bakimUsta} onChangeText={setBakimUsta} placeholder="Usta adı..." />
+                    <Text style={s.inputBaslik}>Tutar</Text>
+                    <TextInput style={s.inp} value={bakimTutar} onChangeText={setBakimTutar} placeholder="500 TL..." keyboardType="numeric" />
+                    <Text style={s.inputBaslik}>Not</Text>
+                    <TextInput style={[s.inp, { minHeight: 60, textAlignVertical: 'top' }]} value={bakimNot} onChangeText={setBakimNot} placeholder="Notlar..." multiline />
+                    <TouchableOpacity
+                      style={[s.girisBtn, { marginTop: 8, opacity: bakimEkleniyor ? 0.6 : 1 }]}
+                      onPress={bakimKaydet} disabled={bakimEkleniyor}
+                    >
+                      <Text style={s.anaBtnY}>{bakimEkleniyor ? 'Kaydediliyor...' : '💾 KAYDET'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {bakimlar.length === 0 ? (
+                  <Text style={{ color: '#A3B1B9', textAlign: 'center', marginTop: 20 }}>Henüz işlem kaydı yok.</Text>
+                ) : (
+                  bakimlar.map(b => (
+                    <View key={b.id} style={{ backgroundColor: '#F0F4F8', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 14 }}>{b.tip}</Text>
+                        <TouchableOpacity onPress={() => bakimSil(b.id)}>
+                          <Text style={{ color: '#FF4444', fontSize: 16 }}>🗑️</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 4 }}>
+                        📅 {b.tarihStr || new Date(b.tarih).toLocaleDateString('tr-TR')}
+                      </Text>
+                      {b.usta ? <Text style={{ color: '#526E7F', fontSize: 12 }}>👤 {b.usta}</Text> : null}
+                      {b.tutar ? <Text style={{ color: '#526E7F', fontSize: 12 }}>💰 {b.tutar}</Text> : null}
+                      {b.not ? <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 4, fontStyle: 'italic' }}>"{b.not}"</Text> : null}
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ============================================================
+// HİZMET DÜZENLEME MODALİ
+// ============================================================
+function HizmetDuzenleModal({ gorunur, setGorunur, hizmet, kullanici, token, onKaydet, s }) {
+  const [isim, setIsim] = useState(hizmet.isim || '');
+  const [kategori, setKategori] = useState(hizmet.kategori || 'Su Tesisatı');
+  const [aciklama, setAciklama] = useState(hizmet.aciklama || '');
+  const [kaydediliyor, setKaydediliyor] = useState(false);
+  const kaydet = async () => {
+    if (!isim.trim()) { Alert.alert('Eksik', 'Hizmet adını girin!'); return; }
+    setKaydediliyor(true);
+    try {
+      await fetch(`${DB_URL}/evHizmetleri/${kullanici.uid}/${hizmet.id}.json?auth=${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isim: isim.trim(), kategori, aciklama: aciklama.trim() }),
+      });
+      setGorunur(false);
+      await onKaydet();
+    } catch (e) {
+      Alert.alert('Hata', 'Güncellenemedi!');
+    } finally {
+      setKaydediliyor(false);
+    }
+  };
+  return (
+    <Modal visible={gorunur} transparent animationType="slide">
+      <View style={s.modalOverlay}>
+        <View style={[s.modalKutu, { maxHeight: '90%' }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={s.modalBaslik}>Hizmeti Düzenle ✏️</Text>
+            <TouchableOpacity onPress={() => setGorunur(false)}>
+              <Text style={{ color: '#A3B1B9', fontSize: 22 }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={s.inputBaslik}>Hizmet Adı *</Text>
+            <TextInput style={s.inp} value={isim} onChangeText={setIsim} placeholder="Hizmet adı..." />
+            <Text style={s.inputBaslik}>Kategori</Text>
+            <View style={s.chipAlan}>
+              {HIZMET_KATEGORILER.map(k => (
+                <TouchableOpacity key={k.label} style={[s.chip, kategori === k.label && s.chipAktif]} onPress={() => setKategori(k.label)}>
+                  <Text style={[s.chipY, kategori === k.label && s.chipYAktif]}>{k.ikon} {k.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={s.inputBaslik}>Açıklama</Text>
+            <TextInput
+              style={[s.inp, { minHeight: 70, textAlignVertical: 'top' }]}
+              value={aciklama}
+              onChangeText={setAciklama}
+              placeholder="Açıklama..."
+              multiline
+            />
+            <TouchableOpacity
+              style={[s.girisBtn, { marginTop: 10, marginBottom: 20, opacity: kaydediliyor ? 0.6 : 1 }]}
+              onPress={kaydet} disabled={kaydediliyor}
+            >
+              <Text style={s.anaBtnY}>{kaydediliyor ? 'Kaydediliyor...' : '💾 GÜNCELLE'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
