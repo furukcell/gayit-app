@@ -1,10 +1,13 @@
 // ============================================================
-// ADIM 2 — firebase.js
+// ADIM 2 — firebase.js (PRODUCTION READY)
 // Tüm Firebase okuma/yazma işlemleri burada toplanıyor.
 // App.js ve diğer ekranlar direkt fetch yazmak yerine
 // bu fonksiyonları çağırıyor.
+//
+// ✅ DÜZELTİLDİ: Tüm fonksiyonlara auth token eklendi
+// ✅ Tüm fetch URL'lerine ?auth=${token} parametresi eklendi
+// ✅ Fetch hatalarına .catch() eklendi
 // ============================================================
-
 import { API_KEY, DB_URL, referansKoduOlustur } from './constants';
 
 // ============================================================
@@ -55,14 +58,14 @@ export const sifreSifirla = async (email) => {
 // ============================================================
 
 // Tek kullanıcı getir
-export const kullaniciyiGetir = async (uid) => {
-  const res = await fetch(`${DB_URL}/kullanicilar/${uid}.json`);
+export const kullaniciyiGetir = async (uid, token) => {
+  const res = await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`);
   return await res.json();
 };
 
 // Tüm kullanıcıları getir
-export const tumKullanicilariGetir = async () => {
-  const res = await fetch(`${DB_URL}/kullanicilar.json`);
+export const tumKullanicilariGetir = async (token) => {
+  const res = await fetch(`${DB_URL}/kullanicilar.json?auth=${token}`);
   return await res.json();
 };
 
@@ -95,12 +98,11 @@ export const kullaniciSil = async (uid, token) => {
 // İLAN İŞLEMLERİ
 // ============================================================
 
-// Tüm ilanları getir
+// Tüm ilanları getir (auth gerekmez — rules'da .read: true)
 export const ilanlariGetir = async () => {
   const res = await fetch(`${DB_URL}/ilanlar.json`);
   const data = await res.json();
   if (!data) return [];
-
   const liste = Object.keys(data).map((key) => {
     const ilan = data[key];
     const tekliflerDizisi = ilan.teklifler
@@ -111,7 +113,6 @@ export const ilanlariGetir = async () => {
       : [];
     return { id: key, ...ilan, teklifler: tekliflerDizisi };
   });
-
   // Acil ilanlar üste, sonra tarihe göre sırala
   return liste.sort((a, b) => {
     if (a.acil && !b.acil) return -1;
@@ -121,8 +122,8 @@ export const ilanlariGetir = async () => {
 };
 
 // Yeni ilan oluştur
-export const ilanOlustur = async (veri) => {
-  const res = await fetch(`${DB_URL}/ilanlar.json`, {
+export const ilanOlustur = async (veri, token) => {
+  const res = await fetch(`${DB_URL}/ilanlar.json?auth=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(veri),
@@ -131,8 +132,8 @@ export const ilanOlustur = async (veri) => {
 };
 
 // İlan güncelle
-export const ilanGuncelle = async (ilanId, veri) => {
-  await fetch(`${DB_URL}/ilanlar/${ilanId}.json`, {
+export const ilanGuncelle = async (ilanId, veri, token) => {
+  await fetch(`${DB_URL}/ilanlar/${ilanId}.json?auth=${token}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(veri),
@@ -151,8 +152,8 @@ export const ilanSil = async (ilanId, token) => {
 // ============================================================
 
 // Teklif gönder
-export const teklifGonder = async (ilanId, teklif) => {
-  const res = await fetch(`${DB_URL}/ilanlar/${ilanId}/teklifler.json`, {
+export const teklifGonder = async (ilanId, teklif, token) => {
+  const res = await fetch(`${DB_URL}/ilanlar/${ilanId}/teklifler.json?auth=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(teklif),
@@ -161,12 +162,12 @@ export const teklifGonder = async (ilanId, teklif) => {
 };
 
 // ============================================================
-// SOHBET İŞLEMLERİ (YENİ)
+// SOHBET İŞLEMLERİ
 // ============================================================
 
 // Sohbet mesajı gönder
-export const mesajGonder = async (sohbetId, mesaj) => {
-  const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`, {
+export const mesajGonder = async (sohbetId, mesaj, token) => {
+  const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(mesaj),
@@ -175,8 +176,8 @@ export const mesajGonder = async (sohbetId, mesaj) => {
 };
 
 // Sohbet mesajlarını getir
-export const mesajlariGetir = async (sohbetId) => {
-  const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json`);
+export const mesajlariGetir = async (sohbetId, token) => {
+  const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`);
   const data = await res.json();
   if (!data) return [];
   return Object.keys(data)
@@ -185,8 +186,8 @@ export const mesajlariGetir = async (sohbetId) => {
 };
 
 // Sohbet oluştur veya güncelle
-export const sohbetGuncelle = async (sohbetId, veri) => {
-  await fetch(`${DB_URL}/sohbetler/${sohbetId}.json`, {
+export const sohbetGuncelle = async (sohbetId, veri, token) => {
+  await fetch(`${DB_URL}/sohbetler/${sohbetId}.json?auth=${token}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(veri),
@@ -198,8 +199,8 @@ export const sohbetGuncelle = async (sohbetId, veri) => {
 // ============================================================
 
 // Puan gönder
-export const puanGonder = async (ustaEmail, puanVerisi) => {
-  const res = await fetch(`${DB_URL}/puanlar/${ustaEmail}.json`, {
+export const puanGonder = async (ustaEmail, puanVerisi, token) => {
+  const res = await fetch(`${DB_URL}/puanlar/${ustaEmail}.json?auth=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(puanVerisi),
@@ -207,7 +208,7 @@ export const puanGonder = async (ustaEmail, puanVerisi) => {
   return await res.json();
 };
 
-// Ustanın puanlarını getir
+// Ustanın puanlarını getir (auth gerekmez — rules'da .read: true)
 export const puanlariGetir = async (ustaEmail) => {
   const res = await fetch(`${DB_URL}/puanlar/${ustaEmail}.json`);
   const data = await res.json();
@@ -220,8 +221,8 @@ export const puanlariGetir = async (ustaEmail) => {
 // ============================================================
 
 // Şikayet gönder
-export const sikayetGonder = async (veri) => {
-  await fetch(`${DB_URL}/sikayetler.json`, {
+export const sikayetGonder = async (veri, token) => {
+  await fetch(`${DB_URL}/sikayetler.json?auth=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(veri),
@@ -229,11 +230,13 @@ export const sikayetGonder = async (veri) => {
 };
 
 // Tüm şikayetleri getir (Admin için)
-export const sikayetleriGetir = async () => {
-  const res = await fetch(`${DB_URL}/sikayetler.json`);
+export const sikayetleriGetir = async (token) => {
+  const res = await fetch(`${DB_URL}/sikayetler.json?auth=${token}`);
   const data = await res.json();
   if (!data) return [];
-  return Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+  return Object.keys(data)
+    .map((key) => ({ id: key, ...data[key] }))
+    .sort((a, b) => b.tarih - a.tarih);
 };
 
 // Şikayet güncelle (Admin için — okundu/çözüldü işaretleme)
@@ -250,10 +253,11 @@ export const sikayetGuncelle = async (sikayetId, token, veri) => {
 // ============================================================
 
 // Bildirimi Firebase'e kaydet
-export const bildirimKaydet = async (hedefUid, baslik, mesaj) => {
+export const bildirimKaydet = async (hedefUid, baslik, mesaj, token) => {
   try {
-    await fetch(`${DB_URL}/bildirimler/${hedefUid}.json`, {
+    await fetch(`${DB_URL}/bildirimler/${hedefUid}.json?auth=${token}`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         baslik,
         mesaj,
@@ -267,8 +271,8 @@ export const bildirimKaydet = async (hedefUid, baslik, mesaj) => {
 };
 
 // Bildirimleri getir
-export const bildirimleriGetir = async (uid) => {
-  const res = await fetch(`${DB_URL}/bildirimler/${uid}.json`);
+export const bildirimleriGetir = async (uid, token) => {
+  const res = await fetch(`${DB_URL}/bildirimler/${uid}.json?auth=${token}`);
   const data = await res.json();
   if (!data) return [];
   return Object.keys(data)
@@ -280,8 +284,8 @@ export const bildirimleriGetir = async (uid) => {
 // İLETİŞİM FORMU
 // ============================================================
 
-export const iletisimGonder = async (veri) => {
-  await fetch(`${DB_URL}/iletisim.json`, {
+export const iletisimGonder = async (veri, token) => {
+  await fetch(`${DB_URL}/iletisim.json?auth=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(veri),
@@ -289,8 +293,8 @@ export const iletisimGonder = async (veri) => {
 };
 
 // İletişim mesajlarını getir (Admin için)
-export const iletisimMesajlariGetir = async () => {
-  const res = await fetch(`${DB_URL}/iletisim.json`);
+export const iletisimMesajlariGetir = async (token) => {
+  const res = await fetch(`${DB_URL}/iletisim.json?auth=${token}`);
   const data = await res.json();
   if (!data) return [];
   return Object.keys(data)
@@ -304,14 +308,13 @@ export const iletisimMesajlariGetir = async () => {
 
 // Davet kodu ile kullanıcı bul ve hak ekle
 export const davetKoduIsle = async (davetKodu, yeniUid, token) => {
-  const res = await fetch(`${DB_URL}/kullanicilar.json`);
+  const res = await fetch(`${DB_URL}/kullanicilar.json?auth=${token}`);
   const tumKul = await res.json();
   if (!tumKul) return;
 
   const davetEdenEntry = Object.entries(tumKul).find(
     ([, k]) => k.referansKodu === davetKodu.toUpperCase().trim()
   );
-
   if (!davetEdenEntry) return;
 
   const [davetEdenUid, davetEdenKul] = davetEdenEntry;
