@@ -157,7 +157,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           meslek: rol === 'usta' ? anaBrans : null,
           anaBrans: rol === 'usta' ? anaBrans : null,
           yanBranslar: rol === 'usta' ? yanBranslar : [],
-          hak: rol === 'usta' ? 3 : 1,
+          hak: 0,
           abonelik: false,
           yeniKullaniciHakki: 3,
           kayitTarihi: Date.now(),
