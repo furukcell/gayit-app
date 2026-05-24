@@ -20,6 +20,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
+import { dogrulamaMailiGonder } from '../firebase';
 
 // Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
@@ -276,6 +277,12 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         }
 
         setKullanici({ ...yeniKul, uid: data.localId });
+        try {
+        await dogrulamaMailiGonder(data.idToken);
+        Alert.alert('📧 Mail Doğrulama', 'Kayıt başarılı! E-posta adresine doğrulama linki gönderdik. Linke tıklayıp hesabını doğrula.');
+        } catch (e) {
+        console.log('Doğrulama maili gönderilemedi:', e);
+        }
 
       } else {
         // GİRİŞ
@@ -329,6 +336,19 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             davetSayisi: kulData.davetSayisi || 0,
             bolge: kulData.bolge || 'Belirtilmemiş',
           });
+          const accountRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: data.idToken }) }
+        );
+        const accountData = await accountRes.json();
+        if (!accountData?.users?.[0]?.emailVerified) {
+        Alert.alert('📧 Mail Doğrulanmadı', 'E-posta adresini henüz doğrulamadın. Mailine gelen linke tıkla.',
+       [
+        { text: 'Tekrar Gönder', onPress: async () => { await dogrulamaMailiGonder(data.idToken); Alert.alert('Gönderildi ✅', 'Doğrulama maili tekrar gönderildi!'); }},
+        { text: 'Tamam' }
+       ]
+     );
+      }
         }
       }
       setEkran('anasayfa');
