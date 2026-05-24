@@ -52,6 +52,18 @@ export const sifreSifirla = async (email) => {
   );
   return await res.json();
 };
+// Mail doğrulama gönder
+export const dogrulamaMailiGonder = async (idToken) => {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken }),
+    }
+  );
+  return await res.json();
+};
 
 // ============================================================
 // KULLANICI İŞLEMLERİ
