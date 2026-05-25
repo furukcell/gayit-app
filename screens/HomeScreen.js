@@ -199,7 +199,7 @@ export function SolMenu({
                     )}
                     {ekstraHakVar && (
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Kupon / Davet Hakkı</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎫 Kullanılabilir Hak</Text>
                         <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{hak}</Text>
                       </View>
                     )}
