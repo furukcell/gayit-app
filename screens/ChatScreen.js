@@ -452,7 +452,6 @@ export function SohbetEkrani({
             />
           }
           contentContainerStyle={{ padding: 15, paddingBottom: 10 }}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
             !yukleniyor ? (
               <View style={{ alignItems: 'center', marginTop: 40 }}>
