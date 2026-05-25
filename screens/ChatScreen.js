@@ -510,7 +510,7 @@ export function SohbetEkrani({
         />
 
         {/* İŞ TAMAMLANDI BUTONU */}
-        {anlasmaSaglandi && !sohbetKilitli && (
+       {anlasmaSaglandi && !sohbetKilitli && rol === 'musteri' && (
           <TouchableOpacity
             style={{ backgroundColor: '#588157', margin: 10, padding: 12, borderRadius: 12, alignItems: 'center' }}
             onPress={anlasmayiTamamla}
