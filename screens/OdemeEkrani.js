@@ -31,7 +31,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     if (token && kullanici?.uid) {
       await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify(guncellemeler),
       }).catch(e => console.log('Kullanıcı güncelleme hatası:', e));
     }
@@ -89,7 +89,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       if (abonelikDegeri) {
         const res = await fetch(`https://us-central1-usta-mugla.cloudfunctions.net/restoreAbonelik`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ data: { abonelikDegeri } }),
         });
         const json = await res.json();
@@ -112,7 +112,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     try {
       const res = await fetch(`https://us-central1-usta-mugla.cloudfunctions.net/kuponUygula`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ data: { kuponKod, rol } }),
       });
       const json = await res.json();
@@ -140,7 +140,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
     try {
       const res = await fetch(`https://us-central1-usta-mugla.cloudfunctions.net/odemeHakVer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ data: { paketTipi, rol } }),
       });
       const json = await res.json();
