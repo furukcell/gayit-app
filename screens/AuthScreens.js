@@ -335,7 +335,13 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             referansKodu: kulData.referansKodu || referansKoduOlustur(),
             davetSayisi: kulData.davetSayisi || 0,
             bolge: kulData.bolge || 'Belirtilmemiş',
-          });
+      });
+       
+         if (kulData.rol !== rol) {
+         Alert.alert('Hata', `Bu hesap bir ${kulData.rol === 'usta' ? 'usta' : 'müşteri'} hesabı. Lütfen doğru girişten girin.`);
+         setYukleniyor(false);
+         return;
+      }
           setRol(kulData.rol);
           const accountRes = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
