@@ -17,7 +17,7 @@ import * as Location from 'expo-location';
 import { DB_URL, API_KEY } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, onValue } from 'firebase/database';
+import { getDatabase, ref, onValue, query, limitToLast } from 'firebase/database';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UstaIstatistikModali from './UstaIstatistikModali';
 
@@ -86,7 +86,10 @@ export function SohbetEkrani({
       return;
     }
     setYukleniyor(true);
-    const mesajRef = ref(db, `sohbetler/${sohbetId}/mesajlar`);
+    const mesajRef = query(
+    ref(db, `sohbetler/${sohbetId}/mesajlar`),
+    limitToLast(50)
+  );
 
     const unsubscribe = onValue(mesajRef, (snapshot) => {
       const data = snapshot.val();
@@ -99,18 +102,17 @@ export function SohbetEkrani({
         setMesajlar(liste);
 
         // Okundu işaretleme — güvenli şekilde
-        const okunacaklar = liste.filter(
-          m => m.gonderen !== kullanici?.uid && m.durum !== 'okundu'
-        );
-        if (okunacaklar.length > 0 && token) {
-          okunacaklar.forEach(m => {
-            fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar/${m.id}.json?auth=${token}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ durum: 'okundu' }),
-            }).catch(() => {});
-          });
-        }
+       if (okunacaklar.length > 0 && token) {
+  const topluGuncelleme = {};
+  okunacaklar.forEach(m => {
+    topluGuncelleme[`sohbetler/${sohbetId}/mesajlar/${m.id}/durum`] = 'okundu';
+  });
+  fetch(`${DB_URL}/.json?auth=${token}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(topluGuncelleme),
+  }).catch(() => {});
+}
 
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       } else {
