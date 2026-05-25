@@ -87,10 +87,17 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         abonelikDegeri = 'premium';
       }
       if (abonelikDegeri) {
-        const otuzGunSonra = Date.now() + 2592000000;
-        await guncelKullaniciKaydet({ abonelik: abonelikDegeri, abonelikBitis: otuzGunSonra });
-        Alert.alert('Başarılı ✅', 'Aboneliğin geri yüklendi!');
-        setEkran('anasayfa');
+        const res = await fetch(`https://us-central1-usta-mugla.cloudfunctions.net/restoreAbonelik`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { abonelikDegeri } }),
+        });
+        const json = await res.json();
+        if (!json.error) {
+          setKullanici(prev => ({ ...prev, abonelik: abonelikDegeri }));
+          Alert.alert('Başarılı ✅', 'Aboneliğin geri yüklendi!');
+          setEkran('anasayfa');
+        }
       }
     } catch (e) {
       Alert.alert('Hata', 'Geri yükleme başarısız: ' + (e.message || 'Bilinmeyen hata'));
@@ -103,89 +110,24 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   const kuponUygula = async () => {
     if (!kuponKod.trim()) return;
     try {
-      const res = await fetch(`${DB_URL}/kuponlar.json?auth=${token}`);
-      const data = await res.json();
-      if (!data) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz kupon kodu.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      const kuponEntry = Object.entries(data).find(
-        ([, k]) => k.ad === kuponKod.trim().toUpperCase() && k.aktif
-      );
-      if (!kuponEntry) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Geçersiz veya pasif kupon kodu.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-      const [kuponId, kupon] = kuponEntry;
-
-      if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun süresi dolmuş.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-
-      const kullanilanAdet = kupon.kullanilanAdet ?? 0;
-      if (kupon.adet && kullanilanAdet >= kupon.adet) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponun kullanım hakkı dolmuş.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-
-      if (kupon.hedef && kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
-        setKuponMesaj({
-          tip: 'hata',
-          metin: `❌ Bu kupon sadece ${kupon.hedef === 'usta' ? 'ustalar' : 'müşteriler'} için geçerli.`,
-        });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-
-      if (kupon.kullananlar && kupon.kullananlar[kullanici.uid]) {
-        setKuponMesaj({ tip: 'hata', metin: '❌ Bu kuponu daha önce kullandın.' });
-        setTimeout(() => setKuponMesaj(null), 2500);
-        return;
-      }
-
-      // ── Promosyon / Hediye Abonelik Kodu ──────────────────
-      if (kupon.tip === 'hediye_abonelik' || kupon.tip === 'promosyon') {
-        const sure = kupon.sure || (kupon.ay * 30 * 24 * 60 * 60 * 1000);
-        const bitis = Date.now() + sure;
-        const abonelikDegeri = kupon.paket || 'premium';
-        await guncelKullaniciKaydet({ abonelik: abonelikDegeri, abonelikBitis: bitis });
-
-        await fetch(`${DB_URL}/kuponlar/${kuponId}.json?auth=${token}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            kullanilanAdet: kullanilanAdet + 1,
-            [`kullananlar/${kullanici.uid}`]: true,
-          }),
-        }).catch(() => {});
-
-        setKuponMesaj({
-          tip: 'basarili',
-          metin: `🎉 ${abonelikDegeri === 'vip' ? 'VIP' : 'Premium'} aboneliğin (${kupon.ay || 'belirtilen süre'}) aktifleştirildi!`,
-        });
-        setTimeout(() => setEkran('anasayfa'), 2000);
-        return;
-      }
-
-      // ── Normal Kupon (hak ekleme) ─────────────────────────
-      const yeniHak = (kullanici?.hak || 0) + (kupon.icerik || 1);
-      await guncelKullaniciKaydet({ hak: yeniHak });
-
-      await fetch(`${DB_URL}/kuponlar/${kuponId}.json?auth=${token}`, {
-        method: 'PATCH',
+      const res = await fetch(`https://us-central1-usta-mugla.cloudfunctions.net/kuponUygula`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kullanilanAdet: kullanilanAdet + 1,
-          [`kullananlar/${kullanici.uid}`]: true,
-        }),
-      }).catch(() => {});
-
-      setKuponMesaj({ tip: 'basarili', metin: `🎉 Kupon uygulandı! ${kupon.icerik} hak eklendi.` });
+        body: JSON.stringify({ data: { kuponKod, rol } }),
+      });
+      const json = await res.json();
+      if (json.error) {
+        setKuponMesaj({ tip: 'hata', metin: `❌ ${json.error.message || 'Geçersiz kupon kodu.'}` });
+        setTimeout(() => setKuponMesaj(null), 2500);
+        return;
+      }
+      const { tip, mesaj, hak, abonelik } = json.result;
+      if (tip === 'abonelik') {
+        setKullanici(prev => ({ ...prev, abonelik }));
+      } else {
+        setKullanici(prev => ({ ...prev, hak }));
+      }
+      setKuponMesaj({ tip: 'basarili', metin: `🎉 ${mesaj}` });
       setTimeout(() => setEkran('anasayfa'), 2000);
     } catch (e) {
       setKuponMesaj({ tip: 'hata', metin: '❌ Bağlantı hatası, tekrar dene.' });
@@ -195,56 +137,24 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
 
   // ── Paket satın al (RevenueCat onayı sonrası) ─────────────
   const paketSatinAl = async (paketTipi, customerInfo) => {
-    let yeniHak = kullanici?.hak || 0;
-    let yeniAcilHak = kullanici?.acilHak || 0;
-    let abonelikDegeri = null;
-    let otuzGunSonra = null;
-    let mesaj = '';
-
-    if (rol === 'usta') {
-      if (paketTipi === 'baslangic') {
-        yeniHak += 3;
-        mesaj = '3 adet teklif verme hakkı tanımlandı!';
-      } else if (paketTipi === 'premium') {
-        yeniHak += 30;
-        abonelikDegeri = 'premium';
-        otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'Aylık 30 teklif hakkı ve Premium aboneliğiniz aktifleştirildi!';
-      } else if (paketTipi === 'vip') {
-        abonelikDegeri = 'vip';
-        otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'Aylık VIP (Sınırsız Teklif) aboneliğiniz aktifleştirildi!';
+    try {
+      const res = await fetch(`https://us-central1-usta-mugla.cloudfunctions.net/odemeHakVer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { paketTipi, rol } }),
+      });
+      const json = await res.json();
+      if (json.error) {
+        Alert.alert('Hata', json.error.message || 'Bir sorun oluştu.');
+        return;
       }
-    } else {
-      if (paketTipi === 'tekli') {
-        yeniHak += 1;
-        mesaj = '1 adet ilan verme hakkı tanımlandı!';
-      } else if (paketTipi === 'acil') {
-        yeniAcilHak += 1;
-        mesaj = '1 adet ACİL ilan hakkınız tanımlandı!';
-      } else if (paketTipi === 'premium') {
-        yeniHak += 10;
-        yeniAcilHak += 2;
-        abonelikDegeri = 'premium';
-        otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'Premium paket (10 İlan + 2 Acil) aktifleştirildi!';
-      } else if (paketTipi === 'vip') {
-        yeniHak += 999;
-        yeniAcilHak += 4;
-        abonelikDegeri = 'vip';
-        otuzGunSonra = Date.now() + 2592000000;
-        mesaj = 'VIP paket (Sınırsız İlan + 4 Acil) aktifleştirildi!';
-      }
+      const { mesaj, hak, acilHak, abonelik } = json.result;
+      setKullanici(prev => ({ ...prev, hak, acilHak, ...(abonelik && { abonelik }) }));
+      Alert.alert('Başarılı! ✅', mesaj);
+      setEkran('anasayfa');
+    } catch (e) {
+      Alert.alert('Hata', e.message || 'Bir sorun oluştu.');
     }
-
-    const guncelleme = { hak: yeniHak, acilHak: yeniAcilHak };
-    if (abonelikDegeri) {
-      guncelleme.abonelik = abonelikDegeri;
-      guncelleme.abonelikBitis = otuzGunSonra;
-    }
-    await guncelKullaniciKaydet(guncelleme);
-    Alert.alert('Başarılı! ✅', mesaj);
-    setEkran('anasayfa');
   };
 
   // ── Abonelik iptal ────────────────────────────────────────
