@@ -42,8 +42,8 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
 
     try {
       // 1. Puanı puanlar koleksiyonuna kaydet
-      await fetch(`${DB_URL}/puanlar/${emaildenKey(ustaEmail)}.json?auth=${token}`, {
-        method: 'POST',
+        await fetch(`${DB_URL}/puanlar/${ustaUid}/${kullanici.uid}.json?auth=${token}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           puan: secilenPuan,
@@ -58,7 +58,7 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
       // 2. Ustanın mevcut puanlarını çek, ortalama hesapla, kullanicilar tablosunu güncelle
       if (ustaUid) {
         try {
-          const puanRes = await fetch(`${DB_URL}/puanlar/${emaildenKey(ustaEmail)}.json?auth=${token}`);
+          const puanRes = await fetch(`${DB_URL}/puanlar/${ustaUid}.json?auth=${token}`);
           const puanData = await puanRes.json();
           if (puanData) {
             const tumPuanlar = Object.values(puanData);
