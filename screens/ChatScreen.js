@@ -86,6 +86,15 @@ export function SohbetEkrani({
       return;
     }
     setYukleniyor(true);
+    // Katilimcilari hemen yaz
+    fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+    musteriUid: secilenIlan?.sahipUid,
+    ustaUid: ustaUid,
+  }),
+  }).catch(() => {});
     const mesajRef = query(
     ref(db, `sohbetler/${sohbetId}/mesajlar`),
     limitToLast(50)
