@@ -211,9 +211,9 @@ export const sohbetGuncelle = async (sohbetId, veri, token) => {
 // ============================================================
 
 // Puan gönder
-export const puanGonder = async (ustaEmail, puanVerisi, token) => {
-  const res = await fetch(`${DB_URL}/puanlar/${ustaEmail}.json?auth=${token}`, {
-    method: 'POST',
+  export const puanGonder = async (ustaUid, musteriUid, puanVerisi, token) => {
+  const res = await fetch(`${DB_URL}/puanlar/${ustaUid}/${musteriUid}.json?auth=${token}`, {
+  method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(puanVerisi),
   });
@@ -221,8 +221,8 @@ export const puanGonder = async (ustaEmail, puanVerisi, token) => {
 };
 
 // Ustanın puanlarını getir (auth gerekmez — rules'da .read: true)
-export const puanlariGetir = async (ustaEmail) => {
-  const res = await fetch(`${DB_URL}/puanlar/${ustaEmail}.json`);
+  export const puanlariGetir = async (ustaUid) => {
+  const res = await fetch(`${DB_URL}/puanlar/${ustaUid}.json`);
   const data = await res.json();
   if (!data) return [];
   return Object.keys(data).map((key) => ({ id: key, ...data[key] }));
