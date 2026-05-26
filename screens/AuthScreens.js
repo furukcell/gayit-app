@@ -279,7 +279,13 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         setKullanici({ ...yeniKul, uid: data.localId });
         try {
         await dogrulamaMailiGonder(data.idToken);
-        Alert.alert('📧 Mail Doğrulama', 'Kayıt başarılı! E-posta adresine doğrulama linki gönderdik. Linke tıklayıp hesabını doğrula.');
+        Alert.alert(
+       '📧 Mail Doğrulama',
+       'Kayıt başarılı! E-posta adresinize bir doğrulama linki gönderdik. Doğruladıktan sonra giriş yapın.',
+       [{ text: 'Tamam', onPress: () => setEkran('karsilama') }]
+     );
+       setYukleniyor(false);
+       return;
         } catch (e) {
         console.log('Doğrulama maili gönderilemedi:', e);
         }
