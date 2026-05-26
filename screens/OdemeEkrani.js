@@ -123,7 +123,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
       }
       const { tip, mesaj, hak, abonelik } = json.result;
       if (tip === 'abonelik') {
-        setKullanici(prev => ({ ...prev, abonelik }));
+      setKullanici(prev => ({ ...prev, abonelik, abonelikBitis: Date.now() + 2592000000 }));
       } else {
         setKullanici(prev => ({ ...prev, hak }));
       }
@@ -149,7 +149,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
         return;
       }
       const { mesaj, hak, acilHak, abonelik } = json.result;
-      setKullanici(prev => ({ ...prev, hak, acilHak, ...(abonelik && { abonelik }) }));
+      setKullanici(prev => ({ ...prev, hak, acilHak, ...(abonelik && { abonelik, abonelikBitis: Date.now() + 2592000000 }) }));
       Alert.alert('Başarılı! ✅', mesaj);
       setEkran('anasayfa');
     } catch (e) {
