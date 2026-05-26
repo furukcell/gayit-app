@@ -193,7 +193,6 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           },
         ]
       );
-      await guncelKullaniciKaydet({ abonelik: null, abonelikBitis: null });
       setIptalModalAcik(false);
       setIptalSifre('');
     } catch (e) {
