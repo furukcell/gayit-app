@@ -7,6 +7,7 @@
 // ✅ DÜZELTİLDİ: Ustaları eşleştirme tutarsızlığı (ustaId + ustaUid)
 // ✅ İYİLEŞTİRME: Email kontrolü eklendi (puanlar yüklenirken crash önleme)
 // ✅ DOĞRULANDI: Firebase token/Auth akışı güvenli
+// ✅ GÜNCELLENDİ: Ustalık belgesi yerine seçenekli ek belge sistemi
 // ============================================================
 import { useState, useEffect } from 'react';
 import {
@@ -65,7 +66,14 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
   const [kaydedildi, setKaydedildi] = useState(false);
   const [belgeYukleniyor, setBelgeYukleniyor] = useState(false);
   const [kimlikUrl, setKimlikUrl] = useState(kullanici?.kimlikUrl || null);
-  const [ustaBelgeUrl, setUstaBelgeUrl] = useState(kullanici?.ustaBelgeUrl || null);
+  const [ekBelgeUrl, setEkBelgeUrl] = useState(kullanici?.ekBelgeUrl || null);
+  const [ekBelgeTip, setEkBelgeTip] = useState(kullanici?.ekBelgeTip || null);
+
+  const EK_BELGE_SECENEKLERI = [
+    { key: 'ustalıkBelgesi', label: 'Ustalık Belgesi', ikon: '🔧' },
+    { key: 'vergiLevhasi', label: 'Vergi Levhası', ikon: '📊' },
+    { key: 'esnafSicil', label: 'Esnaf Sicil Belgesi', ikon: '🏪' },
+  ];
 
   useEffect(() => {
     if (rol === 'usta' && kullanici?.email) puanlariYukle();
@@ -92,7 +100,6 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
         .map(key => ({ id: key, ...data[key] }))
         .filter(ilan => {
           if (rol === 'usta') {
-            // ✅ DÜZELTİLDİ: Hem eski email hem yeni UID ile eşleştirme
             return ilan.anlasmaVar && (ilan.anlasilanUsta?.ustaId === kullanici?.email || ilan.anlasilanUsta?.ustaUid === kullanici?.uid);
           } else {
             return ilan.anlasmaVar && ilan.sahip === kullanici?.email;
@@ -107,7 +114,6 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
     ? (puanlar.reduce((t, p) => t + p.puan, 0) / puanlar.length).toFixed(1)
     : null;
 
-  // ✅ DÜZELTİLDİ: Stale closure önlemek için functional update
   const bilgileriKaydet = async () => {
     const up = { telefon: profilTel };
     setKullanici(prev => ({ ...prev, ...up }));
@@ -151,17 +157,25 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
       const uploadData = await uploadRes.json();
       const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(dosyaAdi)}?alt=media&token=${uploadData.downloadTokens}`;
 
-      const guncelVeri = tip === 'kimlik' ? { kimlikUrl: downloadUrl } : { ustaBelgeUrl: downloadUrl };
+      let guncelVeri;
+      if (tip === 'kimlik') {
+        guncelVeri = { kimlikUrl: downloadUrl };
+        setKimlikUrl(downloadUrl);
+      } else {
+        guncelVeri = { ekBelgeUrl: downloadUrl, ekBelgeTip: ekBelgeTip };
+        setEkBelgeUrl(downloadUrl);
+      }
+
       await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(guncelVeri),
       });
 
-      if (tip === 'kimlik') setKimlikUrl(downloadUrl);
-      else setUstaBelgeUrl(downloadUrl);
       setKullanici(prev => ({ ...prev, ...guncelVeri }));
-      Alert.alert('Yüklendi! ✅', `${tip === 'kimlik' ? 'Kimlik' : 'Ustalık belgesi'} yüklendi.`);
+
+      const belgeAdi = tip === 'kimlik' ? 'Kimlik fotoğrafı' : EK_BELGE_SECENEKLERI.find(b => b.key === ekBelgeTip)?.label || 'Belge';
+      Alert.alert('Yüklendi! ✅', `${belgeAdi} yüklendi.`);
     } catch (e) {
       console.log('Belge yükleme hatası:', e);
       Alert.alert('Hata', 'Belge yüklenemedi gari!');
@@ -169,17 +183,17 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
   };
 
   const onayBasvur = async () => {
-    if (!kimlikUrl || !ustaBelgeUrl) {
-      Alert.alert('Eksik Belge', 'Başvuru yapmadan önce hem kimlik hem ustalık belgeni yüklemelisin usta!');
+    if (!kimlikUrl || !ekBelgeUrl) {
+      Alert.alert('Eksik Belge', 'Başvuru yapmadan önce hem kimlik hem ek belgeyi yüklemelisin usta!');
       return;
     }
     try {
       await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onayDurumu: 'beklemede', kimlikUrl, ustaBelgeUrl, basvuruTarihi: Date.now() }),
+        body: JSON.stringify({ onayDurumu: 'beklemede', kimlikUrl, ekBelgeUrl, ekBelgeTip, basvuruTarihi: Date.now() }),
       });
-      setKullanici(prev => ({ ...prev, onayDurumu: 'beklemede', kimlikUrl, ustaBelgeUrl }));
+      setKullanici(prev => ({ ...prev, onayDurumu: 'beklemede', kimlikUrl, ekBelgeUrl, ekBelgeTip }));
       Alert.alert('Başvuru Alındı! ✅', 'Belgeler admin paneline iletildi. En kısa sürede incelenecek usta!');
     } catch (e) { Alert.alert('Hata', 'Başvuru gönderilemedi!'); }
   };
@@ -235,34 +249,107 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
 
             {rol === 'usta' && kullanici?.onayDurumu !== 'onayli' && (
               <View style={{ padding: 15, backgroundColor: '#FFF', borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#00a2ed', borderStyle: 'dashed' }}>
-                <Text style={{ fontWeight: 'bold', color: '#1B4965' }}>Onaylı Usta Rozeti Al</Text>
-                <Text style={{ fontSize: 11, color: '#526E7F', marginTop: 4, marginBottom: 12 }}>Kimlik ve ustalık belgesini yükle, admin onaylasın.</Text>
+                <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 15 }}>Onaylı Usta Rozeti Al</Text>
+                <Text style={{ fontSize: 11, color: '#526E7F', marginTop: 4, marginBottom: 12 }}>
+                  Kimliğini ve aşağıdaki belgelerden birini yükle, admin onaylasın.
+                </Text>
 
-                <TouchableOpacity style={{ backgroundColor: kimlikUrl ? '#E8F5E9' : '#F5F5F0', borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: kimlikUrl ? '#588157' : '#D1D9E0', flexDirection: 'row', alignItems: 'center' }} onPress={() => belgeYukle('kimlik')} disabled={belgeYukleniyor}>
-                  <Text style={{ fontSize: 20, marginRight: 10 }}>{kimlikUrl ? '✅' : '📷'}</Text>
+                {/* KİMLİK FOTOĞRAFI */}
+                <TouchableOpacity
+                  style={{ backgroundColor: kimlikUrl ? '#E8F5E9' : '#F5F5F0', borderRadius: 10, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: kimlikUrl ? '#588157' : '#D1D9E0', flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => belgeYukle('kimlik')}
+                  disabled={belgeYukleniyor}
+                >
+                  <Text style={{ fontSize: 20, marginRight: 10 }}>{kimlikUrl ? '✅' : '🪪'}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 13 }}>Kimlik Fotoğrafı</Text>
-                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{kimlikUrl ? 'Yüklendi ✓' : 'Fotoğraf seç'}</Text>
+                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{kimlikUrl ? 'Yüklendi ✓' : 'Zorunlu — fotoğraf seç'}</Text>
                   </View>
                   {belgeYukleniyor && <ActivityIndicator size="small" color="#1B4965" />}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={{ backgroundColor: ustaBelgeUrl ? '#E8F5E9' : '#F5F5F0', borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: ustaBelgeUrl ? '#588157' : '#D1D9E0', flexDirection: 'row', alignItems: 'center' }} onPress={() => belgeYukle('ustaBelge')} disabled={belgeYukleniyor}>
-                  <Text style={{ fontSize: 20, marginRight: 10 }}>{ustaBelgeUrl ? '✅' : '📄'}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 13 }}>Ustalık Belgesi</Text>
-                    <Text style={{ color: '#A3B1B9', fontSize: 11 }}>{ustaBelgeUrl ? 'Yüklendi ✓' : 'Fotoğraf seç'}</Text>
-                  </View>
-                  {belgeYukleniyor && <ActivityIndicator size="small" color="#1B4965" />}
-                </TouchableOpacity>
+                {/* EK BELGE TİPİ SEÇ */}
+                <Text style={{ fontSize: 12, color: '#526E7F', marginBottom: 8, fontWeight: 'bold' }}>
+                  Ek Belge Seç (birini seçmen yeterli):
+                </Text>
+                {EK_BELGE_SECENEKLERI.map(secenek => (
+                  <TouchableOpacity
+                    key={secenek.key}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                      padding: 10,
+                      backgroundColor: ekBelgeTip === secenek.key ? '#E1F2FE' : '#F5F5F0',
+                      borderRadius: 8,
+                      borderWidth: 1.5,
+                      borderColor: ekBelgeTip === secenek.key ? '#00a2ed' : '#D1D9E0',
+                    }}
+                    onPress={() => {
+                      setEkBelgeTip(secenek.key);
+                      setEkBelgeUrl(null); // farklı tip seçince önceki url sıfırla
+                    }}
+                  >
+                    <Text style={{ fontSize: 18, marginRight: 10 }}>{secenek.ikon}</Text>
+                    <Text style={{ color: '#1B4965', fontSize: 13, fontWeight: ekBelgeTip === secenek.key ? 'bold' : 'normal' }}>
+                      {secenek.label}
+                    </Text>
+                    {ekBelgeTip === secenek.key && (
+                      <Text style={{ marginLeft: 'auto', color: '#00a2ed', fontWeight: 'bold' }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
 
+                {/* SEÇİLEN BELGEYİ YÜKLE */}
+                {ekBelgeTip && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: ekBelgeUrl ? '#E8F5E9' : '#F5F5F0',
+                      borderRadius: 10,
+                      padding: 12,
+                      marginTop: 6,
+                      marginBottom: 12,
+                      borderWidth: 1,
+                      borderColor: ekBelgeUrl ? '#588157' : '#D1D9E0',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => belgeYukle('ekBelge')}
+                    disabled={belgeYukleniyor}
+                  >
+                    <Text style={{ fontSize: 20, marginRight: 10 }}>{ekBelgeUrl ? '✅' : '📄'}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 13 }}>
+                        {EK_BELGE_SECENEKLERI.find(b => b.key === ekBelgeTip)?.label} Yükle
+                      </Text>
+                      <Text style={{ color: '#A3B1B9', fontSize: 11 }}>
+                        {ekBelgeUrl ? 'Yüklendi ✓' : 'Fotoğraf seç'}
+                      </Text>
+                    </View>
+                    {belgeYukleniyor && <ActivityIndicator size="small" color="#1B4965" />}
+                  </TouchableOpacity>
+                )}
+
+                {/* DURUM / GÖNDER */}
                 {kullanici?.onayDurumu === 'beklemede' ? (
                   <View style={{ padding: 10, backgroundColor: '#FFF8E1', borderRadius: 8 }}>
                     <Text style={{ color: '#F39C12', fontSize: 12, textAlign: 'center', fontWeight: 'bold' }}>⌛ Belgeler İncelemede...</Text>
                   </View>
-                ) : (
-                  <TouchableOpacity style={{ backgroundColor: (kimlikUrl && ustaBelgeUrl) ? '#00a2ed' : '#D1D9E0', padding: 12, borderRadius: 8 }} onPress={onayBasvur} disabled={!kimlikUrl || !ustaBelgeUrl}>
-                    <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>{(kimlikUrl && ustaBelgeUrl) ? '📤 BAŞVURUYU GÖNDER' : 'Önce belgeleri yükle'}</Text>
+                ) : kullanici?.onayDurumu === 'reddedildi' ? (
+                  <View style={{ padding: 10, backgroundColor: '#FFEBEE', borderRadius: 8, marginBottom: 10 }}>
+                    <Text style={{ color: '#E53935', fontSize: 12, textAlign: 'center', fontWeight: 'bold' }}>❌ Başvuru Reddedildi — Belgelerini tekrar yükleyebilirsin.</Text>
+                  </View>
+                ) : null}
+
+                {kullanici?.onayDurumu !== 'beklemede' && (
+                  <TouchableOpacity
+                    style={{ backgroundColor: (kimlikUrl && ekBelgeUrl) ? '#00a2ed' : '#D1D9E0', padding: 12, borderRadius: 8, marginTop: 4 }}
+                    onPress={onayBasvur}
+                    disabled={!kimlikUrl || !ekBelgeUrl}
+                  >
+                    <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>
+                      {(kimlikUrl && ekBelgeUrl) ? '📤 BAŞVURUYU GÖNDER' : 'Önce belgeleri yükle'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
