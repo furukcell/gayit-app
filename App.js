@@ -406,6 +406,7 @@ export default function App() {
       const istData = await istRes.json();
 
       const kulRes = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
+      if (kulRes.status === 401) return;
       const data = await kulRes.json();
 
       const bolgeUsta = {};
@@ -423,8 +424,8 @@ export default function App() {
 
       setSistemIst({
         bolgeUsta,
-        usta: istData?.kayitliUsta || 0,
-        musteri: istData?.kayitliKullanici || 0,
+       usta: Object.values(data || {}).filter(k => k.rol === 'usta').length,
+       musteri: Object.values(data || {}).filter(k => k.rol === 'musteri').length,
       });
     } catch (e) {
       console.log('Sistem istatistik hatası:', e);
