@@ -21,6 +21,6 @@ export const PAKET_ID_MAP = {
 // import { revenueCatBaslat } from './screens/revenueCat';
 // revenueCatBaslat();
 export const revenueCatBaslat = () => {
-  Purchases.setLogLevel(LOG_LEVEL.DEBUG); // Canlıya alırken LOG_LEVEL.ERROR yap
+  Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
   Purchases.configure({ apiKey: REVENUECAT_API_KEY });
 };
