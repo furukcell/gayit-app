@@ -325,7 +325,16 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             });
           }
         } catch (e) {}
-
+        const accountRes = await fetch(
+       `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
+       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: data.idToken }) }
+     );
+       const accountData = await accountRes.json();
+      if (!accountData?.users?.[0]?.emailVerified) {
+      Alert.alert('📧 Mail Doğrulanmadı', 'Giriş yapabilmek için e-posta adresinizi doğrulamanız gerekiyor.', [{ text: 'Tamam' }]);
+      setYukleniyor(false);
+      return;
+     }
         const kulRes = await fetch(`${DB_URL}/kullanicilar/${data.localId}.json?auth=${data.idToken}`);
         const kulData = await kulRes.json();
 
