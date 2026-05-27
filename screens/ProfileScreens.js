@@ -111,8 +111,8 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
   };
 
   const ortalamaPuan = puanlar.length > 0
-    ? (puanlar.reduce((t, p) => t + p.puan, 0) / puanlar.length).toFixed(1)
-    : null;
+  ? (puanlar.reduce((t, p) => t + (Number(p.puan) || 0), 0) / puanlar.length).toFixed(1)
+  : null;
 
   const bilgileriKaydet = async () => {
     const up = { telefon: profilTel };
