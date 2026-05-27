@@ -19,32 +19,84 @@ exports.kuponUygula = functions.https.onRequest(async (req, res) => {
     const uid = decoded.uid;
     const { kuponKod, rol } = req.body.data || {};
     if (!kuponKod) { res.json({ error: { message: 'Kupon kodu bos.' } }); return; }
+
     const kuponlarSnap = await db.ref('kuponlar').once('value');
     const kuponlar = kuponlarSnap.val();
     if (!kuponlar) { res.json({ error: { message: 'Gecersiz kupon kodu.' } }); return; }
+
     const kuponEntry = Object.entries(kuponlar).find(([, k]) => k.ad === kuponKod.trim().toUpperCase() && k.aktif);
     if (!kuponEntry) { res.json({ error: { message: 'Gecersiz veya pasif kupon kodu.' } }); return; }
+
     const [kuponId, kupon] = kuponEntry;
-    if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) { res.json({ error: { message: 'Bu kuponun suresi dolmus.' } }); return; }
+
+    if (kupon.bitisTarihi && Date.now() > kupon.bitisTarihi) {
+      res.json({ error: { message: 'Bu kuponun suresi dolmus.' } }); return;
+    }
+
     const kullanilanAdet = kupon.kullanilanAdet || 0;
-    if (kupon.adet && kullanilanAdet >= kupon.adet) { res.json({ error: { message: 'Kullanim hakki dolmus.' } }); return; }
-    if (kupon.hedef && kupon.hedef !== 'hepsi' && kupon.hedef !== rol) { res.json({ error: { message: 'Bu kupon size uygun degil.' } }); return; }
-    if (kupon.kullananlar && kupon.kullananlar[uid]) { res.json({ error: { message: 'Bu kuponu daha once kullandiniz.' } }); return; }
+    if (kupon.adet && kullanilanAdet >= kupon.adet) {
+      res.json({ error: { message: 'Kullanim hakki dolmus.' } }); return;
+    }
+
+    if (kupon.hedef && kupon.hedef !== 'hepsi' && kupon.hedef !== rol) {
+      res.json({ error: { message: 'Bu kupon size uygun degil.' } }); return;
+    }
+
+    if (kupon.kullananlar && kupon.kullananlar[uid]) {
+      res.json({ error: { message: 'Bu kuponu daha once kullandiniz.' } }); return;
+    }
+
+    // ── Kullanıcı bilgilerini çek ─────────────────────────
     const kullaniciSnap = await db.ref('kullanicilar/' + uid).once('value');
     const kullanici = kullaniciSnap.val();
+
+    // ── VIP kodu → onaylı usta zorunlu, Premium → herkese açık ─
+    if (kupon.paket === 'vip') {
+      if (!kullanici || kullanici.onayDurumu !== 'onayli') {
+        res.json({
+          error: {
+            message: 'Bu kupon sadece onaylı ustalar içindir. Lütfen önce kimlik ve belge yükleyerek onay başvurusu yapın.'
+          }
+        });
+        return;
+      }
+    }
+
+    // ── Promosyon / hediye abonelik ───────────────────────
     if (kupon.tip === 'hediye_abonelik' || kupon.tip === 'promosyon') {
       const sure = kupon.sure || (kupon.ay * 30 * 24 * 60 * 60 * 1000);
       const bitis = Date.now() + sure;
       const abonelikDegeri = kupon.paket || 'premium';
       await db.ref('kullanicilar/' + uid).update({ abonelik: abonelikDegeri, abonelikBitis: bitis });
-      await db.ref('kuponlar/' + kuponId).update({ kullanilanAdet: kullanilanAdet + 1, ['kullananlar/' + uid]: true });
-      res.json({ result: { tip: 'abonelik', abonelik: abonelikDegeri, mesaj: abonelikDegeri + ' aboneligin aktiflestirildi!' } });
+      await db.ref('kuponlar/' + kuponId).update({
+        kullanilanAdet: kullanilanAdet + 1,
+        ['kullananlar/' + uid]: true
+      });
+      res.json({
+        result: {
+          tip: 'abonelik',
+          abonelik: abonelikDegeri,
+          mesaj: abonelikDegeri + ' aboneligin aktiflestirildi!'
+        }
+      });
       return;
     }
+
+    // ── Klasik kupon (ilan/teklif hakkı) ─────────────────
     const yeniHak = ((kullanici && kullanici.hak) || 0) + (kupon.icerik || 1);
     await db.ref('kullanicilar/' + uid).update({ hak: yeniHak });
-    await db.ref('kuponlar/' + kuponId).update({ kullanilanAdet: kullanilanAdet + 1, ['kullananlar/' + uid]: true });
-    res.json({ result: { tip: 'hak', hak: yeniHak, mesaj: 'Kupon uygulandi! ' + kupon.icerik + ' hak eklendi.' } });
+    await db.ref('kuponlar/' + kuponId).update({
+      kullanilanAdet: kullanilanAdet + 1,
+      ['kullananlar/' + uid]: true
+    });
+    res.json({
+      result: {
+        tip: 'hak',
+        hak: yeniHak,
+        mesaj: 'Kupon uygulandi! ' + kupon.icerik + ' hak eklendi.'
+      }
+    });
+
   } catch (e) {
     res.json({ error: { message: e.message || 'Bir hata olustu.' } });
   }
