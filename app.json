@@ -12,7 +12,8 @@
           "token": "DNAJVVAI6KJIOAAAAAAAAAAAAA"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-asset"
     ],
     "splash": {
       "image": "./icon.png",
