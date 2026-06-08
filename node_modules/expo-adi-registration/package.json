@@ -1,0 +1,27 @@
+{
+  "name": "expo-adi-registration",
+  "version": "1.0.0",
+  "description": "Expo config plugin to register Android package ownership on Google Play Console",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "Ishit Raj <dev@ishitraj.in>",
+  "keywords": [
+    "expo",
+    "expo-plugin",
+    "android",
+    "google-play",
+    "adi-registration",
+    "package-ownership"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ishitraj/expo-adi-registration"
+  },
+  "bugs": {
+    "url": "https://github.com/ishitraj/expo-adi-registration/issues"
+  },
+  "homepage": "https://github.com/ishitraj/expo-adi-registration#readme",
+  "peerDependencies": {
+    "expo": ">=49.0.0"
+  }
+}
