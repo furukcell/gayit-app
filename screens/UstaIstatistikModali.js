@@ -27,7 +27,7 @@ function getRenk(tip, deger) {
     if (deger >= 3.5) return '#f59e0b';
     return '#ef4444';
   }
-  if (tip === 'yanis') {
+  if (tip === 'yanit') {
     if (deger <= 15) return '#22c55e';
     if (deger <= 60) return '#f59e0b';
     return '#ef4444';
@@ -61,7 +61,7 @@ function teklifSkoruHesapla(ist, tumUstalar = []) {
   const yanitAgirligi = Math.max(0, 100 - (ist.ortalamaYanitSuresiDk || 0)) * 0.20;
   const tamamlamaAgirligi = Math.max(0, 100 - ((ist.ortalamaTamamlamaSaati || 0) / maxSaat * 100)) * 0.15;
 
-  return Math.min(100, isAgirligi + puanAgirligi + yanisAgirligi + tamamlamaAgirligi);
+  return Math.min(100, isAgirligi + puanAgirligi + yanitAgirligi + tamamlamaAgirligi);
 }
 
 // ─── Yardımcı: süre formatı ───────────────────────────────────────
