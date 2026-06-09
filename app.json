@@ -10,7 +10,7 @@
       "expo-notifications",
       "@react-native-community/datetimepicker",
       "expo-asset",
-      "react-native-purchases"
+      
     ],
     "splash": {
       "image": "./icon.png",
