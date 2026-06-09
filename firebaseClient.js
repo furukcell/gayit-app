@@ -1,9 +1,7 @@
 // firebaseClient.js
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getAuth } from 'firebase/auth';
-import { getReactNativePersistence } from 'firebase/auth/react-native';
+import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_KEY, DB_URL } from './constants';
 
 const firebaseConfig = {
@@ -20,16 +18,7 @@ export function initializeFirebase() {
 
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-    try {
-      auth = initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage),
-      });
-    } catch (e) {
-      console.log('initializeAuth fallback getAuth:', e.message);
-      auth = getAuth(app);
-    }
-
+    auth = getAuth(app);
     db = getDatabase(app);
 
     return { app, auth, db };
