@@ -7,6 +7,7 @@
 // ✅ DÜZELTİLDİ: Davet kodu değişken adları (davetEdenRol, gelenRol, Object.entries)
 // ✅ DÜZELTİLDİ: İstatistik typo (ortalamaYanisSuresiDk → ortalamaYanitSuresiDk)
 // ✅ İYİLEŞTİRME: Firebase SDK senkronizasyonu ve pushToken kaydı güvenli hale getirildi
+// ✅ DÜZELTİLDİ: Firebase Auth SDK kaldırıldı, sadece REST API kullanılıyor
 // ============================================================
 import { useState } from 'react';
 import {
@@ -16,14 +17,8 @@ import {
 import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur, DAVET_LIMITI } from '../constants';
 import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
-// Firebase SDK başlat
-const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const firebaseAuth = getAuth(firebaseApp);
 
 // ============================================================
 // KARŞILAMA EKRANI
@@ -79,7 +74,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   const [yukleniyor, setYukleniyor] = useState(false);
   const [asama, setAsama] = useState(1);
   const [mahalleGrubu, setMahalleGrubu] = useState('');
-
+  
   // --- Çoklu Branş ---
   const [anaBrans, setAnaBrans] = useState('');
   const [yanBrans1, setYanBrans1] = useState('');
@@ -116,6 +111,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     if (mod === 'kayit' && !sozlesmeKabul) return Alert.alert('Hata', 'Üyelik sözleşmesini onaylamanız gerekiyor!');
 
     setYukleniyor(true);
+
     try {
       if (mod === 'kayit') {
         const yanBranslar = [yanBrans1, yanBrans2].filter(b => b !== '');
@@ -134,15 +130,9 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         setToken(data.idToken);
         await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
+        
         // RevenueCat'e kullanıcıyı tanıt
         await Purchases.logIn(data.localId);
-
-        // Firebase SDK'ya da giriş yaptır
-        try {
-          await signInWithEmailAndPassword(firebaseAuth, email, sifre);
-        } catch (e) {
-          console.log('SDK giriş hatası:', e.message);
-        }
 
         const cihazToken = await pushTokenAl();
         const refKod = referansKoduOlustur();
@@ -183,7 +173,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
                 tamamlanan: 0,
                 ortalamaPuan: 0,
                 toplamPuanSayisi: 0,
-                ortalamaYanitSuresiDk: 0, // Typo düzeltildi
+                ortalamaYanitSuresiDk: 0,
                 ortalamaTamamlamaSaati: 0,
                 gayitteGunSayisi: 0,
                 kategoriler: {},
@@ -194,6 +184,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             });
           } catch(e) { console.log('usta istatistik node hatası:', e); }
         }
+
         try {
           const istatistikAlani = rol === 'usta' ? 'kayitliUsta' : 'kayitliKullanici';
           const istatRes = await fetch(`${DB_URL}/istatistikler/${istatistikAlani}.json`);
@@ -299,15 +290,9 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         setToken(data.idToken);
         await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
+        
         // RevenueCat'e kullanıcıyı tanıt
         await Purchases.logIn(data.localId);
-
-        // Firebase SDK'ya da giriş yaptır
-        try {
-          await signInWithEmailAndPassword(firebaseAuth, email, sifre);
-        } catch (e) {
-          // SDK girişi başarısız olsa da devam et
-        }
 
         try {
           const cihazToken = await pushTokenAl();
@@ -319,6 +304,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             });
           }
         } catch (e) {}
+
         const accountRes = await fetch(
           `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: data.idToken }) }
@@ -370,7 +356,7 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
     return 'Seçim Yapın';
   };
 
-   return (
+  return (
     <SafeAreaView style={s.con}>
       <ScrollView contentContainerStyle={s.authIc}>
         <View style={{ alignItems: 'center', marginBottom: 25 }}>
@@ -388,7 +374,6 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         <Text style={[s.bas, { textAlign: 'center' }]}>
           {rol === 'usta' ? 'Usta' : 'Müşteri'} Paneli
         </Text>
-
         <View style={s.tabBar}>
           <TouchableOpacity style={[s.tab, mod === 'kayit' && s.tabAktif]} onPress={() => setMod('kayit')}>
             <Text style={[s.tabY, mod === 'kayit' && s.tabYA]}>Kayıt Ol</Text>
@@ -650,7 +635,6 @@ export function MailDogrulamaEkrani({ token, setEkran, s }) {
           E-posta adresine bir doğrulama linki gönderdik.{'\n'}
           Linke tıkladıktan sonra aşağıdaki butona bas.
         </Text>
-
         <TouchableOpacity
           style={[s.girisBtn, { marginBottom: 12, opacity: yukleniyor ? 0.7 : 1 }]}
           onPress={dogruladim}
@@ -667,7 +651,7 @@ export function MailDogrulamaEkrani({ token, setEkran, s }) {
           onPress={tekrarGonder}
           disabled={yukleniyor}
         >
-          <Text style={s.anaBtnY}>📨 Maili Tekrar Gönder</Text>
+          <Text style={s.anaBtnY}>📧 Maili Tekrar Gönder</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -681,7 +665,7 @@ export function MailDogrulamaEkrani({ token, setEkran, s }) {
   );
 }
 
-  const localStyles = StyleSheet.create({
+const localStyles = StyleSheet.create({
   modalSatir: {
     padding: 16,
     borderBottomWidth: 1,
