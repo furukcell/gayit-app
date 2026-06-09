@@ -8,14 +8,12 @@ import {
 import * as Location from 'expo-location';
 import { DB_URL, API_KEY } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
-import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, onValue, query, limitToLast } from 'firebase/database';
+import { ref, onValue, query, limitToLast } from 'firebase/database';
+import { getFirebaseDB } from '../firebaseClient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UstaIstatistikModali from './UstaIstatistikModali';
 
-const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getDatabase(firebaseApp);
+const db = getFirebaseDB();
 
 function MesajTik({ durum }) {
   if (durum === 'okundu') return <Text style={{ fontSize: 11, color: '#4FC3F7' }}>✓✓</Text>;
@@ -85,7 +83,11 @@ export function SohbetEkrani({
         ustaUid: ustaUid,
       }),
     }).catch(() => {});
-
+    if (!db) {
+    console.log('Firebase DB hazır değil');
+    setYukleniyor(false);
+    return;
+   }
     const mesajRef = query(
       ref(db, `sohbetler/${sohbetId}/mesajlar`),
       limitToLast(50)
