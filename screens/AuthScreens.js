@@ -8,6 +8,7 @@
 // ✅ DÜZELTİLDİ: İstatistik typo (ortalamaYanisSuresiDk → ortalamaYanitSuresiDk)
 // ✅ İYİLEŞTİRME: Firebase SDK senkronizasyonu ve pushToken kaydı güvenli hale getirildi
 // ✅ DÜZELTİLDİ: Firebase Auth SDK kaldırıldı, sadece REST API kullanılıyor
+// ✅ EKLENDİ: dogrulamaMailiGonder ve mailDogrulandiMiKontrol helper fonksiyonları
 // ============================================================
 import { useState } from 'react';
 import {
@@ -19,6 +20,57 @@ import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
+
+// ============================================================
+// HELPER FONKSİYONLAR — Firebase REST API
+// ============================================================
+
+// Email doğrulama maili gönder
+async function dogrulamaMailiGonder(idToken) {
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestType: 'VERIFY_EMAIL',
+          idToken: idToken,
+        }),
+      }
+    );
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    return true;
+  } catch (error) {
+    console.log('Email doğrulama maili gönderme hatası:', error);
+    throw error;
+  }
+}
+
+// Email doğrulandı mı kontrol et
+async function mailDogrulandiMiKontrol(idToken) {
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: idToken }),
+      }
+    );
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    return data.users?.[0]?.emailVerified || false;
+  } catch (error) {
+    console.log('Email doğrulama kontrol hatası:', error);
+    throw error;
+  }
+}
 
 // ============================================================
 // KARŞILAMA EKRANI
@@ -132,7 +184,11 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
         
         // RevenueCat'e kullanıcıyı tanıt
-        await Purchases.logIn(data.localId);
+        try {
+          await Purchases.logIn(data.localId);
+        } catch (e) {
+          console.log('RevenueCat logIn hatası:', e);
+        }
 
         const cihazToken = await pushTokenAl();
         const refKod = referansKoduOlustur();
@@ -292,7 +348,11 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         await AsyncStorage.setItem('oturum_refresh_token', data.refreshToken).catch(() => {});
         
         // RevenueCat'e kullanıcıyı tanıt
-        await Purchases.logIn(data.localId);
+        try {
+          await Purchases.logIn(data.localId);
+        } catch (e) {
+          console.log('RevenueCat logIn hatası:', e);
+        }
 
         try {
           const cihazToken = await pushTokenAl();
