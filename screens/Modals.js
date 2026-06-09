@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { DB_URL } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
+import { islemTamamlandiGuncelle } from '../istatistikGuncelle';
 
 // Firebase key olarak email kullanılırken nokta ve @ yasak
 // DÜZELTİLDİ: /./g yerine /\./g kullanıldı (sadece noktaları değiştirir)
@@ -84,6 +85,15 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ puanlandi: true }),
       });
+      // İstatistik güncelle
+if (ustaUid && puanlananIlan?.id) {
+  const puanId = `${ustaUid}_${kullanici.uid}`;
+  islemTamamlandiGuncelle({
+    ustaId: ustaUid,
+    ilanId: puanlananIlan.id,
+    puanId: `${ustaUid}/${kullanici.uid}`,
+  }).catch(e => console.log('istatistik hatası:', e));
+}
 
       // 4. Ustaya bildirim gönder
       if (ustaUid) {
