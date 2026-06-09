@@ -670,4 +670,4 @@ export function SohbetEkrani({
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}}
+}
