@@ -73,7 +73,24 @@ async function mailDogrulandiMiKontrol(idToken) {
     throw error;
   }
 }
+// Firebase SDK giriş — Realtime Database onValue için
+async function firebaseSdkGirisYap(email, sifre) {
+  try {
+    const firebaseAuth = getFirebaseAuth();
 
+    if (!firebaseAuth) {
+      console.log('Firebase Auth hazır değil, SDK giriş atlandı.');
+      return false;
+    }
+
+    await signInWithEmailAndPassword(firebaseAuth, email, sifre);
+    console.log('✅ Firebase SDK auth girişi başarılı');
+    return true;
+  } catch (e) {
+    console.log('Firebase SDK auth giriş hatası:', e.message);
+    return false;
+  }
+}
 // ============================================================
 // KARŞILAMA EKRANI
 // ============================================================
@@ -191,7 +208,8 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         } catch (e) {
           console.log('RevenueCat logIn hatası:', e);
         }
-
+        // Firebase SDK'ya da giriş yaptır — sohbet realtime için
+        await firebaseSdkGirisYap(email, sifre);
         const cihazToken = await pushTokenAl();
         const refKod = referansKoduOlustur();
 
@@ -355,7 +373,8 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
         } catch (e) {
           console.log('RevenueCat logIn hatası:', e);
         }
-
+          // Firebase SDK'ya da giriş yaptır — sohbet realtime için
+        await firebaseSdkGirisYap(email, sifre);
         try {
           const cihazToken = await pushTokenAl();
           if (cihazToken) {
