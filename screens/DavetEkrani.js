@@ -2,11 +2,11 @@
 // DavetEkrani.js
 // Davet et, kazan ekranı
 // ============================================================
-
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, SafeAreaView,
-  ScrollView, Linking, Share, Clipboard,
+  ScrollView, Linking, Share,
 } from 'react-native';
 import { referansKoduOlustur } from '../constants';
 
