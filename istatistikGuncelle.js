@@ -2,7 +2,7 @@
 // İlanlar tamamlandığında veya teklif verildiğinde çağrılır.
 // Hem usta istatistiklerini hem sıralama skorlarını günceller.
 
-import { database } from '../firebaseConfig';
+import { database } from './firebaseConfig';
 import { ref, get, set, update, runTransaction } from 'firebase/database';
 
 // ─── İş tamamlandığında çağrılır ─────────────────────────────────
