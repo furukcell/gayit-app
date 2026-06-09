@@ -9,7 +9,7 @@
     "plugins": [
       "expo-notifications",
       "@react-native-community/datetimepicker",
-      "expo-asset"
+      "expo-asset",
       "react-native-purchases"
     ],
     "splash": {
