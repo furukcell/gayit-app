@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { DB_URL, damgaToTarih, zamanFarki } from '../constants';
 import { bildirimGonderVeKaydet } from '../notifications';
+import { AdminIstatistikEkrani } from './AdminIstatistikEkrani';
 
 export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [aktifSekme, setAktifSekme] = useState('istatistik');
@@ -54,21 +55,23 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
   const [promoGun, setPromoGun] = useState('90');
   const [promoYukleniyor, setPromoYukleniyor] = useState(false);
   const [mevcutPromolar, setMevcutPromolar] = useState([]);
+  const [onayBasvurulari, setOnayBasvurulari] = useState([]);
 
   useEffect(() => { if (token) veriYukle(); }, [token]);
 
   const veriYukle = useCallback(async () => {
     setYukleniyor(true);
     try {
-      const [kulRes, ilanRes, sikRes, mesRes, kuponRes] = await Promise.all([
+        const [kulRes, ilanRes, sikRes, mesRes, kuponRes, onayRes] = await Promise.all([
         fetch(`${DB_URL}/kullanicilar.json?auth=${token}`),
         fetch(`${DB_URL}/ilanlar.json?auth=${token}`),
         fetch(`${DB_URL}/sikayetler.json?auth=${token}`),
         fetch(`${DB_URL}/iletisim.json?auth=${token}`),
         fetch(`${DB_URL}/kuponlar.json?auth=${token}`),
+        fetch(`${DB_URL}/onayBasvurulari.json?auth=${token}`),
       ]);
-      const [kulData, ilanData, sikData, mesData, kuponData] = await Promise.all([
-        kulRes.json(), ilanRes.json(), sikRes.json(), mesRes.json(), kuponRes.json(),
+      const [kulData, ilanData, sikData, mesData, kuponData, onayData] = await Promise.all([
+        kulRes.json(), ilanRes.json(), sikRes.json(), mesRes.json(), kuponRes.json(), onayRes.json(),
       ]);
 
       if (kulData) setKullanicilar(Object.entries(kulData).map(([uid, v]) => ({ uid, ...v })));
@@ -87,6 +90,14 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
               .sort((a, b) => (b.olusturmaTarihi || 0) - (a.olusturmaTarihi || 0))
         );
       }
+      if (onayData) {
+      setOnayBasvurulari(
+        Object.entries(onayData)
+          .map(([uid, v]) => ({ uid, ...v }))
+          .filter(b => b.onayDurumu === 'beklemede')
+          .sort((a, b) => (b.basvuruTarihi || 0) - (a.basvuruTarihi || 0))
+      );
+    }
     } catch (e) {
       Alert.alert('Hata', 'Veriler yüklenemedi!');
     } finally {
@@ -101,7 +112,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
     toplamIlan: ilanlar.length,
     aktifIlan: ilanlar.filter(i => !i.anlasmaVar).length,
     tamamlanan: ilanlar.filter(i => i.anlasmaVar).length,
-    bekleyenOnay: kullanicilar.filter(k => k.onayDurumu === 'beklemede').length,
+    bekleyenOnay: onayBasvurulari.length,
     bekleyenSikayet: sikayetler.filter(s => s.durum === 'beklemede').length,
     okunmamisMesaj: mesajlar.filter(m => !m.okundu).length,
     vipUye: kullanicilar.filter(k => k.abonelik).length,
@@ -134,16 +145,26 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
   };
 
   const onayKarari = async (uid, karar) => {
-    try {
-      await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onayDurumu: karar }),
-      });
-      setKullanicilar(prev => prev.map(k => k.uid === uid ? { ...k, onayDurumu: karar } : k));
-      Alert.alert('Başarılı', karar === 'onayli' ? '✅ Usta onaylandı!' : '❌ Başvuru reddedildi.');
-    } catch (e) { Alert.alert('Hata', 'İşlem yapılamadı!'); }
-  };
+  try {
+    await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onayDurumu: karar }),
+    });
+    await fetch(`${DB_URL}/onayBasvurulari/${uid}.json?auth=${token}`, {
+      method: 'DELETE',
+    });
+   await bildirimGonderVeKaydet(
+  uid,
+  karar === 'onayli' ? '✅ Başvurun Onaylandı!' : '❌ Başvurun Reddedildi',
+  karar === 'onayli' ? 'Tebrikler! Artık Onaylı Usta rozetine sahipsin.' : 'Belgelerini güncelleyip tekrar başvurabilirsin.',
+  token,
+  'profil'
+); 
+    setOnayBasvurulari(prev => prev.filter(b => b.uid !== uid));
+    Alert.alert('Başarılı', karar === 'onayli' ? '✅ Usta onaylandı!' : '❌ Başvuru reddedildi.');
+  } catch (e) { Alert.alert('Hata', 'İşlem yapılamadı!'); }
+};
 
   const ilanSil = async (ilanId) => {
     Alert.alert('Emin misin?', 'Bu ilan kalıcı olarak silinecek!', [
@@ -215,7 +236,7 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
           gonderen.uid,
           '📩 GAYİT Destek Yanıtladı',
           adminYanit.trim(),
-          token
+          token, 'sohbetlerim'
         );
       }
     } catch (error) {
@@ -400,6 +421,14 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
         {aktifSekme === 'istatistik' && (
           <View style={{ padding: 15 }}>
             <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>Genel Durum</Text>
+          <TouchableOpacity
+          onPress={() => setAktifSekme('admin_istatistik')}
+          style={{ backgroundColor: '#1B4965', borderRadius: 14, padding: 15, alignItems: 'center', marginBottom: 15 }}
+         >
+          <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>
+          📊 Detaylı İstatistik & Rapor →
+      </Text>
+    </TouchableOpacity>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {[
                 { label: 'Toplam Üye', deger: istatistikler.toplamKullanici, renk: '#1B4965' },
@@ -469,10 +498,10 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
             <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 16, marginBottom: 15 }}>
               Onay Bekleyen Ustalar ({istatistikler.bekleyenOnay})
             </Text>
-            {kullanicilar.filter(k => k.onayDurumu === 'beklemede').length === 0 ? (
+            {onayBasvurulari.length === 0 ? (
               <Text style={{ color: '#A3B1B9', textAlign: 'center', marginTop: 20 }}>Bekleyen başvuru yok.</Text>
             ) : (
-              kullanicilar.filter(k => k.onayDurumu === 'beklemede').map(k => (
+                 onayBasvurulari.map(k => (
                 <View key={k.uid} style={[s.kart, { marginBottom: 10, borderWidth: 2, borderColor: '#F39C12' }]}>
                   <Text style={{ fontWeight: 'bold', color: '#1B4965', fontSize: 15 }}>{k.ad}</Text>
                   <Text style={{ color: '#526E7F', fontSize: 12 }}>{k.email}</Text>
@@ -861,7 +890,17 @@ export function AdminEkrani({ kullanici, token, setEkran, s }) {
             </TouchableOpacity>
           </View>
         )}
-
+           {aktifSekme === 'admin_istatistik' && (
+           <AdminIstatistikEkrani
+           kullanici={kullanici}
+           token={token}
+           setEkran={(e) => {
+          if (e === 'anasayfa') setEkran('anasayfa');
+           else setAktifSekme('istatistik');
+        }}
+         s={s}
+        />
+      )}
       </ScrollView>
 
       {/* ── MESAJ YANIT MODALI ──────────────────────────── */}

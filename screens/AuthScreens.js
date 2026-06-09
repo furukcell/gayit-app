@@ -20,7 +20,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
-import { dogrulamaMailiGonder } from '../firebase';
+import { dogrulamaMailiGonder, mailDogrulandiMiKontrol } from '../firebase';
 
 // Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
@@ -278,17 +278,13 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
 
         setKullanici({ ...yeniKul, uid: data.localId });
         try {
-        await dogrulamaMailiGonder(data.idToken);
-        Alert.alert(
-       '📧 Mail Doğrulama',
-       'Kayıt başarılı! E-posta adresinize bir doğrulama linki gönderdik. Doğruladıktan sonra giriş yapın.',
-       [{ text: 'Tamam', onPress: () => setEkran('karsilama') }]
-     );
-       setYukleniyor(false);
-       return;
+          await dogrulamaMailiGonder(data.idToken);
         } catch (e) {
-        console.log('Doğrulama maili gönderilemedi:', e);
+          console.log('Doğrulama maili gönderilemedi:', e);
         }
+        setEkran('mail_dogrulama');
+        setYukleniyor(false);
+        return;
 
       } else {
         // GİRİŞ
@@ -326,19 +322,25 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
           }
         } catch (e) {}
         const accountRes = await fetch(
-       `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
-       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: data.idToken }) }
-     );
-       const accountData = await accountRes.json();
-      if (!accountData?.users?.[0]?.emailVerified) {
-      Alert.alert('📧 Mail Doğrulanmadı', 'Giriş yapabilmek için e-posta adresinizi doğrulamanız gerekiyor.', [{ text: 'Tamam' }]);
-      setYukleniyor(false);
-      return;
-     }
+          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: data.idToken }) }
+        );
+        const accountData = await accountRes.json();
+        if (!accountData?.users?.[0]?.emailVerified) {
+          setEkran('mail_dogrulama');
+          setYukleniyor(false);
+          return;
+        }
+
         const kulRes = await fetch(`${DB_URL}/kullanicilar/${data.localId}.json?auth=${data.idToken}`);
         const kulData = await kulRes.json();
 
         if (kulData) {
+          if (kulData.rol !== rol && kulData.rol !== 'admin') {
+            Alert.alert('Hata', `Bu hesap bir ${kulData.rol === 'usta' ? 'usta' : 'müşteri'} hesabı. Lütfen doğru girişten girin.`);
+            setYukleniyor(false);
+            return;
+          }
           setKullanici({
             ...kulData,
             uid: data.localId,
@@ -350,27 +352,8 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
             referansKodu: kulData.referansKodu || referansKoduOlustur(),
             davetSayisi: kulData.davetSayisi || 0,
             bolge: kulData.bolge || 'Belirtilmemiş',
-      });
-       
-         if (kulData.rol !== rol && kulData.rol !== 'admin') {
-       Alert.alert('Hata', `Bu hesap bir ${kulData.rol === 'usta' ? 'usta' : 'müşteri'} hesabı. Lütfen doğru girişten girin.`);
-       setYukleniyor(false);
-       return;
-     }
+          });
           setRol(kulData.rol);
-          const accountRes = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: data.idToken }) }
-        );
-        const accountData = await accountRes.json();
-        if (!accountData?.users?.[0]?.emailVerified) {
-        Alert.alert('📧 Mail Doğrulanmadı', 'E-posta adresini henüz doğrulamadın. Mailine gelen linke tıkla.',
-       [
-        { text: 'Tekrar Gönder', onPress: async () => { await dogrulamaMailiGonder(data.idToken); Alert.alert('Gönderildi ✅', 'Doğrulama maili tekrar gönderildi!'); }},
-        { text: 'Tamam' }
-       ]
-     );
-      }
         }
       }
       setEkran('anasayfa');
@@ -604,7 +587,103 @@ export function AuthEkrani({ rol, setRol, setEkran, setKullanici, setToken, kvkk
   );
 }
 
-const localStyles = StyleSheet.create({
+// ============================================================
+// MAİL DOĞRULAMA EKRANI
+// ============================================================
+export function MailDogrulamaEkrani({ token, setEkran, s }) {
+  const [yukleniyor, setYukleniyor] = useState(false);
+  const [sonGonderme, setSonGonderme] = useState(null);
+
+  const tekrarGonder = async () => {
+    if (sonGonderme && Date.now() - sonGonderme < 60000) {
+      const kalanSaniye = Math.ceil((60000 - (Date.now() - sonGonderme)) / 1000);
+      return Alert.alert('Bekle', `${kalanSaniye} saniye sonra tekrar gönderebilirsin.`);
+    }
+    setYukleniyor(true);
+    try {
+      await dogrulamaMailiGonder(token);
+      setSonGonderme(Date.now());
+      Alert.alert('✅ Gönderildi', 'Doğrulama maili tekrar gönderildi. Spam klasörünü de kontrol et!');
+    } catch (e) {
+      Alert.alert('Hata', 'Mail gönderilemedi. Biraz bekleyip tekrar dene.');
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  const dogruladim = async () => {
+    if (!token) {
+      Alert.alert('Hata', 'Oturum bilgisi bulunamadı. Lütfen tekrar giriş yap.');
+      setEkran('karsilama');
+      return;
+    }
+    setYukleniyor(true);
+    try {
+      const dogrulandi = await mailDogrulandiMiKontrol(token);
+      if (dogrulandi) {
+        setEkran('anasayfa');
+      } else {
+        Alert.alert(
+          '❌ Henüz Doğrulanmadı',
+          'Maildeki linke tıklamadın mı? Spam / Önemsiz klasörünü de kontrol et.',
+          [
+            { text: 'Tekrar Gönder', onPress: tekrarGonder },
+            { text: 'Tamam' },
+          ]
+        );
+      }
+    } catch (e) {
+      Alert.alert('Hata', 'Bağlantı hatası. İnternetini kontrol et.');
+    } finally {
+      setYukleniyor(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={s.con}>
+      <ScrollView contentContainerStyle={{ padding: 30, paddingTop: 60 }}>
+        <View style={{ alignItems: 'center', marginBottom: 30 }}>
+          <Text style={{ fontSize: 56 }}>📧</Text>
+        </View>
+        <Text style={[s.bas, { textAlign: 'center', marginBottom: 12 }]}>
+          Mail Doğrulama
+        </Text>
+        <Text style={[s.alt, { textAlign: 'center', marginBottom: 40, lineHeight: 22 }]}>
+          E-posta adresine bir doğrulama linki gönderdik.{'\n'}
+          Linke tıkladıktan sonra aşağıdaki butona bas.
+        </Text>
+
+        <TouchableOpacity
+          style={[s.girisBtn, { marginBottom: 12, opacity: yukleniyor ? 0.7 : 1 }]}
+          onPress={dogruladim}
+          disabled={yukleniyor}
+        >
+          {yukleniyor
+            ? <ActivityIndicator color="#FFF" />
+            : <Text style={s.anaBtnY}>✅ Doğruladım, Giriş Yap</Text>
+          }
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[s.anaBtn, { backgroundColor: '#8B7355', opacity: yukleniyor ? 0.7 : 1 }]}
+          onPress={tekrarGonder}
+          disabled={yukleniyor}
+        >
+          <Text style={s.anaBtnY}>📨 Maili Tekrar Gönder</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setEkran('karsilama')}
+          style={{ marginTop: 25 }}
+        >
+          <Text style={{ textAlign: 'center', color: '#1B4965', fontSize: 14 }}>← Geri Dön</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+  const localStyles = StyleSheet.create({
   modalSatir: {
     padding: 16,
     borderBottomWidth: 1,

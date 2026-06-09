@@ -33,7 +33,7 @@ export function IletisimEkrani({ kullanici, token, setEkran, s }) {
       const mesajlarVeYanitlar = await Promise.all(
         benimMesajlar.map(async (m) => {
           try {
-            const yanitRes = await fetch(`${DB_URL}/iletisim/${m.id}/yan%C4%B1tlar.json?auth=${token}`);
+            const yanitRes = await fetch(`${DB_URL}/iletisim/${m.id}/yanitlar.json?auth=${token}`);
             const yanitData = await yanitRes.json();
             const yanitlar = yanitData
               ? Object.entries(yanitData).map(([yid, y]) => ({ id: yid, ...y })).sort((a, b) => a.tarih - b.tarih)
@@ -56,7 +56,7 @@ export function IletisimEkrani({ kullanici, token, setEkran, s }) {
       return;
     }
     try {
-      await fetch(`${DB_URL}/iletisim.json`, {
+     await fetch(`${DB_URL}/iletisim.json?auth=${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ konu: iletisimKonu, mesaj: yeniMesaj, gonderen: kullanici?.email || 'Anonim', tarih: Date.now() }),

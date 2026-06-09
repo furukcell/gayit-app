@@ -17,7 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // ============================================================
 function zamanOncesi(tarih) {
   if (!tarih) return '';
-  const fark = Date.now() - tarih;
+  const tarihMs = tarih > 1e12 ? tarih : tarih * 1000;
+  const fark = Date.now() - tarihMs;
   const dakika = Math.floor(fark / 60000);
   const saat = Math.floor(fark / 3600000);
   const gun = Math.floor(fark / 86400000);
@@ -70,7 +71,7 @@ function IlanKarti({ item, rol, kullanici, onTeklifTikla, onTekliflerTikla, s })
         </View>
       )}
 
-      {rol === 'musteri' && item.sahip === kullanici?.email && (
+      {rol === 'musteri' && (item.sahip === kullanici?.email || item.sahipUid === kullanici?.uid) && (
         <TouchableOpacity
           style={[s.girisBtn, { marginTop: 10, backgroundColor: '#588157' }]}
           onPress={() => onTekliflerTikla(item)}
@@ -124,7 +125,15 @@ export function SolMenu({
                   ? { borderWidth: 3, borderColor: '#F39C12', backgroundColor: 'transparent' }
                   : { borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }
             ]}>
-              <Text style={s.avatarHarf}>{kullanici?.ad?.[0]?.toUpperCase() || '?'}</Text>
+               {kullanici?.profilFoto ? (
+               <Image
+               source={{ uri: kullanici.profilFoto }}
+               style={{ width: '100%', height: '100%', borderRadius: 999 }}
+              resizeMode="cover"
+            />
+       ) : (
+               <Text style={s.avatarHarf}>{kullanici?.ad?.[0]?.toUpperCase() || '?'}</Text>
+         )}
             </View>
             <Text style={s.profilAd}>{kullanici?.ad || 'Kullanıcı'}</Text>
             <Text style={s.profilDuzenleText}>
@@ -182,19 +191,23 @@ export function SolMenu({
                     )}
                     {yeniHakVar && (
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
-                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
+                       <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>
+                       🎁 Hoşgeldin Hakkı {kullanici?.kayitTarihi ? `(${Math.max(0, 30 - Math.floor((Date.now() - kullanici.kayitTarihi) / 86400000))} gün kaldı)` : ''}
+                          </Text>
+                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
                       </View>
-                    )}
-                  </>
-                )}
-                {!isPremium && !isVip && (
+                      )}
+                    </>
+                   )}
+                   {!isPremium && !isVip && (
                   <>
                     <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 12, marginBottom: 6 }}>📦 Mevcut Haklar</Text>
                     {yeniHakVar && (
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>🎁 Hoşgeldin Hakkı</Text>
-                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>
+                      🎁 Hoşgeldin Hakkı {kullanici?.kayitTarihi ? `(${Math.max(0, 30 - Math.floor((Date.now() - kullanici.kayitTarihi) / 86400000))} gün kaldı)` : ''}
+                         </Text>
+                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>{yeniHak}</Text>
                       </View>
                     )}
                     {ekstraHakVar && (

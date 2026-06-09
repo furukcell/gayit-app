@@ -6,7 +6,7 @@
 // ✅ Promosyon kodları sadece AdminPanel'den üretilir
 // ✅ Tüm syntax hataları giderildi
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
   ScrollView, Alert, Linking, Modal, ActivityIndicator, StyleSheet,
@@ -25,6 +25,18 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
   const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
   const [yukleniyorPaket, setYukleniyorPaket] = useState(null);
 
+  // -- Ekran açılınca kullanıcı bilgisini Firebase'den tazele (abonelik durumu güncel olsun)
+  useEffect(() => {
+  const kullaniciyiTazele = async () => {
+    if (!kullanici?.uid || !token) return;
+    try {
+      const res = await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`);
+      const data = await res.json();
+      if (data) setKullanici(prev => ({ ...prev, ...data }));
+    } catch (e) { console.log('Tazele hatası:', e); }
+  };
+  kullaniciyiTazele();
+}, []);
   // ── Güvenli kullanıcı güncelleme ──────────────────────────
   const guncelKullaniciKaydet = async (guncellemeler) => {
     setKullanici(prev => ({ ...prev, ...guncellemeler }));
@@ -190,7 +202,7 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           {
             text: "Google Play'e Git",
             onPress: () => Linking.openURL('https://play.google.com/store/account/subscriptions'),
-          },
+           },
         ]
       );
       setIptalModalAcik(false);
@@ -259,6 +271,32 @@ export function OdemeEkrani({ kullanici, setKullanici, token, rol, setEkran, s }
           >
             <Text style={s.anaBtnY}>🚫 ABONELİĞİ İPTAL ET</Text>
           </TouchableOpacity>
+              <TouchableOpacity
+         style={[s.girisBtn, { backgroundColor: '#588157', marginTop: 15 }]}
+         onPress={() => setOdemeAdim('kupon')}
+       >
+        <Text style={s.anaBtnY}>🎫 Kupon / Promosyon Kodu Kullan</Text>
+       </TouchableOpacity>
+
+      {odemeAdim === 'kupon' && (
+      <View style={{ marginTop: 20 }}>
+      <Text style={{ color: '#526E7F', textAlign: 'center', marginBottom: 12 }}>Promosyon kodunu gir</Text>
+      {kuponMesaj && (
+      <View style={{ backgroundColor: kuponMesaj.tip === 'basarili' ? '#588157' : '#E74C3C', borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center' }}>
+     <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{kuponMesaj.metin}</Text>
+      </View>
+    )}
+    <View style={s.kuponBolumu}>
+      <TextInput style={s.kuponInp} placeholder="Kupon kodu..." onChangeText={setKuponKod} autoCapitalize="characters" />
+      <TouchableOpacity style={s.kuponBtn} onPress={kuponUygula}>
+        <Text style={{ color: '#FFF', fontWeight: 'bold' }}>UYGULA</Text>
+      </TouchableOpacity>
+    </View>
+      <TouchableOpacity onPress={() => setOdemeAdim('secim')} style={{ marginTop: 10 }}>
+      <Text style={{ color: '#FF4444', textAlign: 'center' }}>Kapat</Text>
+      </TouchableOpacity>
+    </View>
+    )}
         </View>
 
         <Modal visible={iptalModalAcik} transparent animationType="slide">

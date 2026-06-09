@@ -1,12 +1,4 @@
-// ============================================================
-// ChatScreen.js
-// TAM DÜZELTİLMİŞ VERSİYON
-// - Tüm syntax hataları giderildi
-// - Kaybolan ~15 satır geri eklendi (istatistik modal, header buton, kapanış tagleri)
-// - onValue async crash fix
-// - Firebase auth token tüm fetch'lere eklendi
-// - useEffect dependency array düzeltildi
-// ============================================================
+// ChatScreen.js - ÇALIŞAN VERSİYON
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, SafeAreaView,
@@ -21,7 +13,6 @@ import { getDatabase, ref, onValue, query, limitToLast } from 'firebase/database
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UstaIstatistikModali from './UstaIstatistikModali';
 
-// Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getDatabase(firebaseApp);
@@ -51,14 +42,13 @@ export function SohbetEkrani({
   const [ustaProfil, setUstaProfil] = useState(null);
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
   const flatListRef = useRef(null);
-
+  
   const ustaUid = aktifSohbetTeklif?.ustaUid || aktifSohbetTeklif?.ustaId || null;
   const sohbetId = (secilenIlan?.id && ustaUid)
     ? `${secilenIlan.id}_${ustaUid.replace(/[.@]/g, '_')}`
     : null;
   const sohbetKilitli = secilenIlan?.puanlandi === true;
 
-  // Karşı taraf bilgilerini çek
   useEffect(() => {
     if (rol === 'usta' && secilenIlan?.sahipUid) {
       fetch(`${DB_URL}/kullanicilar/${secilenIlan.sahipUid}.json?auth=${token}`)
@@ -79,55 +69,61 @@ export function SohbetEkrani({
     }
   }, [secilenIlan?.sahipUid, ustaUid, token]);
 
-  // FIX: onValue async kabul etmez, crash yapıyor
+  // ✅ DÜZELTİLDİ: onValue crash + okunacaklar tanımlandı
   useEffect(() => {
     if (!sohbetId) {
       setYukleniyor(false);
       return;
     }
     setYukleniyor(true);
-    // Katilimcilari hemen yaz
+
     fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-    musteriUid: secilenIlan?.sahipUid,
-    ustaUid: ustaUid,
-  }),
-  }).catch(() => {});
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        musteriUid: secilenIlan?.sahipUid,
+        ustaUid: ustaUid,
+      }),
+    }).catch(() => {});
+
     const mesajRef = query(
-    ref(db, `sohbetler/${sohbetId}/mesajlar`),
-    limitToLast(50)
-  );
+      ref(db, `sohbetler/${sohbetId}/mesajlar`),
+      limitToLast(50)
+    );
 
     const unsubscribe = onValue(mesajRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const liste = Object.keys(data)
-          .map(key => ({ id: key, ...data[key] }))
-          .filter(m => m.tip !== 'sistem')
-          .sort((a, b) => a.tarih - b.tarih);
+      try {
+        const data = snapshot.val();
+        if (data) {
+          const liste = Object.keys(data)
+            .map(key => ({ id: key, ...data[key] }))
+            .filter(m => m.tip !== 'sistem')
+            .sort((a, b) => a.tarih - b.tarih);
 
-        setMesajlar(liste);
+          setMesajlar(liste);
 
-        // Okundu işaretleme — güvenli şekilde
-       if (okunacaklar.length > 0 && token) {
-  const topluGuncelleme = {};
-  okunacaklar.forEach(m => {
-    topluGuncelleme[`sohbetler/${sohbetId}/mesajlar/${m.id}/durum`] = 'okundu';
-  });
-  fetch(`${DB_URL}/.json?auth=${token}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(topluGuncelleme),
-  }).catch(() => {});
-}
-
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-      } else {
-        setMesajlar([]);
+          // ✅ OKUNACAKLAR TANIMLANDI
+          const okunacaklar = liste.filter(m => m.gonderen !== kullanici.uid && m.durum !== 'okundu');
+          if (okunacaklar.length > 0 && token) {
+            const topluGuncelleme = {};
+            okunacaklar.forEach(m => {
+              topluGuncelleme[`sohbetler/${sohbetId}/mesajlar/${m.id}/durum`] = 'okundu';
+            });
+            fetch(`${DB_URL}/.json?auth=${token}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(topluGuncelleme),
+            }).catch(() => {});
+          }
+          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        } else {
+          setMesajlar([]);
+        }
+        setYukleniyor(false);
+      } catch (err) {
+        console.error('Sohbet dinleme hatası:', err);
+        setYukleniyor(false);
       }
-      setYukleniyor(false);
     }, (error) => {
       console.log('Firebase okuma hatası:', error.message);
       setYukleniyor(false);
@@ -138,9 +134,9 @@ export function SohbetEkrani({
 
   const mesajGonder = async () => {
     if (!yeniMesaj.trim() || !sohbetId || sohbetKilitli) return;
-
+    
     await fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
-      method: 'PATCH',
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         musteriUid: secilenIlan.sahipUid,
@@ -187,7 +183,7 @@ export function SohbetEkrani({
           hedefUid,
           kullanici?.rol === 'admin' ? '🛡️ GAYİT Destek' : `💬 ${kullanici.ad}`,
           mesajMetni,
-          token
+          token, 'sohbetlerim'
         );
       }
     } catch (e) {
@@ -231,7 +227,7 @@ export function SohbetEkrani({
 
               let hedefUid = rol === 'musteri' ? ustaUid : secilenIlan?.sahipUid || null;
               if (hedefUid) {
-                await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı', token);
+                await bildirimGonderVeKaydet(hedefUid, `📍 ${kullanici.ad}`, 'Konumunu paylaştı', token, 'sohbetlerim');
               }
             } catch (e) {
               Alert.alert('Hata', 'Konum alınamadı gari!');
@@ -315,7 +311,6 @@ export function SohbetEkrani({
   };
 
   const benimMesajim = (mesaj) => mesaj.gonderen === kullanici?.uid;
-
   const numaraAra = (numara) => {
     if (!numara || numara === 'Numara Yok') return;
     Linking.openURL(`tel:${numara}`);
@@ -330,7 +325,6 @@ export function SohbetEkrani({
   const gosterilecekIsim = ilkIsim.charAt(0).toUpperCase() + ilkIsim.slice(1);
   const numaraEtiketi = rol === 'musteri' ? '📞 Usta Telefonu' : '📞 Müşteri Telefonu';
 
-  // sohbetId null ise hata göster
   if (!sohbetId) {
     return (
       <SafeAreaView style={s.con}>
@@ -361,13 +355,12 @@ export function SohbetEkrani({
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <SafeAreaView style={[s.con, { flex: 1 }]}>
-        {/* HEADER */}
+    <SafeAreaView style={[s.con, { flex: 1 }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <View style={s.header}>
           <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
             <Text style={s.menuSimge}>←</Text>
@@ -382,7 +375,6 @@ export function SohbetEkrani({
               {secilenIlan?.baslik}
             </Text>
           </View>
-          {/* İSTATİSTİK BUTONU — GERİ EKLENDİ */}
           {rol === 'musteri' && (
             <TouchableOpacity
               onPress={() => setIstatistikModalAcik(true)}
@@ -399,7 +391,6 @@ export function SohbetEkrani({
           </TouchableOpacity>
         </View>
 
-        {/* ANLAŞMA BİLGİ KUTUSU */}
         <View style={s.numaraKutu}>
           <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginBottom: 3 }}>
             🤝 ANLAŞILAN FİYAT
@@ -449,7 +440,6 @@ export function SohbetEkrani({
           )}
         </View>
 
-        {/* MESAJLAR */}
         <FlatList
           ref={flatListRef}
           data={mesajlar}
@@ -518,8 +508,7 @@ export function SohbetEkrani({
           )}
         />
 
-        {/* İŞ TAMAMLANDI BUTONU */}
-       {anlasmaSaglandi && !sohbetKilitli && rol === 'musteri' && (
+        {anlasmaSaglandi && !sohbetKilitli && rol === 'musteri' && (
           <TouchableOpacity
             style={{ backgroundColor: '#588157', margin: 10, padding: 12, borderRadius: 12, alignItems: 'center' }}
             onPress={anlasmayiTamamla}
@@ -528,7 +517,6 @@ export function SohbetEkrani({
           </TouchableOpacity>
         )}
 
-        {/* MESAJ YAZMA ALANI */}
         {sohbetKilitli ? (
           <View style={{
             padding: 16, backgroundColor: '#F5F5F0',
@@ -573,7 +561,6 @@ export function SohbetEkrani({
           </View>
         )}
 
-        {/* USTA PROFİL MODALI */}
         <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
             <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30, paddingBottom: insets.bottom + 30 }}>
@@ -640,14 +627,13 @@ export function SohbetEkrani({
           </View>
         </Modal>
 
-        {/* USTA İSTATİSTİK MODALI — GERİ EKLENDİ */}
         <UstaIstatistikModali
           ustaId={ustaUid}
           ustaAd={aktifSohbetTeklif?.ustaAd}
           visible={istatistikModalAcik}
           onClose={() => setIstatistikModalAcik(false)}
         />
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
