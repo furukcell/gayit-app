@@ -1,9 +1,10 @@
 // ============================================================
-// IlanScreens.js — PRODUCTION READY
+// IlanScreens.js — PRODUCTION READY (DÜZELTİLMİŞ)
 // İlan Ver, İlanlarım/Tekliflerim, Teklif Ver, Teklifler ekranları
 //
 // ✅ DÜZELTİLDİ: Puanlama sonrası yeni ilan açılabilme mantığı eklendi
-// ✅ DÜZELTİLDİ: Syntax hataları (bod y, te klifler vb.) giderildi
+// ✅ DÜZELTİLDİ: Syntax hataları (body, teklifler vb.) giderildi
+// ✅ DÜZELTİLDİ: TeklifVerEkrani butonuna loading state ve disabled özelliği eklendi
 // ============================================================
 import { useState, useEffect } from 'react';
 import {
@@ -20,7 +21,6 @@ import { teklifVerildiGuncelle } from '../istatistikGuncelle';
 // ============================================================
 // İLAN VER EKRANI
 // ============================================================
-// EKLENDİ: setPuanlananIlan, setPuanModalAcik
 export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle, setKullanici, s, setPuanlananIlan, setPuanModalAcik }) {
   const [ilanKategori, setIlanKategori] = useState('Tesisat (Sucu)');
   const [ilanBaslik, setIlanBaslik] = useState('');
@@ -47,8 +47,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
             { text: 'Vazgeç', style: 'cancel', onPress: () => setIlanAcil(false) },
             { text: 'Paket Al', onPress: () => { setIlanAcil(false); setEkran('odeme'); } }
           ]
-        );
-        return;
+        );        return;
       }
     }
     setIlanAcil(deger);
@@ -64,15 +63,11 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
       return;
     }
 
-    // ---------------------------------------------------------
-    // YENİ MANTIK: Aynı kategorideki mevcut ilanı kontrol et
-    // ---------------------------------------------------------
     const mevcutIlan = ilanlar.find(
       i => (i.sahip === kullanici.email || i.sahipUid === kullanici.uid) && i.kategori === ilanKategori
     );
 
     if (mevcutIlan) {
-      // 1. Durum: İş tamamlanmış ama henüz PUANLANMAMIŞ
       if (mevcutIlan.isTamamlandi && !mevcutIlan.puanlandi) {
         Alert.alert(
           'Önce Ustayı Puanla!',
@@ -91,27 +86,21 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
         return;
       }
 
-      // 2. Durum: İş tamamlanmış VE puanlanmış -> YENİ İLAN AÇILABİLİR (Engelleme yok, aşağı iner)
       if (mevcutIlan.isTamamlandi && mevcutIlan.puanlandi) {
         // Devam et
-      } 
-      // 3. Durum: Hâlâ anlaşma var ama tamamlanmamış
-      else if (mevcutIlan.anlasmaVar && !mevcutIlan.isTamamlandi) {
+      } else if (mevcutIlan.anlasmaVar && !mevcutIlan.isTamamlandi) {
         Alert.alert('Hata', 'Bu kategoride hâlâ devam eden bir işiniz var!');
         return;
-      }
-      // 4. Durum: Aktif ilan var (beklemede vs.)
-      else {
+      } else {
         Alert.alert('Hata', 'Bu kategoride zaten aktif bir ilanınız var!');
         return;
       }
     }
-    // ---------------------------------------------------------
-
     const hakVar = kullanici?.abonelik === 'vip'
-    || (kullanici?.abonelik === 'premium' && (kullanici?.hak > 0 || kullanici?.yeniKullaniciHakki > 0))
-    || kullanici?.yeniKullaniciHakki > 0
-    || kullanici?.hak > 0;
+      || (kullanici?.abonelik === 'premium' && (kullanici?.hak > 0 || kullanici?.yeniKullaniciHakki > 0))
+      || kullanici?.yeniKullaniciHakki > 0
+      || kullanici?.hak > 0;
+      
     if (!hakVar && !ilanAcil) { setEkran('odeme'); return; }
     if (ilanAcil && !kullanici?.abonelik && !(kullanici?.acilHak > 0)) { setEkran('odeme'); return; }
 
@@ -156,7 +145,6 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
         }
         setKullanici({ ...kullanici, yeniKullaniciHakki: gYH, hak: gH, acilHak: gAH });
       }
-
       setIlanBaslik(''); setIlanDetay(''); setIlanIlce(''); setIlanMahalle('');
       setIsTarihiTip('Bugün'); setOzelTarih(''); setIlanAcil(false);
       Alert.alert('Başarılı! 🎉', `İlanınız ${ilanAcil ? 'ACİL olarak ' : ''}yayınlandı usta!`);
@@ -179,7 +167,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
             );
           }
         }
-      } catch (e) { console.log('Usta bildirimi gönderilemedi:', e); }
+      } catch (e) { console.log('Usta bildirimi gönderilemedi:', e); } 
     } catch (e) {
       Alert.alert('Hata', 'İlan kaydedilemedi!');
     }
@@ -206,10 +194,8 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
               <Text style={[s.chipY, ilanKategori === k && s.chipYAktif]}>{k}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-        <Text style={s.inputBaslik}>İlan Başlığı</Text>
+        </ScrollView>        <Text style={s.inputBaslik}>İlan Başlığı</Text>
         <TextInput style={s.inp} placeholder="Örn: Banyo Tesisat Yenileme" value={ilanBaslik} onChangeText={setIlanBaslik} />
-
         <Text style={s.inputBaslik}>Açıklama</Text>
         <TextInput
           style={[s.inp, { height: 100, textAlignVertical: 'top' }]}
@@ -257,8 +243,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
                 <ScrollView>
                   {Object.keys(MAHALLE_HIYERARSISI[ilanIlce] || {}).map((grup, index) => (
                     <TouchableOpacity
-                      key={index}
-                      style={{ padding: 20, backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10, alignItems: 'center' }}
+                      key={index}                      style={{ padding: 20, backgroundColor: '#F0F4F8', marginVertical: 5, borderRadius: 10, alignItems: 'center' }}
                       onPress={() => { setMahalleGrubu(grup); setAsama(2); }}
                     >
                       <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1B4965' }}>{grup} ❯</Text>
@@ -279,7 +264,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
                   )}
                   ListHeaderComponent={() => (
                     <TouchableOpacity onPress={() => setAsama(1)} style={{ padding: 10 }}>
-                      <Text style={{ color: '#E67E22', fontWeight: 'bold' }}> Geri Dön</Text>
+                      <Text style={{ color: '#E67E22', fontWeight: 'bold' }}> Geri Dön </Text>
                     </TouchableOpacity>
                   )}
                 />
@@ -307,8 +292,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
           Platform.OS === 'web' ? (
             <View style={{ marginBottom: 15 }}>
               <Text style={{ color: '#526E7F', fontSize: 13, marginBottom: 6 }}>Tarih Seçin</Text>
-              <input
-                type="date"
+              <input                type="date"
                 min={new Date().toISOString().split('T')[0]}
                 style={{ width: '100%', padding: 14, borderRadius: 12, border: '1px solid #E8E8E0', fontSize: 15, color: '#1B4965', backgroundColor: '#FFF' }}
                 onChange={(e) => {
@@ -357,8 +341,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setSecilenIlan, ustaTeklifTiklandi, onVeriYukle, setKullanici, s }) {
   const [istatistikModalUsta, setIstatistikModalUsta] = useState(null);
   
-  const benimIlanlarim = rol === 'usta'
-    ? ilanlar.filter(ilan => ilan.teklifler && ilan.teklifler.some(t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid))
+  const benimIlanlarim = rol === 'usta'    ? ilanlar.filter(ilan => ilan.teklifler && ilan.teklifler.some(t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid))
     : ilanlar.filter(ilan => ilan.sahip === kullanici?.email || ilan.sahipUid === kullanici?.uid);
 
   const ilanSil = (ilan) => {
@@ -373,8 +356,9 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
         await onVeriYukle();
         const teklifler = ilan.teklifler;
         const teklifSayisi = Array.isArray(teklifler)
-            ? teklifler.length
-            : (teklifler ? Object.keys(teklifler).length : 0);
+          ? teklifler.length
+          : (teklifler ? Object.keys(teklifler).length : 0);
+          
         if (teklifSayisi === 0) {
           const gYH = kullanici?.yeniKullaniciHakki || 0;
           const gH = kullanici?.hak || 0;
@@ -397,6 +381,7 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
         Alert.alert('Hata', 'İlan silinemedi!');
       }
     };
+
     if (Platform.OS === 'web') {
       const onay = window.confirm(`"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`);
       if (onay) silmeIslemi();
@@ -405,8 +390,7 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
         'İlanı Sil',
         `"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`,
         [
-          { text: 'Vazgeç', style: 'cancel' },
-          { text: 'Evet, Sil', style: 'destructive', onPress: silmeIslemi },
+          { text: 'Vazgeç', style: 'cancel' },          { text: 'Evet, Sil', style: 'destructive', onPress: silmeIslemi },
         ]
       );
     }
@@ -455,8 +439,7 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
                 {item.isTarihi && <Text style={s.kartAlt}> {item.isTarihi}</Text>}
                 <View style={s.kartIstatistikler}>
                   <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
-                  {rol === 'musteri' && item.goruntuleyen && (
-                    <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
+                  {rol === 'musteri' && item.goruntuleyen && (                    <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
                       👁️ {Object.keys(item.goruntuleyen).length} usta gördü
                     </Text>
                   )}
@@ -487,6 +470,9 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
   const [teklifFiyat, setTeklifFiyat] = useState('');
   const [teklifNot, setTeklifNot] = useState('');
   const [gonderildi, setGonderildi] = useState(false);
+  
+  // DÜZELTME: Teklif gönderim durumu için state eklendi
+  const [teklifGonderiliyor, setTeklifGonderiliyor] = useState(false);
 
   const mevcutTeklif = secilenIlan?.teklifler?.find(
     t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid
@@ -502,8 +488,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
 
   useEffect(() => {
     if (secilenIlan?.id && kullanici?.uid && token) {
-      fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json?auth=${token}`)
-        .then(r => r.json())
+      fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json?auth=${token}`)        .then(r => r.json())
         .then(data => {
           if (!data) {
             fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json?auth=${token}`, {
@@ -517,40 +502,44 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
   }, [secilenIlan?.id, token]);
 
   const teklifGonder = async () => {
+    // DÜZELTME: Zaten gönderiliyorsa veya boşsa çık
+    if (teklifGonderiliyor) return;
     if (!teklifFiyat || teklifFiyat.trim() === '') {
       Alert.alert('Hata', 'Usta, bir fiyat girmelisin gari!');
       return;
     }
-    const girilenFiyatSayi = parseFloat(teklifFiyat.replace(',', '.')).toString();
-    const eskiFiyatSayi = mevcutTeklif?.fiyat
-      ? parseFloat(mevcutTeklif.fiyat.replace(' TL', '').replace(',', '.')).toString()
-      : null;
 
-    if (mevcutTeklif && girilenFiyatSayi === eskiFiyatSayi) {
-      Alert.alert('Aynı Fiyat!', 'Zaten bu fiyatı (' + mevcutTeklif.fiyat + ') verdin usta! Farklı bir fiyat girerek teklifini güncelle.');
-      return;
-    }
-
-    if (!revizeModu && kullanici?.abonelik !== 'vip') {
-      let gYH = kullanici?.yeniKullaniciHakki ?? 0;
-      let gH = kullanici?.hak ?? 0;
-
-      if (gYH > 0) gYH -= 1;
-      else if (gH > 0) gH -= 1;
-      else return Alert.alert('Hata', 'Teklif hakkın kalmamış usta, dükkana uğra gari!');
-
-      setKullanici({ ...kullanici, yeniKullaniciHakki: gYH, hak: gH });
-
-      if (token) {
-        await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ yeniKullaniciHakki: gYH, hak: gH }),
-        });
-      }
-    }
+    setTeklifGonderiliyor(true); // DÜZELTME: Loading başlat
 
     try {
+      const girilenFiyatSayi = parseFloat(teklifFiyat.replace(',', '.')).toString();
+      const eskiFiyatSayi = mevcutTeklif?.fiyat
+        ? parseFloat(mevcutTeklif.fiyat.replace(' TL', '').replace(',', '.')).toString()
+        : null;
+
+      if (mevcutTeklif && girilenFiyatSayi === eskiFiyatSayi) {
+        Alert.alert('Aynı Fiyat!', 'Zaten bu fiyatı (' + mevcutTeklif.fiyat + ') verdin usta! Farklı bir fiyat girerek teklifini güncelle.');
+        return;
+      }
+
+      if (!revizeModu && kullanici?.abonelik !== 'vip') {
+        let gYH = kullanici?.yeniKullaniciHakki ?? 0;
+        let gH = kullanici?.hak ?? 0;
+
+        if (gYH > 0) gYH -= 1;
+        else if (gH > 0) gH -= 1;
+        else return Alert.alert('Hata', 'Teklif hakkın kalmamış usta, dükkana uğra gari!');
+
+        setKullanici({ ...kullanici, yeniKullaniciHakki: gYH, hak: gH });
+
+        if (token) {
+          await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ yeniKullaniciHakki: gYH, hak: gH }),
+          });        }
+      }
+
       if (revizeModu) {
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler/${mevcutTeklif.id}.json?auth=${token}`, {
           method: 'PATCH',
@@ -568,19 +557,24 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
             telefon: kullanici.telefon || 'Numara Yok', tarih: Date.now(),
           }),
         });
-        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, ' Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!`, token, 'teklifler');
+        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, 'Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!`, token, 'teklifler');
 
-       try {
-  const ilanTarihi = secilenIlan?.tarih || Date.now();
-  const yanitSuresiMs = Date.now() - ilanTarihi;
-  await teklifVerildiGuncelle({ ustaId: kullanici.uid, yanıtSuresiMs: yanitSuresiMs, token });
-} catch (e) { console.log('istatistik hatası:', e); }
+        try {
+          const ilanTarihi = secilenIlan?.tarih || Date.now();
+          const yanitSuresiMs = Date.now() - ilanTarihi;
+          await teklifVerildiGuncelle({ ustaId: kullanici.uid, yanıtSuresiMs: yanitSuresiMs, token });
+        } catch (e) { console.log('istatistik hatası:', e); }
       }
+      
       await onVeriYukle();
       setGonderildi(true);
       setTimeout(() => { setGonderildi(false); setEkran('anasayfa'); }, 1500);
+      
     } catch (e) {
       Alert.alert('Hata', 'Teklif gönderilemedi!');
+    } finally {
+      // DÜZELTME: İşlem bitince (başarılı veya hata) butonu tekrar aktif et
+      setTeklifGonderiliyor(false);
     }
   };
 
@@ -592,8 +586,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
         </TouchableOpacity>
         <Text style={s.headerBaslik}>{revizeModu ? '🔄 Teklifi Revize Et' : 'Teklif Ver'}</Text>
         <View style={{ width: 24 }} />
-      </View>
-      <ScrollView style={s.scroll}>
+      </View>      <ScrollView style={s.scroll}>
         <View style={[s.kart, secilenIlan?.acil && { borderWidth: 2, borderColor: '#FF4444' }]}>
           {secilenIlan?.acil && <View style={s.acilRozet}> <Text style={s.acilRozetYazi}>🚨 ACİL</Text> </View>}
           <Text style={s.kategoriBadge}>{secilenIlan?.kategori}</Text>
@@ -642,12 +635,15 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
             </Text>
           </View>
         )}
-
+        {/* DÜZELTME: Butona disabled, opacity ve dinamik text eklendi */}
         <TouchableOpacity
-          style={[s.girisBtn, { marginBottom: 40, backgroundColor: revizeModu ? '#F39C12' : '#1B4965' }]}
+          style={[s.girisBtn, { opacity: teklifGonderiliyor ? 0.6 : 1, marginBottom: 40, backgroundColor: revizeModu ? '#F39C12' : '#1B4965' }]}
           onPress={teklifGonder}
+          disabled={teklifGonderiliyor}
         >
-          <Text style={s.anaBtnY}>{revizeModu ? 'TEKLİFİ REVİZE ET' : 'TEKLİFİ GÖNDER'}</Text>
+          <Text style={s.anaBtnY}>
+            {teklifGonderiliyor ? '⏳ Teklif gönderiliyor...' : (revizeModu ? 'TEKLİFİ REVİZE ET' : 'TEKLİFİ GÖNDER')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -681,15 +677,14 @@ export function TekliflerEkrani({
           <View style={{ width: 24 }} />
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}></Text>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1B4965', textAlign: 'center', marginBottom: 8 }}>
             Bu İlana Erişim Yok
           </Text>
           <Text style={{ color: '#A3B1B9', textAlign: 'center', fontSize: 14 }}>
             Teklifleri sadece ilan sahibi görebilir.
           </Text>
-          <TouchableOpacity style={[s.girisBtn, { marginTop: 24 }]} onPress={() => setEkran('anasayfa')}>
-            <Text style={s.anaBtnY}>Ana Sayfaya Dön</Text>
+          <TouchableOpacity style={[s.girisBtn, { marginTop: 24 }]} onPress={() => setEkran('anasayfa')}>            <Text style={s.anaBtnY}>Ana Sayfaya Dön</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -729,7 +724,6 @@ export function TekliflerEkrani({
       });
       const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}&orderBy="tarih"&limitToLast=1`);
       const mevcutData = await res.json();
-
       if (!mevcutData || Object.keys(mevcutData).length === 0) {
         await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
           method: 'POST',
@@ -739,14 +733,13 @@ export function TekliflerEkrani({
             gonderen: kullanici.uid,
             gonderenAd: kullanici.ad,
             tarih: Date.now(),
-            durum: 'iletildi',
-            tip: 'sistem',
+            durum: 'iletildi',            tip: 'sistem',
           }),
         });
 
         await bildirimGonderVeKaydet(
           ustaUid,
-          ` ${kullanici.ad} sohbet başlattı!`,
+          `💬 ${kullanici.ad} sohbet başlattı!`,
           `${ilan.baslik} ilanı için mesajlaşmak istiyor.`, token, 'sohbetlerim'
         );
       }
@@ -789,17 +782,17 @@ export function TekliflerEkrani({
                 await fetch(`${DB_URL}/istatistikler/${ustaUid}.json?auth=${token}`, {
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    toplamIs: (istSnap.toplamIs || 0) + 1,
+                  body: JSON.stringify({                    toplamIs: (istSnap.toplamIs || 0) + 1,
                     sonGuncelleme: Date.now(),
                   }),
                 });
               } catch (e) { console.log('istatistik hatası:', e); }
-
+              
               await bildirimGonderVeKaydet(
                 teklif.ustaUid,
-                ' Anlaşma Sağlandı!',
-                'Müşteri teklifini kabul etti, iş sende usta!', token, 'sohbetlerim');
+                '🤝 Anlaşma Sağlandı!',
+                'Müşteri teklifini kabul etti, iş sende usta!', token, 'sohbetlerim'
+              );
             } catch (e) {
               Alert.alert('Hata', 'Anlaşma kaydedilemedi!');
             }
@@ -838,8 +831,7 @@ export function TekliflerEkrani({
             <Text style={{ color: '#A3B1B9', fontSize: 12, marginTop: 4 }}>
               👁️ {Object.keys(ilan.goruntuleyen).length} usta gördü
             </Text>
-          )}
-        </View>
+          )}        </View>
 
         {ilan?.anlasmaVar && (
           <View style={{ backgroundColor: '#E8F5E9', padding: 15, borderRadius: 12, marginBottom: 15 }}>
@@ -859,37 +851,36 @@ export function TekliflerEkrani({
               ]}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() => ustaProfilGoster(teklif.ustaUid, teklif.ustaAd)}
-          >
-       <Text
-             numberOfLines={1}
-             style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', textDecorationLine: 'underline' }}
-         >
-             {teklif.ustaAd} {teklif.kurucuUsta ? ' 🏅' : ''}
-            </Text>
-      </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => ustaProfilGoster(teklif.ustaUid, teklif.ustaAd)}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', textDecorationLine: 'underline' }}
+                  >
+                    {teklif.ustaAd} {teklif.kurucuUsta ? ' 🏅' : ''}
+                  </Text>
+                </TouchableOpacity>
 
-           <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>
-         {teklif.fiyat}
-       </Text>
-     </View>
+                <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>
+                  {teklif.fiyat}
+                </Text>
+              </View>
 
-<View style={{ marginTop: 8 }}>
-  <UstaMiniKart
-    ustaId={teklif.ustaUid}
-    ustaAd={teklif.ustaAd}
-    abonelikTipi={kullanici?.abonelik}
-    onPress={() => setIstatistikModalUsta({ id: teklif.ustaUid, ad: teklif.ustaAd })}
-  />
-</View>
+              <View style={{ marginTop: 8 }}>
+                <UstaMiniKart
+                  ustaId={teklif.ustaUid}
+                  ustaAd={teklif.ustaAd}
+                  abonelikTipi={kullanici?.abonelik}
+                  onPress={() => setIstatistikModalUsta({ id: teklif.ustaUid, ad: teklif.ustaAd })}
+                />
+              </View>
 
               {teklif.not ? (
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 8, padding: 10, marginTop: 8 }}>
                   <Text style={{ color: '#526E7F', fontSize: 13 }}>💬 {teklif.not}</Text>
-                </View>
-              ) : null}
+                </View>              ) : null}
 
               {teklif.revizeTarihi ? <Text style={{ color: '#F39C12', fontSize: 11, marginTop: 4 }}>🔄 Revize edildi</Text> : null}
 
@@ -938,8 +929,7 @@ export function TekliflerEkrani({
             </TouchableOpacity>
             <UstaIstatistikModali
               ustaId={istatistikModalUsta?.id}
-              ustaAd={istatistikModalUsta?.ad}
-              visible={istatistikModalUsta !== null}
+              ustaAd={istatistikModalUsta?.ad}              visible={istatistikModalUsta !== null}
               onClose={() => setIstatistikModalUsta(null)}
             />
           </>
@@ -973,7 +963,7 @@ export function TekliflerEkrani({
 
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 16, padding: 16, gap: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}> Ana Branş</Text>
+                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>Ana Branş</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
                       {ustaProfil.anaBrans || ustaProfil.meslek || '—'}
                     </Text>
@@ -987,9 +977,8 @@ export function TekliflerEkrani({
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}> Bölge</Text>
-                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>
-                  </View>
+                    <Text style={{ color: '#A3B1B9', fontSize: 13 }}>Bölge</Text>
+                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>                  </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>⭐ Puan</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
