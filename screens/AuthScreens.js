@@ -17,25 +17,12 @@ import { API_KEY, DB_URL, BOLGELER, KATEGORILER, referansKoduOlustur, DAVET_LIMI
 import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
-let firebaseApp;
-if (getApps().length === 0) {
-  firebaseApp = initializeApp(firebaseConfig);
-} else {
-  firebaseApp = getApps()[0];
-}
-
-let firebaseAuth;
-try {
-  firebaseAuth = initializeAuth(firebaseApp, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-} catch (e) {
-  firebaseAuth = getAuth(firebaseApp);
-}
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const firebaseAuth = getAuth(firebaseApp);
 
 // ============================================================
 // KARŞILAMA EKRANI
