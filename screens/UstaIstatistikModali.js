@@ -58,7 +58,7 @@ function teklifSkoruHesapla(ist, tumUstalar = []) {
 
   const isAgirligi        = ((ist.toplamIs || 0) / maxIs * 100) * 0.35;
   const puanAgirligi      = ((ist.ortalamaPuan || 0) / 5 * 100) * 0.30;
-  const yanisAgirligi     = Math.max(0, 100 - (ist.ortalamaYanisSuresiDk || 0)) * 0.20;
+  const yanitAgirligi = Math.max(0, 100 - (ist.ortalamaYanitSuresiDk || 0)) * 0.20;
   const tamamlamaAgirligi = Math.max(0, 100 - ((ist.ortalamaTamamlamaSaati || 0) / maxSaat * 100)) * 0.15;
 
   return Math.min(100, isAgirligi + puanAgirligi + yanisAgirligi + tamamlamaAgirligi);
@@ -133,8 +133,8 @@ export function UstaMiniKart({ ustaId, ustaAd, abonelikTipi, onPress }) {
               </View>
               <View style={styles.miniChip}>
                 <Text style={styles.miniEmoji}>⚡</Text>
-                <Text style={[styles.miniDeger, { color: getRenk('yanis', ist.ortalamaYanisSuresiDk) }]}>
-                  {formatSure(ist.ortalamaYanisSuresiDk)}
+                <Text style={[styles.miniDeger, { color: getRenk('yanis', ist.ortalamaYanitSuresiDk) }]}>
+                  {formatSure(ist.ortalamaYanitSuresiDk)}
                 </Text>
               </View>
             </>
@@ -293,8 +293,8 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, ustaBolge, ustaMe
                       />
                       <DetayRow
                         label="Ortalama yanıt süresi"
-                        deger={formatSure(ist.ortalamaYanisSuresiDk)}
-                        renk={getRenk('yanis', ist.ortalamaYanisSuresiDk)}
+                        deger={formatSure(ist.ortalamaYanitSuresiDk)}
+                        renk={getRenk('yanis', ist.ortalamaYanitSuresiDk)}
                       />
                       <DetayRow
                         label="Ortalama tamamlama"
