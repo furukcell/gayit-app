@@ -133,7 +133,7 @@ export function UstaMiniKart({ ustaId, ustaAd, abonelikTipi, onPress }) {
               </View>
               <View style={styles.miniChip}>
                 <Text style={styles.miniEmoji}>⚡</Text>
-                <Text style={[styles.miniDeger, { color: getRenk('yanis', ist.ortalamaYanitSuresiDk) }]}>
+                <Text style={[styles.miniDeger, { color: getRenk('yanit', ist.ortalamaYanitSuresiDk) }]}>
                   {formatSure(ist.ortalamaYanitSuresiDk)}
                 </Text>
               </View>
@@ -279,7 +279,7 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, ustaBolge, ustaMe
                       <OzetKart baslik="Puan"       deger={ist.ortalamaPuan?.toFixed(1) || '—'} renk={getRenk('puan', ist.ortalamaPuan)} ikon="⭐" />
                       <OzetKart baslik="İş"         deger={ist.tamamlanan || 0}                 renk="#6b7280"                            ikon="🔨" />
                       <OzetKart baslik="Tamamlama"  deger={`%${tamamlamaPct}`}                  renk={getRenk('tamamlama', tamamlamaPct)} ikon="✅" />
-                      <OzetKart baslik="Yanıt"      deger={formatSure(ist.ortalamaYanisSuresiDk)} renk={getRenk('yanis', ist.ortalamaYanisSuresiDk)} ikon="⚡" />
+                      <OzetKart baslik="Yanıt"      deger={formatSure(ist.ortalamaYanitSuresiDk)} renk={getRenk('yanit', ist.ortalamaYanitSuresiDk)} ikon="⚡" />
                     </View>
 
                     {/* ─ Detay listesi ─ */}
@@ -294,7 +294,7 @@ export default function UstaIstatistikModali({ ustaId, ustaAd, ustaBolge, ustaMe
                       <DetayRow
                         label="Ortalama yanıt süresi"
                         deger={formatSure(ist.ortalamaYanitSuresiDk)}
-                        renk={getRenk('yanis', ist.ortalamaYanitSuresiDk)}
+                        renk={getRenk('yanit', ist.ortalamaYanitSuresiDk)}
                       />
                       <DetayRow
                         label="Ortalama tamamlama"
