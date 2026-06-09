@@ -371,9 +371,9 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
         await fetch(`${DB_URL}/ilanlar/${ilan.id}.json?auth=${token}`, { method: 'DELETE' });
         await onVeriYukle();
         const teklifler = ilan.teklifler;
-        const teklifSayisi = teklifler && !Array.isArray(teklifler)
-          ? Object.keys(teklifler).length
-          : 0;
+        const teklifSayisi = Array.isArray(teklifler)
+            ? teklifler.length
+            : (teklifler ? Object.keys(teklifler).length : 0);
         if (teklifSayisi === 0) {
           const gYH = kullanici?.yeniKullaniciHakki || 0;
           const gH = kullanici?.hak || 0;
@@ -800,7 +800,6 @@ export function TekliflerEkrani({
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    tamamlanan: (istSnap.tamamlanan || 0) + 1,
                     toplamIs: (istSnap.toplamIs || 0) + 1,
                     sonGuncelleme: Date.now(),
                   }),
