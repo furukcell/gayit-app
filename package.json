@@ -21,6 +21,7 @@
     "expo-task-manager": "~13.1.6",
     "expo-updates": "~0.28.18",
     "expo-web-browser": "~14.2.0",
+    "firebase": "10.3.1", 
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.6",
