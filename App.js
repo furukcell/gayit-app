@@ -92,24 +92,6 @@ TaskManager.defineTask(TOKEN_YENILE_GOREVI, async () => {
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
-
-// Bildirim ayarı
-revenueCatBaslat();
-Purchases.addCustomerInfoUpdateListener(async (customerInfo) => {
-  const aktifAbonelikler = customerInfo.activeSubscriptions || [];
-  const kullaniciBilgisi = kullaniciRef.current;
-  const gecerliToken = tokenRef.current;
-  if (kullaniciBilgisi?.abonelik && !aktifAbonelikler.some(id => id.includes('premium') || id.includes('vip'))) {
-    setKullanici(prev => ({ ...prev, abonelik: null, abonelikBitis: null }));
-    if (gecerliToken && kullaniciBilgisi?.uid) {
-      await fetch(`${DB_URL}/kullanicilar/${kullaniciBilgisi.uid}.json?auth=${gecerliToken}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ abonelik: null, abonelikBitis: null }),
-      }).catch(e => console.log('Abonelik güncelleme hatası:', e));
-    }
-  }
-});
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -162,7 +144,44 @@ export default function App() {
   NavigationBar.setBehaviorAsync('overlay-swipe');
    }
    }, []);
+useEffect(() => {
+  // RevenueCat başlatma
+  try {
+    revenueCatBaslat();
+  } catch (e) {
+    console.log('RevenueCat başlatma hatası:', e);
+  }
 
+  // Abonelik dinleyicisi
+  const subscription = Purchases.addCustomerInfoUpdateListener(async (customerInfo) => {
+    try {
+      const aktifAbonelikler = customerInfo.activeSubscriptions || [];
+      const kullaniciBilgisi = kullaniciRef.current;
+      const gecerliToken = tokenRef.current;
+
+      if (
+        kullaniciBilgisi?.abonelik &&
+        !aktifAbonelikler.some(id => id.includes('premium') || id.includes('vip'))
+      ) {
+        setKullanici(prev => ({ ...prev, abonelik: null, abonelikBitis: null }));
+        if (gecerliToken && kullaniciBilgisi?.uid) {
+          await fetch(`${DB_URL}/kullanicilar/${kullaniciBilgisi.uid}.json?auth=${gecerliToken}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ abonelik: null, abonelikBitis: null }),
+          }).catch(e => console.log('Abonelik güncelleme hatası:', e));
+        }
+      }
+    } catch (e) {
+      console.log('RevenueCat listener hatası:', e);
+    }
+  });
+
+  // Cleanup
+  return () => {
+    Purchases.removeCustomerInfoUpdateListener(subscription);
+  };
+}, []);
   const [ekran, setEkran] = useState('karsilama');
   const [kullanici, setKullanici] = useState(null);
   const [token, setToken] = useState(null);
