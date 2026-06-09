@@ -20,6 +20,8 @@ import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { pushTokenAl } from '../notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases from 'react-native-purchases';
+import { getFirebaseAuth } from '../firebaseClient';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 // ============================================================
 // HELPER FONKSİYONLAR — Firebase REST API
