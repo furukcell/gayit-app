@@ -573,7 +573,7 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
        try {
   const ilanTarihi = secilenIlan?.tarih || Date.now();
   const yanitSuresiMs = Date.now() - ilanTarihi;
-  await teklifVerildiGuncelle({ ustaId: kullanici.uid, yanısSuresiMs: yanitSuresiMs, token });
+  await teklifVerildiGuncelle({ ustaId: kullanici.uid, yanıtSuresiMs: yanitSuresiMs, token });
 } catch (e) { console.log('istatistik hatası:', e); }
       }
       await onVeriYukle();
