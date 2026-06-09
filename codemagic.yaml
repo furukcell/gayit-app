@@ -17,10 +17,15 @@ workflows:
       - name: Keystore Hazırla
         script: |
           echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+      - name: Cache Temizle
+        script: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm cache clean --force
       - name: Bağımlılıkları Yükle
-        script: npm install
+        script: npm install --legacy-peer-deps
       - name: Expo Prebuild (Android Klasörünü Oluştur)
-        script: npx expo prebuild --platform android
+        script: npx expo prebuild --platform android --clean
       - name: Target SDK 35 Ayarla
         script: |
           cd $CM_BUILD_DIR
