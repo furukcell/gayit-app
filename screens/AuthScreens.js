@@ -19,6 +19,7 @@ import { pushTokenAl } from '../notifications';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Purchases from 'react-native-purchases';
 // Firebase SDK başlat
 const firebaseConfig = { apiKey: API_KEY, databaseURL: DB_URL };
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
