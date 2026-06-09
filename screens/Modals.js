@@ -89,10 +89,11 @@ export function PuanModali({ gorunur, setGorunur, puanlananIlan, kullanici, toke
 if (ustaUid && puanlananIlan?.id) {
   const puanId = `${ustaUid}_${kullanici.uid}`;
   islemTamamlandiGuncelle({
-    ustaId: ustaUid,
-    ilanId: puanlananIlan.id,
-    puanId: `${ustaUid}/${kullanici.uid}`,
-  }).catch(e => console.log('istatistik hatası:', e));
+  ustaId: ustaUid,
+  ilanId: puanlananIlan.id,
+  puanId: `${ustaUid}/${kullanici.uid}`,
+  token,
+}).catch(e => console.log('istatistik hatası:', e));
 }
 
       // 4. Ustaya bildirim gönder
