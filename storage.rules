@@ -1,0 +1,12 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /belgeler/{userId}/{allPaths=**} {
+      // Okuma: Kullanıcı kendi dosyalarını veya admin tüm dosyaları okuyabilir
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'kurtulusfaruk94@gmail.com');
+      
+      // Yazma/Silme: Kullanıcı kendi dosyalarını YÜKLEYEBİLİR veya SİLEBİLİR. Admin de müdahale edebilir.
+      allow write, delete: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'kurtulusfaruk94@gmail.com');
+    }
+  }
+}

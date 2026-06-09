@@ -6,7 +6,7 @@
 // --- Firebase Bilgileri ---
 export const API_KEY = "AIzaSyCcvq9VkMugDZTq3fOPypJIy0ATiGmPxrk";
 export const DB_URL = "https://usta-mugla-default-rtdb.europe-west1.firebasedatabase.app";
-export const STORAGE_BUCKET = "usta-mugla.appspot.com";
+export const STORAGE_BUCKET = "usta-mugla.firebasestorage.app";
 export const FIREBASE_API_KEY = "AIzaSyCcvq9VkMugDZTq3fOPypJIy0ATiGmPxrk";
 // --- Sabit Listeler ---
 export const BOLGELER = [

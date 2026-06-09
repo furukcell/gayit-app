@@ -22,7 +22,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Ekranlar
-import { KarsilamaEkrani, AuthEkrani } from './screens/AuthScreens';
+import { KarsilamaEkrani, AuthEkrani, MailDogrulamaEkrani } from './screens/AuthScreens';
 import { SifremiUnuttumEkrani } from './screens/SifremiUnuttumEkrani';
 import { KvkkEkrani } from './screens/KvkkEkrani';
 import { AnasayfaEkrani, SolMenu, SohbetlerimEkrani } from './screens/HomeScreen';
@@ -43,6 +43,9 @@ import { pushTokenAl } from './notifications';
 import * as Updates from 'expo-updates';
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
+import * as NavigationBar from 'expo-navigation-bar';
+import Purchases from 'react-native-purchases';
+import { AdminIstatistikEkrani } from './screens/AdminIstatistikEkrani';
 
 // ============================================================
 // ARKA PLAN TOKEN YENİLEME GÖREVİ
@@ -92,6 +95,21 @@ TaskManager.defineTask(TOKEN_YENILE_GOREVI, async () => {
 
 // Bildirim ayarı
 revenueCatBaslat();
+Purchases.addCustomerInfoUpdateListener(async (customerInfo) => {
+  const aktifAbonelikler = customerInfo.activeSubscriptions || [];
+  const kullaniciBilgisi = kullaniciRef.current;
+  const gecerliToken = tokenRef.current;
+  if (kullaniciBilgisi?.abonelik && !aktifAbonelikler.some(id => id.includes('premium') || id.includes('vip'))) {
+    setKullanici(prev => ({ ...prev, abonelik: null, abonelikBitis: null }));
+    if (gecerliToken && kullaniciBilgisi?.uid) {
+      await fetch(`${DB_URL}/kullanicilar/${kullaniciBilgisi.uid}.json?auth=${gecerliToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ abonelik: null, abonelikBitis: null }),
+      }).catch(e => console.log('Abonelik güncelleme hatası:', e));
+    }
+  }
+});
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -138,8 +156,12 @@ export default function App() {
         }
       } catch (e) { console.log(e); }
     }
-    checkUpdate();
-  }, []);
+  checkUpdate();
+  if (Platform.OS === 'android') {
+  NavigationBar.setVisibilityAsync('hidden');
+  NavigationBar.setBehaviorAsync('overlay-swipe');
+   }
+   }, []);
 
   const [ekran, setEkran] = useState('karsilama');
   const [kullanici, setKullanici] = useState(null);
@@ -222,6 +244,15 @@ export default function App() {
               if (kulData) {
                 guncelKullanici = { ...kullaniciBilgisi, ...kulData, uid: kullaniciBilgisi.uid };
                 await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncelKullanici));
+                const OTUZ_GUN = 2592000000;
+               if (guncelKullanici.yeniKullaniciHakki > 0 && guncelKullanici.kayitTarihi && (Date.now() - guncelKullanici.kayitTarihi > OTUZ_GUN)) {
+               guncelKullanici.yeniKullaniciHakki = 0;
+               await fetch(`${DB_URL}/kullanicilar/${guncelKullanici.uid}.json?auth=${gecerliToken}`, {
+               method: 'PATCH',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ yeniKullaniciHakki: 0 }),
+            });
+              }
               }
             } catch (e) {
               console.log('Kullanici yenileme hatasi:', e);
@@ -233,6 +264,19 @@ export default function App() {
           setEkran('anasayfa');
           veriYukleToken(gecerliToken, guncelKullanici);
           sistemIstatistikleriniGuncelleToken(gecerliToken);
+          try {
+          const { customerInfo } = await Purchases.restorePurchases();
+          const aktifAbonelikler = customerInfo.activeSubscriptions || [];
+          if (guncelKullanici?.abonelik && !aktifAbonelikler.some(id => id.includes('premium') || id.includes('vip'))) {
+          guncelKullanici.abonelik = null;
+          guncelKullanici.abonelikBitis = null;
+          await fetch(`${DB_URL}/kullanicilar/${guncelKullanici.uid}.json?auth=${gecerliToken}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ abonelik: null, abonelikBitis: null }),
+       });
+      }
+        } catch(e) { console.log('RevenueCat kontrol hatası:', e); }
         }
       } catch (e) {
         console.log('Otomatik giriş hatası:', e);
@@ -301,7 +345,7 @@ export default function App() {
             return;
           }
         }
-
+        let guncelKullanici = mevcutKullanici;
         if (mevcutKullanici?.uid) {
           try {
             const kulRes = await fetch(
@@ -309,14 +353,14 @@ export default function App() {
             );
             const kulData = await kulRes.json();
             if (kulData) {
-              const guncel = { ...mevcutKullanici, ...kulData, uid: mevcutKullanici.uid };
-              setKullanici(guncel);
-              await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncel));
+              guncelKullanici = { ...mevcutKullanici, ...kulData, uid: mevcutKullanici.uid };
+              setKullanici(guncelKullanici);
+              await AsyncStorage.setItem('oturum_kullanici', JSON.stringify(guncelKullanici));
             }
           } catch (e) {
             console.log('Arka plan token hatası:', e.message);
           }
-          veriYukleToken(mevcutToken, mevcutKullanici);
+          veriYukleToken(mevcutToken, guncelKullanici);
           sistemIstatistikleriniGuncelleToken(mevcutToken);
         }
       }
@@ -325,25 +369,23 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
-  useEffect(() => {
-    bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      if (kullanici) {
-        const data = response.notification.request.content.data;
-        if (data?.ekran) {
-          setEkran(data.ekran);
-        } else {
-          setEkran('anasayfa');
-        }
-      }
-    });
-    return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
-  }, [kullanici]);
+ useEffect(() => {
+  bildirimDinleyici.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data;
+    if (data?.ekran) {
+      setEkran(data.ekran);
+    } else {
+      setEkran('anasayfa');
+    }
+  });
+  return () => Notifications.removeNotificationSubscription(bildirimDinleyici.current);
+}, [kullanici]);
 
   // kullanici VE token ikisi de geldikten sonra veri çek
   useEffect(() => {
     if (kullanici && token) {
       veriYukle();
-      sistemIstatistikleriniGuncelle();
+      sistemIstatistikleriniGuncelleToken(token);
       pushTokenAl().then(pToken => {
         if (pToken && kullanici.uid) {
           fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
@@ -400,13 +442,20 @@ export default function App() {
   const veriYukle = () => veriYukleToken(token, kullanici);
 
   const sistemIstatistikleriniGuncelleToken = async (t) => {
-    const aktifToken = t || token;
+    let aktifToken = t || token;
     try {
       const istRes = await fetch(`${DB_URL}/istatistikler.json`);
       const istData = await istRes.json();
 
-      const kulRes = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
-      if (kulRes.status === 401) return;
+      let kulRes = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
+      if (kulRes.status === 401) {
+  const yeniToken = await firebaseTokenYenile();
+  if (!yeniToken) return;
+  aktifToken = yeniToken;
+  setToken(yeniToken);
+  kulRes = await fetch(`${DB_URL}/kullanicilar.json?auth=${aktifToken}`);
+  if (!kulRes.ok) return;
+      }
       const data = await kulRes.json();
 
       const bolgeUsta = {};
@@ -455,6 +504,10 @@ export default function App() {
       }
       if (['kvkk', 'sifremi_unuttum'].includes(ekran)) {
         setEkran('auth');
+        return true;
+      }
+      if (ekran === 'mail_dogrulama') {
+        setEkran('karsilama');
         return true;
       }
       if (ekran === 'auth') {
@@ -512,6 +565,7 @@ export default function App() {
   const ekraniGoster = () => {
     if (ekran === 'karsilama') return <KarsilamaEkrani setRol={setRol} setMod={() => {}} setEkran={setEkran} s={st} />;
     if (ekran === 'auth') return <AuthEkrani rol={rol} setRol={setRol} setEkran={setEkran} setKullanici={setKullanici} setToken={setToken} kvkkKabul={kvkkKabul} setKvkkKabul={setKvkkKabul} sozlesmeKabul={sozlesmeKabul} setSozlesmeKabul={setSozlesmeKabul} s={st} />;
+    if (ekran === 'mail_dogrulama') return <MailDogrulamaEkrani token={token} setEkran={setEkran} s={st} />;
     if (ekran === 'sifremi_unuttum') return <SifremiUnuttumEkrani setEkran={setEkran} s={st} />;
     if (ekran === 'kvkk') return <KvkkEkrani setEkran={setEkran} setKvkkKabul={setKvkkKabul} s={st} />;
 
@@ -661,6 +715,14 @@ export default function App() {
         s={st}
       />
     );
+    if (ekran === 'admin_istatistik') return (
+       <AdminIstatistikEkrani
+       kullanici={kullanici}
+       token={token}
+       setEkran={setEkran}
+       s={st}
+    />
+   );
 
     if (ekran === 'evim') return (
       <EvimEkrani
@@ -678,9 +740,10 @@ export default function App() {
     <SafeAreaProvider>
       <View style={st.root}>
         <StatusBar
-          barStyle={karanlikMod ? 'light-content' : 'dark-content'}
-          backgroundColor={karanlikMod ? '#121212' : '#F5F5F0'}
-        />
+         barStyle={karanlikMod ? 'light-content' : 'dark-content'}
+         backgroundColor="transparent"
+         translucent={true}
+     />
 
         {ekraniGoster()}
 
@@ -728,20 +791,20 @@ export default function App() {
 // ============================================================
 function stilOlustur(karanlik) {
   const r = {
-    bg: karanlik ? '#121212' : '#F5F5F0',
-    bgKart: karanlik ? '#1E1E1E' : '#FFF',
-    bgInput: karanlik ? '#2A2A2A' : '#FFF',
-    bgChip: karanlik ? '#2A2A2A' : '#FFF',
-    bgModal: karanlik ? '#1E1E1E' : '#F5F5F0',
-    bgOnay: karanlik ? '#2A2A2A' : '#FFF',
-    anaRenk: '#1B4965',
-    yaziBas: karanlik ? '#E0E0E0' : '#1B4965',
-    yaziAlt: karanlik ? '#A0A0A0' : '#526E7F',
-    yaziSoluk: karanlik ? '#666' : '#A3B1B9',
-    sinir: karanlik ? '#333' : '#E8E8E0',
-    chipSinir: karanlik ? '#444' : '#D1D9E0',
-    chipYazi: karanlik ? '#A0A0A0' : '#526E7F',
-  };
+  bg:       karanlik ? '#0D1B2A' : '#F5F5F0',       // koyu lacivert, mat siyah değil
+  bgKart:   karanlik ? '#152535' : '#FFF',           // biraz açık lacivert
+  bgInput:  karanlik ? '#1C3148' : '#FFF',           // input alanları
+  bgChip:   karanlik ? '#1C3148' : '#FFF',
+  bgModal:  karanlik ? '#152535' : '#F5F5F0',
+  bgOnay:   karanlik ? '#1C3148' : '#FFF',
+  anaRenk:  karanlik ? '#7EC8E3' : '#1B4965',        // açık mavi — karanlıkta butonlar görünsün
+  yaziBas:  karanlik ? '#E8F4FD' : '#1B4965',        // mavi-beyaz, sıcak
+  yaziAlt:  karanlik ? '#8BB8CE' : '#526E7F',        // açık mavi-gri
+  yaziSoluk: karanlik ? '#4A7A94' : '#A3B1B9',
+  sinir:    karanlik ? '#1E3D56' : '#E8E8E0',        // lacivert tonunda border
+  chipSinir: karanlik ? '#2A5070' : '#D1D9E0',
+  chipYazi:  karanlik ? '#8BB8CE' : '#526E7F',
+};
 
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: r.bg },
@@ -843,10 +906,10 @@ function stilOlustur(karanlik) {
       backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999,
     },
     drawerIc: {
-      position: 'absolute', top: 0, bottom: 0, left: 0, width: '80%',
-      backgroundColor: '#1B4965', paddingTop: Platform.OS === 'android' ? 45 : 55,
-      paddingHorizontal: 20,
-    },
+    position: 'absolute', top: 0, bottom: 0, left: 0, width: '70%',
+    backgroundColor: '#1B4965', paddingTop: 30,
+    paddingHorizontal: 20,
+   },
     drawerKapat: { position: 'absolute', top: Platform.OS === 'android' ? 40 : 50, right: 15, padding: 5 },
     menuItem: { paddingVertical: 12 },
     menuText: { color: '#FFF', fontSize: 15 },

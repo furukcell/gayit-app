@@ -1,0 +1,102 @@
+{
+  "rules": {
+    "kullanicilar": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin')",
+        ".validate": "!data.exists() || root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin' || ((!newData.hasChild('rol') || newData.child('rol').val() === data.child('rol').val()) && (!newData.hasChild('abonelik') || newData.child('abonelik').val() === data.child('abonelik').val()) && (!newData.hasChild('abonelikBitis') || newData.child('abonelikBitis').val() === data.child('abonelikBitis').val()) && (!newData.hasChild('davetSayisi') || newData.child('davetSayisi').val() === data.child('davetSayisi').val()) && (!newData.hasChild('referansKodu') || newData.child('referansKodu').val() === data.child('referansKodu').val()) && (!newData.hasChild('onayDurumu') || newData.child('onayDurumu').val() === data.child('onayDurumu').val()) && (!newData.hasChild('donduruldu') || newData.child('donduruldu').val() === data.child('donduruldu').val()))"
+      }
+    },
+    "ilanlar": {
+      ".read": true,
+      "$ilanId": {
+        ".write": "auth != null && (root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin' || (data.exists() == false && newData.child('sahipUid').val() === auth.uid) || (data.exists() == true && data.child('sahipUid').val() === auth.uid && data.child('anlasmaVar').val() != true) || (data.exists() == true && data.child('sahipUid').val() === auth.uid && data.child('anlasmaVar').val() == true && (newData.child('isTamamlandi').val() == true || newData.child('puanlandi').val() == true)))",
+        "teklifler": {
+          "$teklifId": {
+            ".write": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'usta' && root.child('kullanicilar').child(auth.uid).child('donduruldu').val() !== true && data.parent().parent().child('anlasmaVar').val() != true && (data.exists() == false && newData.child('ustaUid').val() === auth.uid || data.exists() == true && data.child('ustaUid').val() === auth.uid)"
+          }
+        },
+        "goruntuleyen": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "sohbetler": {
+      "$sohbetId": {
+        ".read": "auth != null && (data.child('katilimcilar/musteriUid').val() == auth.uid || data.child('katilimcilar/ustaUid').val() == auth.uid || root.child('kullanicilar').child(auth.uid).child('rol').val() == 'admin')",
+        ".write": "auth != null && (data.child('katilimcilar/musteriUid').val() == auth.uid || data.child('katilimcilar/ustaUid').val() == auth.uid || data.exists() == false || root.child('kullanicilar').child(auth.uid).child('rol').val() == 'admin')",
+        "mesajlar": {
+          ".read": "auth != null && (root.child('sohbetler').child($sohbetId).child('katilimcilar/musteriUid').val() == auth.uid || root.child('sohbetler').child($sohbetId).child('katilimcilar/ustaUid').val() == auth.uid || root.child('kullanicilar').child(auth.uid).child('rol').val() == 'admin')",
+          ".write": "auth != null && (root.child('sohbetler').child($sohbetId).child('katilimcilar/musteriUid').val() == auth.uid || root.child('sohbetler').child($sohbetId).child('katilimcilar/ustaUid').val() == auth.uid || root.child('kullanicilar').child(auth.uid).child('rol').val() == 'admin')",
+          ".indexOn": ["tarih"]
+        }
+      }
+    },
+    "bildirimler": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null"
+      }
+    },
+    "puanlar": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "kuponlar": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'"
+    },
+    "istatistikler": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin')"
+      }
+    },
+    "onayBasvurulari": {
+      ".read": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null"
+    },
+    "sikayetler": {
+      ".read": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null"
+    },
+    "adminMesajlari": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'"
+      }
+    },
+    "evEsyalari": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "evHizmetleri": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "evRaporlari": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "iletisim": {
+      ".read": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null",
+      "$mesajId": {
+        "yanitlar": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'"
+        }
+      }
+    },
+    "sistemIst": {
+      ".read": true,
+      ".write": "auth != null && root.child('kullanicilar').child(auth.uid).child('rol').val() === 'admin'"
+    }
+  }
+}

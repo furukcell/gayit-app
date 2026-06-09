@@ -65,6 +65,20 @@ export const dogrulamaMailiGonder = async (idToken) => {
   return await res.json();
 };
 
+// Mail doğrulama durumunu kontrol et
+export const mailDogrulandiMiKontrol = async (idToken) => {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    }
+  );
+  const data = await res.json();
+  return data?.users?.[0]?.emailVerified === true;
+};
+
 // ============================================================
 // KULLANICI İŞLEMLERİ
 // ============================================================
@@ -342,4 +356,136 @@ export const davetKoduIsle = async (davetKodu, yeniUid, token) => {
   });
 
   return true;
+};
+// ============================================================
+// HESAP SİLME — Tüm verileri sil
+// ============================================================
+// Firebase Auth hesabını sil (REST API)
+export const authHesabiSil = async (idToken) => {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    }
+  );
+  return await res.json();
+};
+
+// Storage dosyasını sil
+export const storageDosyaSil = async (token, dosyaYolu) => {
+  try {
+    const res = await fetch(
+      `https://firebasestorage.googleapis.com/v0/b/gayit-6f6c4.firebasestorage.app/o/${encodeURIComponent(dosyaYolu)}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return res.ok;
+  } catch (e) {
+    console.log('Storage silme hatası:', e);
+    return false;
+  }
+};
+
+// URL'den storage dosya yolunu çıkar
+export const urlDenDosyaYolu = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/\/o\/([^?]+)/);
+  if (!match) return null;
+  return decodeURIComponent(match[1]);
+};
+
+// Kullanıcının TÜM verilerini sil (Firebase, Storage, Auth)
+export const kullanicininTumVerileriniSil = async (uid, token, kullanici) => {
+  const log = [];
+
+  // 1️ Kullanıcının ilanlarını bul ve sil
+  try {
+    const ilanRes = await fetch(`${DB_URL}/ilanlar.json?auth=${token}`);
+    const ilanlar = await ilanRes.json();
+    if (ilanlar) {
+      for (const [ilanId, ilan] of Object.entries(ilanlar)) {
+        if (ilan.sahip === kullanici?.email || ilan.anlasilanUsta?.ustaUid === uid) {
+          await fetch(`${DB_URL}/ilanlar/${ilanId}.json?auth=${token}`, { method: 'DELETE' });
+          log.push(`İlan silindi: ${ilan.baslik}`);
+        }
+      }
+    }
+  } catch (e) { log.push('İlan silme hatası'); }
+
+  // 2️⃣ Puanları sil (hem aldığı hem verdiği)
+  try {
+    await fetch(`${DB_URL}/puanlar/${uid}.json?auth=${token}`, { method: 'DELETE' });
+    log.push('Puanlar silindi');
+  } catch (e) {}
+
+  // 3️⃣ Bildirimleri sil
+  try {
+    await fetch(`${DB_URL}/bildirimler/${uid}.json?auth=${token}`, { method: 'DELETE' });
+    log.push('Bildirimler silindi');
+  } catch (e) {}
+
+  // 4️⃣ Onay başvurularını sil
+  try {
+    await fetch(`${DB_URL}/onayBasvurulari/${uid}.json?auth=${token}`, { method: 'DELETE' });
+    log.push('Onay başvurusu silindi');
+  } catch (e) {}
+
+  // 5️ Admin mesajlarını sil
+  try {
+    await fetch(`${DB_URL}/adminMesajlari/${uid}.json?auth=${token}`, { method: 'DELETE' });
+    log.push('Admin mesajları silindi');
+  } catch (e) {}
+
+  // 6️⃣ Sohbetleri sil
+  try {
+    const sohbetRes = await fetch(`${DB_URL}/sohbetler.json?auth=${token}`);
+    const sohbetler = await sohbetRes.json();
+    if (sohbetler) {
+      for (const [sohbetId, sohbet] of Object.entries(sohbetler)) {
+        if (sohbet.ustaUid === uid || sohbet.musteriUid === uid || 
+            sohbet.ustaEmail === kullanici?.email || sohbet.musteriEmail === kullanici?.email) {
+          await fetch(`${DB_URL}/sohbetler/${sohbetId}.json?auth=${token}`, { method: 'DELETE' });
+          log.push(`Sohbet silindi: ${sohbetId}`);
+        }
+      }
+    }
+  } catch (e) { log.push('Sohbet silme hatası'); }
+
+  // 7️ Referans kodunu sil
+  if (kullanici?.referansKodu) {
+    try {
+      await fetch(`${DB_URL}/referansKodu/${kullanici.referansKodu}.json?auth=${token}`, { method: 'DELETE' });
+      log.push('Referans kodu silindi');
+    } catch (e) {}
+  }
+
+  // 8️⃣ Storage dosyalarını sil (profil, kimlik, ek belgeler)
+  const dosyaAlanlari = ['profilFoto', 'kimlikUrl', 'ekBelgeUrl', 'ustalikBelgesiUrl', 'vergiLevhasiUrl', 'esnafSicilUrl'];
+  for (const alan of dosyaAlanlari) {
+    const url = kullanici?.[alan];
+    const dosyaYolu = urlDenDosyaYolu(url);
+    if (dosyaYolu) {
+      await storageDosyaSil(token, dosyaYolu);
+    }
+  }
+  // Ekstra: belgeler/{uid}/ klasöründeki tüm dosyalar için
+  // (bu Firebase Storage REST API ile tek seferde silinemez, tek tek silmek gerekir)
+
+  // 9️⃣ Kullanıcı profilini sil
+  try {
+    await fetch(`${DB_URL}/kullanicilar/${uid}.json?auth=${token}`, { method: 'DELETE' });
+    log.push('Kullanıcı profili silindi');
+  } catch (e) { log.push('Profil silme hatası'); }
+
+  // 🔟 EN SON: Firebase Auth hesabını sil
+  try {
+    await authHesabiSil(token);
+    log.push('Auth hesabı silindi');
+  } catch (e) { log.push('Auth silme hatası'); }
+
+  return log;
 };
