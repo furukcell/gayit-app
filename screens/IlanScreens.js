@@ -15,6 +15,7 @@ import { DB_URL, BOLGELER, YENI_ILAN_KATEGORILER, tarihHesapla } from '../consta
 import { MAHALLE_HIYERARSISI } from '../Mahalleler';
 import { bildirimGonderVeKaydet } from '../notifications';
 import UstaIstatistikModali, { UstaMiniKart } from './UstaIstatistikModali';
+import { teklifVerildiGuncelle } from '../istatistikGuncelle';
 
 // ============================================================
 // İLAN VER EKRANI
@@ -569,22 +570,11 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
         });
         await bildirimGonderVeKaydet(secilenIlan?.sahipUid, ' Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!`, token, 'teklifler');
 
-        try {
-          const ilanTarihi = secilenIlan?.tarih || Date.now();
-          const yanitSuresiMs = Date.now() - ilanTarihi;
-          const istSnap = await fetch(`${DB_URL}/istatistikler/${kullanici.uid}.json?auth=${token}`).then(r => r.json()) || {};
-          const eskiToplam = (istSnap.ortalamaYanitSuresiDk || 0) * (istSnap.toplamTeklif || 0);
-          const yeniTeklif = (istSnap.toplamTeklif || 0) + 1;
-          await fetch(`${DB_URL}/istatistikler/${kullanici.uid}.json?auth=${token}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              toplamTeklif: yeniTeklif,
-              ortalamaYanitSuresiDk: (eskiToplam + (yanitSuresiMs / 60000)) / yeniTeklif,
-              sonGuncelleme: Date.now(),
-            }),
-          });
-        } catch (e) { console.log('istatistik hatası:', e); }
+       try {
+  const ilanTarihi = secilenIlan?.tarih || Date.now();
+  const yanitSuresiMs = Date.now() - ilanTarihi;
+  await teklifVerildiGuncelle({ ustaId: kullanici.uid, yanısSuresiMs: yanitSuresiMs });
+} catch (e) { console.log('istatistik hatası:', e); }
       }
       await onVeriYukle();
       setGonderildi(true);
