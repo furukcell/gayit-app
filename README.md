@@ -2,7 +2,7 @@
 
 **Gayıt**, Muğla ve ilçelerine özel geliştirilen yerel hizmet pazaryeri mobil uygulamasıdır.
 
-Müşteriler ihtiyaç duydukları iş için ilan oluşturur. Ustalar kendi branşlarına ve çalışma bölgelerine uygun ilanlara teklif verir. Taraflar anlaşma sağladığında sohbet, iletişim, konum paylaşımı ve iş takibi uygulama içinde ilerler.
+Müşteriler ihtiyaç duydukları iş için ilan oluşturur. Ustalar kendi branşlarına ve çalışma bölgelerine uygun ilanlara teklif verir. Taraflar anlaşma sağladığında sohbet, bildirim, konum paylaşımı, Google Maps yönlendirmesi ve iş takibi uygulama içinde ilerler.
 
 Gayıt'ın amacı; Muğla'da temizlikçi, tesisatçı, elektrikçi, klimacı, boyacı, nakliyeci ve benzeri hizmetlerde müşterilerle gerçek ustaları daha kontrollü, daha yerel ve daha güvenli bir sistemde buluşturmaktır.
 
@@ -10,15 +10,30 @@ Gayıt'ın amacı; Muğla'da temizlikçi, tesisatçı, elektrikçi, klimacı, bo
 
 ## Güncel Durum
 
-- Android uygulama sürümü: **1.1.2**
-- Android `versionCode`: **22**
+- Android uygulama sürümü: **1.4.0**
+- Android `versionCode`: **26**
 - Paket adı: **com.gayit.android**
+- Expo SDK: **53**
+- React Native: **0.79.6**
+- React: **19.0.0**
 - Hedef SDK: **35**
-- Google Play üretim başvurusu yapılmıştır.
-- Uygulama, sınırlı bölgesel lansman ve kontrollü ilk kullanım için MVP seviyesine getirilmiştir.
-- Admin istatistik modülü (`AdminIstatistikEkrani`) eklendi ve admin paneline entegre edildi.
-- Kurucu Usta rozeti sistemi eklendi (profil ekranı + teklif kartları).
-- Profil ekranında puanlama sistemi token hatası düzeltildi.
+- `newArchEnabled`: **false**
+- Deep link scheme: **gayit**
+- Google Play üretim sürecine uygun yeni sürüm hazırlığı yapılmaktadır.
+- Uygulama, Muğla merkezli kontrollü lansman ve gerçek saha testi için MVP seviyesine getirilmiştir.
+
+### Son Teknik Güncellemeler
+
+- Expo SDK 51'den SDK 53'e yükseltme yapıldı.
+- Android target SDK 35 uyumluluğu sağlandı.
+- React Native 0.79.6 ve React 19 uyumlu paket yapısına geçildi.
+- Açılışta crash üreten RevenueCat listener yapısı `App()` içine alındı.
+- Firebase başlatma işlemleri merkezi `firebaseClient.js` dosyasına taşındı.
+- Sohbet ekranı, Firebase Realtime Database bağlantısını merkezi client üzerinden kullanacak şekilde güncellendi.
+- Realtime sohbet için Firebase SDK giriş senkronizasyonu eklendi.
+- Teklif ekranındaki usta istatistik mini kartının taşma / yarım görünme sorunu düzeltildi.
+- `scheme: "gayit"` eklenerek standalone uygulama yönlendirme / deep link altyapısı güçlendirildi.
+- Package lock temizliği ve SDK 53 paket uyumluluğu sonrası üretim build süreci toparlandı.
 
 > Gayıt şu an geniş ölçekli ulusal bir pazar yeri olmaktan önce, Muğla merkezli gerçek saha kullanımıyla doğrulanacak yerel bir hizmet pazaryeri olarak konumlandırılmıştır.
 
@@ -32,19 +47,20 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 - Müşteri ve usta için ayrı rol yapısı
 - Aynı kategoride tek aktif ilan kuralı
 - Anlaşma olmadan telefon ve doğrudan iletişim açılmaması
-- İlan hakkı, teklif hakkı, kupon ve abonelik sistemi
+- İlan hakkı, teklif hakkı, acil ilan hakkı, kupon ve abonelik sistemi
 - Puanlama, şikâyet ve admin kontrol mekanizmaları
 - Usta onayı, profil doğrulama ve belge yükleme yapısı
-- Konum paylaşımı ve Google Maps yönlendirme desteği
+- Realtime sohbet, konum paylaşımı ve Google Maps yönlendirme desteği
+- Bildirim geçmişi ve push bildirim yönlendirme sistemi
 - Sınırlı lansmanda gerçek usta / müşteri davranışına göre geliştirme yaklaşımı
 
 ---
 
 ## Kullanılan Teknolojiler
 
-- React Native
-- Expo SDK 51
-- React Native 0.74
+- React Native 0.79.6
+- React 19.0.0
+- Expo SDK 53
 - Firebase Authentication
 - Firebase Realtime Database
 - Firebase Storage
@@ -53,8 +69,10 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 - Expo Location
 - Expo Updates
 - Expo Background Fetch / Task Manager
+- Expo Navigation Bar
 - RevenueCat / Google Play Billing
 - AsyncStorage
+- EAS / Codemagic Android build süreci
 
 ---
 
@@ -64,7 +82,8 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 
 - Müşteri / usta rol seçimi
 - E-posta ve şifre ile kayıt / giriş
-- Firebase Authentication entegrasyonu
+- Firebase REST Authentication akışı
+- Firebase SDK auth senkronizasyonu
 - E-posta doğrulama akışı
 - Şifremi unuttum ekranı
 - Otomatik giriş
@@ -109,10 +128,11 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 - Teklif revizyon sistemi
 - Anlaşma durumu takibi
 - İş tamamlandı / puanlandı mantığı
-- Son 50 mesajı dinleyen sohbet sistemi
+- Son 50 mesajı dinleyen realtime sohbet sistemi
 - Okundu / iletildi bilgisi
 - Konum paylaşımı
 - Google Maps bağlantısı
+- Merkezi Firebase client üzerinden Realtime Database bağlantısı
 
 ### Bildirim Sistemi
 
@@ -120,9 +140,9 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 - Push token Firebase'e kaydedilir
 - Bildirim geçmişi `bildirimler/` node'u altında tutulur
 - Bildirim gönderimi Cloud Function üzerinden yapılır: `bildirimGonder`
-- Sunucu taraflı bildirim gönderimi ile token erişim sorunları azaltılır
-- Bildirim ekranında okundu işaretleme desteği vardır
+- Bildirim data alanında ekran yönlendirme bilgisi taşınır
 - Uygulama arka plandayken bildirime tıklayarak ilgili ekrana yönlendirme yapılır
+- `scheme: gayit` ile standalone uygulama yönlendirme altyapısı desteklenir
 
 ### Ödeme, Paket ve Kupon
 
@@ -139,7 +159,7 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 ### Onaylı Usta Sistemi
 
 - Kimlik fotoğrafı + ek belge yükleme zorunluluğu
-- **Onaylı usta başvurusu için profilde telefon numarası zorunluluğu**
+- Onaylı usta başvurusu için profilde telefon numarası zorunluluğu
 - Belge tipi seçimi: ustalık belgesi, vergi levhası, esnaf sicil vb.
 - Admin panelinden belge inceleme ve onay / red
 - Onay durumu: `beklemede`, `onayli`, `reddedildi`
@@ -160,45 +180,15 @@ Gayıt, genel hizmet pazaryerlerinden farklı olarak daha yerel, daha kontrollü
 - Belge görüntüleme
 - Kupon / promosyon kodu yönetimi
 - Admin mesajları
-
-### Admin İstatistik Modülü (`AdminIstatistikEkrani`)
-
-Admin paneli istatistik sekmesinden açılan detaylı analiz ekranı.
-
-- Tarih filtresi: Bugün / Dün / 7 Gün / 30 Gün / Bu Ay / Geçen Ay / 3 Ay / Tümü
-- Özet kartlar ve dönüşüm oranları
-- Bugün özeti (abonelik + kupon dahil)
-- Dönüşüm hunisi (kayıt → ilan → teklif → anlaşma → puanlama)
-- Kullanıcı istatistikleri (branş, profil, belge, onay oranları)
-- İlan istatistikleri (ücretli / kupon / abonelik hakkı / iptal / pasif)
-- Teklif istatistikleri (aktif usta, en çok teklif verenler, kabul/red/bekleyen)
-- Puanlama detayı (yıldız dağılımı, yorumlu/yorumsuz, en yüksek puanlı ustalar)
-- Abonelik & Gelir bölümü (VIP/Premium dağılımı, kupon detayı)
-- İlçe bazlı performans (onaylı usta + en aktif kategori)
-- Kategori bazlı performans (usta sayısı + en güçlü ilçe)
-- Aylık karşılaştırma (son 6 ay, büyüme oranı, bar chart)
-- Uyarı & alarm sistemi
-- 10 KPI + GAYİT Sağlık Skoru
-- CSV export
+- Admin istatistik modülü
 
 ### Kurucu Usta Sistemi
 
-- İlk 200 onaylı ustaya özel 🏅 Kurucu Usta rozeti
+- İlk 200 onaylı ustaya özel Kurucu Usta rozeti
 - Rozet profil ekranında abonelik rozetinin altında gösterilir
-- Teklif kartlarında usta adının yanında 🏅 simgesi görünür
+- Teklif kartlarında usta adının yanında rozet simgesi görünür
 - Firebase'de `kullanicilar/{uid}/kurucuUsta: true` field'ı ile yönetilir
 - Manuel atama — 200 kişi dolduktan sonra otomatik olarak kapanır, kod değişikliği gerekmez
-
-### Ek Modül: Evim
-
-Evim Modülü, Gayıt'ın ana hizmet pazaryeri yapısını destekleyen ek bir modül olarak planlanmıştır.
-
-- Ev eşyası takibi
-- Hizmet ve bakım geçmişi
-- Garanti süresi takibi
-- Servis, bakım, tamir ve parça değişimi kayıtları
-- Premium / VIP kullanım yapısı
-- VIP kullanıcılar için AI yorum / rapor altyapısı
 
 ---
 
@@ -211,10 +201,13 @@ gayit-app/
 ├── package.json
 ├── constants.js
 ├── firebase.js
+├── firebaseClient.js
 ├── notifications.js
 ├── Mahalleler.js
 ├── Logo.png
 ├── icon.png
+├── database.rules.json
+├── storage.rules
 ├── functions/
 │   └── index.js
 └── screens/
@@ -263,7 +256,7 @@ Cloud Functions tarafında istekler Firebase ID token ile doğrulanır. Kupon, �
 
 ### Gereksinimler
 
-- Node.js 18+
+- Node.js 20+
 - Expo CLI
 - EAS CLI
 - Firebase projesi
@@ -279,6 +272,14 @@ npm install
 npx expo start
 ```
 
+### SDK / Paket Kontrolü
+
+```bash
+npx expo-doctor
+npx expo install --check
+npx expo start -c
+```
+
 ### Android Production Build
 
 ```bash
@@ -288,7 +289,7 @@ eas build --platform android --profile production
 ### Cloud Functions Deploy
 
 ```bash
-cd gayit-functions/functions
+cd functions
 firebase deploy --only functions
 ```
 
@@ -296,31 +297,24 @@ firebase deploy --only functions
 
 ## Android Yapılandırması
 
-`app.json` içinde Android paket adı:
-
 ```json
-"package": "com.gayit.android"
-```
-
-Uygulama adı:
-
-```json
-"name": "Gayıt"
-```
-
-Güncel Android bilgileri:
-
-```json
-"version": "1.1.2",
-"versionCode": 22,
-"targetSdkVersion": 35
+{
+  "version": "1.4.0",
+  "android": {
+    "package": "com.gayit.android",
+    "targetSdkVersion": 35,
+    "versionCode": 26,
+    "newArchEnabled": false
+  },
+  "scheme": "gayit"
+}
 ```
 
 ---
 
 ## Firebase Yapısı
 
-Uygulama Firebase Authentication ve Firebase Realtime Database kullanır.
+Uygulama Firebase Authentication, Firebase Realtime Database, Firebase Storage ve Firebase Cloud Functions kullanır.
 
 Başlıca Realtime Database alanları:
 
@@ -338,28 +332,6 @@ kuponlar/
 onayBasvurulari/
 evEsyalari/
 evHizmetleri/
-```
-
-Örnek ilan yapısı:
-
-```text
-ilanlar/{ilanId}/
-  baslik
-  kategori
-  bolge
-  mahalle
-  detay
-  isTarihi
-  acil
-  sahip
-  sahipUid
-  anlasmaVar
-  anlasilanUsta
-  isTamamlandi
-  puanlandi
-  tarih
-  teklifler/
-  goruntuleyen/
 ```
 
 Örnek sohbet yapısı:
@@ -412,7 +384,7 @@ restoreAbonelik
 
 Gayıt'ın ilk canlı kullanım modeli kontrollü ve bölgesel ilerleyecek şekilde planlanmıştır.
 
-1. Android üretim başvurusu
+1. Android yeni üretim sürümü oluşturma
 2. Muğla / Milas-Bodrum odaklı sınırlı usta kaydı
 3. Kurucu Usta doğrulama ve belge kontrol süreci
 4. Müşteri lansmanı
@@ -426,7 +398,8 @@ Gayıt'ın ilk canlı kullanım modeli kontrollü ve bölgesel ilerleyecek şeki
 ### Kritik Güvenlik ve Backend İşleri
 
 - [ ] İlan oluşturma, teklif verme, hak düşürme ve anlaşma işlemleri mümkün olduğunca Cloud Functions / transaction yapısına taşınmalı
-- [ ] Oturum token ve refresh token için AsyncStorage yerine SecureStore değerlendirilmelidir
+- [ ] Oturum token ve refresh token için AsyncStorage yerine SecureStore değerlendirilmeli
+- [ ] RevenueCat webhook / sunucu tarafı satın alma doğrulaması ilerleyen sürümlerde güçlendirilmeli
 
 ### Performans ve Ölçeklenebilirlik
 
@@ -436,7 +409,11 @@ Gayıt'ın ilk canlı kullanım modeli kontrollü ve bölgesel ilerleyecek şeki
 ### Ürün ve Operasyon
 
 - [ ] Usta onay süreci saha kullanımına göre netleştirilmeli
-- [x] Kurucu Usta kampanyası için rozet sistemi eklendi (profil + teklif kartı)
+- [x] Kurucu Usta kampanyası için rozet sistemi eklendi
+- [x] SDK 53 / target SDK 35 üretim geçişi tamamlandı
+- [x] Açılış crash ve Firebase init sorunları giderildi
+- [x] Realtime sohbet bağlantısı merkezi Firebase client üzerinden toparlandı
+- [x] Teklif ekranındaki usta istatistik kartı görünüm sorunu düzeltildi
 - [ ] İlk kullanıcı / ilk usta kazanımı için bölgesel lansman akışı takip edilmeli
 - [ ] Teklif gelmeyen ilanlarda hak iadesi kuralı netleştirilmeli
 - [ ] Uygulama içi şikâyet ve destek süreçleri gerçek kullanıcılarla test edilmeli
@@ -448,6 +425,8 @@ Gayıt'ın ilk canlı kullanım modeli kontrollü ve bölgesel ilerleyecek şeki
 - Bazı kritik iş akışları zamanla daha fazla Cloud Functions / transaction yapısına taşınmalı
 - Büyük veri kullanımında ilan, kullanıcı ve admin listeleri için filtreleme / limitleme güçlendirilmeli
 - Abonelik yaşam döngüsü: `abonelikKontrol` Cloud Function ile her gece süresi dolan abonelikler otomatik düşürülmektedir. Webhook ve sunucu tarafı RevenueCat doğrulaması ilerleyen aşamada güçlendirilebilir.
+- Push token testlerinde Expo Go'dan kalma eski tokenların temizlenmesi gerekebilir.
+- SDK 53 geçişinde `newArchEnabled` şimdilik kapalı tutulmuştur; yeni mimari ileride ayrıca test edilmelidir.
 
 ---
 
@@ -455,9 +434,9 @@ Gayıt'ın ilk canlı kullanım modeli kontrollü ve bölgesel ilerleyecek şeki
 
 Gayıt, çalışan bir MVP seviyesindedir.
 
-Android tarafında üretim başvurusu yapılmış; uygulama sınırlı bölgesel lansman, ilk usta kayıtları ve gerçek kullanıcı davranışını ölçmek için hazır hale getirilmiştir. Geniş kitleye açılmadan önce güvenlik kuralları, ödeme doğrulama, veri çekme optimizasyonu ve hak düşürme mantığı üretim seviyesine kademeli olarak yaklaştırılmalıdır.
+Android tarafında SDK 53 ve target SDK 35 uyumluluğu sağlanmış; uygulama sınırlı bölgesel lansman, ilk usta kayıtları ve gerçek kullanıcı davranışını ölçmek için hazır hale getirilmiştir. Geniş kitleye açılmadan önce güvenlik kuralları, ödeme doğrulama, veri çekme optimizasyonu ve hak düşürme mantığı üretim seviyesine kademeli olarak yaklaştırılmalıdır.
 
-Son eklenen özellikler: Admin istatistik modülü, Kurucu Usta rozet sistemi, profil puanlama token düzeltmesi, onaylı usta başvurusunda telefon zorunluluğu, abonelik süresi otomatik düşürme (Cloud Function).
+Son eklenen önemli işler: SDK 53 geçişi, açılış crash düzeltmeleri, merkezi Firebase client, Firebase SDK auth senkronizasyonu, realtime sohbet stabilizasyonu, usta istatistik mini kart görünüm düzeltmesi, deep link scheme eklenmesi, Admin istatistik modülü, Kurucu Usta rozet sistemi, onaylı usta başvurusunda telefon zorunluluğu, abonelik süresi otomatik düşürme.
 
 Projenin mevcut aşaması yalnızca teknik geliştirme değil, aynı zamanda saha operasyonu, usta doğrulama, müşteri güveni ve yerel büyüme sürecidir.
 
