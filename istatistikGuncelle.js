@@ -86,10 +86,10 @@ export async function islemTamamlandiGuncelle({ ustaId, ilanId, puanId, token })
 }
 
 // ─── Teklif verildiğinde çağrılır ────────────────────────────────
-export async function teklifVerildiGuncelle({ ustaId, yanısSuresiMs, token }) {
+export async function teklifVerildiGuncelle({ ustaId, yanıtSuresiMs, token }) {
   const mevcut = (await fbGet(`istatistikler/${ustaId}`, token)) || baslangicIstatistik();
 
-  const yanıtDk    = yanısSuresiMs / 60000;
+  const yanıtDk    = yanıtSuresiMs / 60000;
   const eskiToplam = (mevcut.ortalamaYanitSuresiDk || 0) * (mevcut.toplamTeklif || 0);
   const yeniTeklif = (mevcut.toplamTeklif || 0) + 1;
   const yeniYanit  = (eskiToplam + yanıtDk) / yeniTeklif;
