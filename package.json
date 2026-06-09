@@ -27,8 +27,8 @@
     "react-native": "0.79.6",
     "react-native-purchases": "^7.28.0",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-web": "^0.20.0"
-    "@react-native-clipboard/clipboard": "^1.14.1",
+    "react-native-web": "^0.20.0",
+    "@react-native-clipboard/clipboard": "^1.14.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
