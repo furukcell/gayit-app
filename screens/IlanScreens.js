@@ -858,21 +858,32 @@ export function TekliflerEkrani({
                 ilan.anlasmaVar && !anlasilanUstaMi(teklif) && { opacity: 0.5 }
               ]}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <TouchableOpacity onPress={() => ustaProfilGoster(teklif.ustaUid, teklif.ustaAd)}>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', textDecorationLine: 'underline' }}>
-                    {teklif.ustaAd} 👤
-                      {teklif.kurucuUsta ? ' 🏅' : ''}
-                  </Text>
-                </TouchableOpacity>
-                <UstaMiniKart
-                  ustaId={teklif.ustaUid}
-                  ustaAd={teklif.ustaAd}
-                  abonelikTipi={kullanici?.abonelik}
-                  onPress={() => setIstatistikModalUsta({ id: teklif.ustaUid, ad: teklif.ustaAd })}
-                />
-                <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>{teklif.fiyat}</Text>
-              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+              style={{ flex: 1 }}
+              onPress={() => ustaProfilGoster(teklif.ustaUid, teklif.ustaAd)}
+          >
+       <Text
+             numberOfLines={1}
+             style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', textDecorationLine: 'underline' }}
+         >
+             {teklif.ustaAd} {teklif.kurucuUsta ? ' 🏅' : ''}
+            </Text>
+      </TouchableOpacity>
+
+           <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>
+         {teklif.fiyat}
+       </Text>
+     </View>
+
+<View style={{ marginTop: 8 }}>
+  <UstaMiniKart
+    ustaId={teklif.ustaUid}
+    ustaAd={teklif.ustaAd}
+    abonelikTipi={kullanici?.abonelik}
+    onPress={() => setIstatistikModalUsta({ id: teklif.ustaUid, ad: teklif.ustaAd })}
+  />
+</View>
 
               {teklif.not ? (
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 8, padding: 10, marginTop: 8 }}>
