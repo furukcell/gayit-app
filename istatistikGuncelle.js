@@ -75,14 +75,14 @@ export async function teklifVerildiGuncelle({ ustaId, yanısSuresiMs }) {
   const ist = await get(ref(database, `istatistikler/${ustaId}`));
   const mevcut = ist.exists() ? ist.val() : baslangicIstatistik();
 
-  const yanısDk = yanısSuresiMs / 60000;
-  const eskiToplam = (mevcut.ortalamaYanisSuresiDk || 0) * (mevcut.toplamTeklif || 0);
+  const yanısDk = yanıtSuresiMs / 60000;
+  const eskiToplam = (mevcut.ortalamaYanitSuresiDk || 0) * (mevcut.toplamTeklif || 0);
   const yeniTeklif = (mevcut.toplamTeklif || 0) + 1;
-  const yeniYanis = (eskiToplam + yanısDk) / yeniTeklif;
+  const yeniYanit = (eskiToplam + yanısDk) / yeniTeklif;
 
   await update(ref(database, `istatistikler/${ustaId}`), {
     toplamTeklif:           yeniTeklif,
-    ortalamaYanisSuresiDk:  yeniYanis,
+    ortalamaYanitSuresiDk:  yeniYanit,
     sonGuncelleme:          Date.now(),
   });
 }
@@ -160,7 +160,7 @@ function teklifSkoruHesaplaRaw(ist, maxIs = 100) {
   return Math.min(100,
     ((ist.toplamIs || 0) / maxIs * 100) * 0.35
     + ((ist.ortalamaPuan || 0) / 5 * 100) * 0.30
-    + Math.max(0, 100 - (ist.ortalamaYanisSuresiDk || 0)) * 0.20
+    + Math.max(0, 100 - (ist.ortalamaYanitSuresiDk || 0)) * 0.20
     + Math.max(0, 100 - ((ist.ortalamaTamamlamaSaati || 0) / maxSaat * 100)) * 0.15
   );
 }
@@ -174,7 +174,7 @@ function baslangicIstatistik() {
     iptal: 0,
     ortalamaPuan: 0,
     toplamPuanSayisi: 0,
-    ortalamaYanisSuresiDk: 0,
+    ortalamaYanitSuresiDk: 0,
     ortalamaTamamlamaSaati: 0,
     gayitteGunSayisi: 0,
     kategoriler: {},
