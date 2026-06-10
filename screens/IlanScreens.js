@@ -1140,7 +1140,7 @@ export function TekliflerEkrani({
 
               {anlasilanUstaMi(teklif) ? (
                 <TouchableOpacity
-                style={[s.girisBtn, { backgroundC olor: '#588157', marginTop: 10 }]}
+                style={[s.girisBtn, { backgroundColor: '#588157', marginTop: 10 }]}
                 disabled={sohbetLoadingId === teklif.id}
                 onPress={async () => {
                 setSohbetLoadingId(teklif.id);
