@@ -803,8 +803,8 @@ export function SohbetlerimEkrani({
                 {/* ANLAŞ BUTONU */}
                 {!ilan.anlasmaVar && kullanici?.rol === 'musteri' && (
                   <TouchableOpacity
-                    opacity: anlasLoading ? 0.6 : 1,
                     style={{
+                      opacity: anlasLoading ? 0.6 : 1,
                       marginTop: 10,
                       backgroundColor: '#1B4965',
                       borderRadius: 10,
