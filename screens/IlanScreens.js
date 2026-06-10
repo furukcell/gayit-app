@@ -900,10 +900,323 @@ export function TekliflerEkrani({
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                   <TouchableOpacity
                     style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
+// ============================================================
+// TEKLİFLER EKRANI (MÜŞTERİ)
+// ============================================================
+export function TekliflerEkrani({
+  kullanici, secilenIlan, ilanlar, token, setEkran,
+  setSikayetHedef, setSikayetModalAcik,
+  setPuanlananIlan, setPuanModalAcik,
+  onVeriYukle, setAktifSohbetTeklif, setAnlasmaSaglandi, setSecilenIlan,
+  s
+}) {
+  const ilan = ilanlar.find(i => i.id === secilenIlan?.id);
+  const [istatistikModalUsta, setIstatistikModalUsta] = useState(null);
+  const [ustaProfil, setUstaProfil] = useState(null);
+  const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
+  const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
+
+  if (!ilan || (ilan.sahip !== kullanici?.email && ilan.sahipUid !== kullanici?.uid)) {
+    return (
+      <SafeAreaView style={s.con}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+            <Text style={s.menuSimge}>←</Text>
+          </TouchableOpacity>
+          <Text style={s.headerBaslik}>Teklifler</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 }}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
+
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1B4965', textAlign: 'center', marginBottom: 8 }}>
+            Bu İlana Erişim Yok
+          </Text>
+
+          <Text style={{ color: '#A3B1B9', textAlign: 'center', fontSize: 14 }}>
+            Teklifleri sadece ilan sahibi görebilir.
+          </Text>
+
+          <TouchableOpacity
+            style={[s.girisBtn, { marginTop: 24 }]}
+            onPress={() => setEkran('anasayfa')}
+          >
+            <Text style={s.anaBtnY}>Ana Sayfaya Dön</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const ustaProfilGoster = async (ustaUid, ustaAd) => {
+    setUstaProfilYukleniyor(true);
+    setUstaProfilModalAcik(true);
+
+    try {
+      const res = await fetch(`${DB_URL}/kullanicilar/${ustaUid}.json?auth=${token}`);
+      const data = await res.json();
+
+      if (data) {
+        setUstaProfil({ ...data, ad: ustaAd });
+      } else {
+        setUstaProfil({ ad: ustaAd, meslek: '—', bolge: '—', puan: null, puanSayisi: 0 });
+      }
+    } catch (e) {
+      setUstaProfil({ ad: ustaAd, meslek: '—', bolge: '—', puan: null, puanSayisi: 0 });
+    } finally {
+      setUstaProfilYukleniyor(false);
+    }
+  };
+
+  const sohbetiBaslat = async (teklif, anlasmaDurumu) => {
+    const ustaUid = teklif.ustaUid || teklif.ustaId;
+    if (!ustaUid) return;
+
+    const sohbetId = `${ilan.id}_${ustaUid.replace(/[.@]/g, '_')}`;
+
+    try {
+      await fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          musteriUid: ilan.sahipUid,
+          ustaUid: ustaUid,
+        }),
+      });
+
+      const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}&orderBy="tarih"&limitToLast=1`);
+      const mevcutData = await res.json();
+
+      if (!mevcutData || Object.keys(mevcutData).length === 0) {
+        await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metin: '💬 Sohbet başlatıldı.',
+            gonderen: kullanici.uid,
+            gonderenAd: kullanici.ad,
+            tarih: Date.now(),
+            durum: 'iletildi',
+            tip: 'sistem',
+          }),
+        });
+
+        await bildirimGonderVeKaydet(
+          ustaUid,
+          `💬 ${kullanici.ad} sohbet başlattı!`,
+          `${ilan.baslik} ilanı için mesajlaşmak istiyor.`,
+          token,
+          'sohbetlerim'
+        );
+      }
+    } catch (e) {
+      console.log('Sohbet node oluşturulamadı:', e);
+      Alert.alert('Hata', 'Sohbet başlatılamadı: ' + e.message);
+    }
+
+    setAktifSohbetTeklif(teklif);
+    setAnlasmaSaglandi(anlasmaDurumu);
+    setSecilenIlan(ilan);
+    setEkran('sohbet');
+  };
+
+  const anlasmaYap = async (ilanId, teklif) => {
+    Alert.alert(
+      'Anlaşmayı Onayla',
+      `${teklif.ustaAd} usta ile ${teklif.fiyat} üzerinden anlaşıyor musun gari?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Evet, Anlaş!',
+          onPress: async () => {
+            try {
+              const kapanmaTarihi = Date.now() + 24 * 60 * 60 * 1000;
+
+              await fetch(`${DB_URL}/ilanlar/${ilanId}.json?auth=${token}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  anlasmaVar: true,
+                  anlasilanUsta: { ...teklif, id: teklif.id },
+                  kapanmaTarihi,
+                }),
+              });
+
+              await onVeriYukle();
+              await sohbetiBaslat(teklif, true);
+
+              try {
+                const ustaUid = teklif.ustaUid || teklif.ustaId;
+                const istSnap = await fetch(`${DB_URL}/istatistikler/${ustaUid}.json?auth=${token}`).then(r => r.json()) || {};
+
+                await fetch(`${DB_URL}/istatistikler/${ustaUid}.json?auth=${token}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    toplamIs: (istSnap.toplamIs || 0) + 1,
+                    sonGuncelleme: Date.now(),
+                  }),
+                });
+              } catch (e) {
+                console.log('istatistik hatası:', e);
+              }
+
+              await bildirimGonderVeKaydet(
+                teklif.ustaUid,
+                '🤝 Anlaşma Sağlandı!',
+                'Müşteri teklifini kabul etti, iş sende usta!',
+                token,
+                'sohbetlerim'
+              );
+            } catch (e) {
+              Alert.alert('Hata', 'Anlaşma kaydedilemedi!');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const anlasilanUstaMi = (teklif) => {
+    if (!ilan.anlasilanUsta) return false;
+
+    const anlasilanUid = ilan.anlasilanUsta.ustaUid || ilan.anlasilanUsta.ustaId;
+    const teklifUid = teklif.ustaUid || teklif.ustaId;
+
+    return ilan.anlasilanUsta.id === teklif.id || anlasilanUid === teklifUid;
+  };
+
+  return (
+    <SafeAreaView style={s.con}>
+      <View style={s.header}>
+        <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
+          <Text style={s.menuSimge}>←</Text>
+        </TouchableOpacity>
+
+        <Text style={s.headerBaslik}>Teklifler ({ilan?.teklifler?.length || 0})</Text>
+
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView style={s.scroll}>
+        <View style={[s.kart, { marginBottom: 20 }]}>
+          <Text style={s.kartBaslik}>{ilan?.baslik}</Text>
+
+          <View style={{ backgroundColor: '#F0F9F0', padding: 12, borderRadius: 10, marginVertical: 10, borderLeftWidth: 4, borderLeftColor: '#588157' }}>
+            <Text style={{ color: '#588157', fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>
+              İLAN AÇIKLAMANIZ:
+            </Text>
+
+            <Text style={{ color: '#526E7F', fontSize: 14, lineHeight: 20 }}>
+              {ilan?.detay || 'Açıklama belirtilmemiş.'}
+            </Text>
+          </View>
+
+          {ilan?.isTarihi ? (
+            <Text style={s.kartAlt}>📅 {ilan.isTarihi}</Text>
+          ) : null}
+
+          <Text style={s.kartAlt}>
+            {ilan?.anlasmaVar ? '✅ ANLAŞMA SAĞLANDI' : '🟢 Aktif İlan'}
+          </Text>
+
+          {ilan?.goruntuleyen ? (
+            <Text style={{ color: '#A3B1B9', fontSize: 12, marginTop: 4 }}>
+              👁️ {Object.keys(ilan.goruntuleyen).length} usta gördü
+            </Text>
+          ) : null}
+        </View>
+
+        {ilan?.anlasmaVar ? (
+          <View style={{ backgroundColor: '#E8F5E9', padding: 15, borderRadius: 12, marginBottom: 15 }}>
+            <Text style={{ color: '#588157', fontWeight: 'bold' }}>
+              ✅ Anlaşma sağlandı! Sohbet ekranından iletişime geçebilirsin.
+            </Text>
+          </View>
+        ) : null}
+
+        {(!ilan?.teklifler || ilan?.teklifler.length === 0) ? (
+          <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 30 }}>
+            Henüz teklif gelmedi gari.
+          </Text>
+        ) : (
+          ilan?.teklifler.map(teklif => (
+            <View
+              key={teklif.id}
+              style={[
+                s.kart,
+                anlasilanUstaMi(teklif) && { borderWidth: 2, borderColor: '#588157' },
+                ilan.anlasmaVar && !anlasilanUstaMi(teklif) && { opacity: 0.5 }
+              ]}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => ustaProfilGoster(teklif.ustaUid, teklif.ustaAd)}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontWeight: 'bold', fontSize: 16, color: '#1B4965', textDecorationLine: 'underline' }}
+                  >
+                    {teklif.ustaAd} {teklif.kurucuUsta ? ' 🏅' : ''}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#588157' }}>
+                  {teklif.fiyat}
+                </Text>
+              </View>
+
+              <View style={{ marginTop: 8 }}>
+                <UstaMiniKart
+                  ustaId={teklif.ustaUid}
+                  ustaAd={teklif.ustaAd}
+                  abonelikTipi={kullanici?.abonelik}
+                  onPress={() => setIstatistikModalUsta({ id: teklif.ustaUid, ad: teklif.ustaAd })}
+                />
+              </View>
+
+              {teklif.not ? (
+                <View style={{ backgroundColor: '#F5F5F0', borderRadius: 8, padding: 10, marginTop: 8 }}>
+                  <Text style={{ color: '#526E7F', fontSize: 13 }}>
+                    💬 {teklif.not}
+                  </Text>
+                </View>
+              ) : null}
+
+              {teklif.revizeTarihi ? (
+                <Text style={{ color: '#F39C12', fontSize: 11, marginTop: 4 }}>
+                  🔄 Revize edildi
+                </Text>
+              ) : null}
+
+              <TouchableOpacity
+                onPress={() => {
+                  setSikayetHedef(teklif.ustaAd);
+                  setSikayetModalAcik(true);
+                }}
+                style={{ marginTop: 8 }}
+              >
+                <Text style={{ color: '#FF4444', fontSize: 12 }}>⚠️ Şikayet Et</Text>
+              </TouchableOpacity>
+
+              {anlasilanUstaMi(teklif) ? (
+                <TouchableOpacity
+                  style={[s.girisBtn, { backgroundColor: '#588157', marginTop: 10 }]}
+                  onPress={() => sohbetiBaslat(teklif, true)}
+                >
+                  <Text style={s.anaBtnY}>💬 SOHBETE GİT</Text>
+                </TouchableOpacity>
+              ) : !ilan.anlasmaVar ? (
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                  <TouchableOpacity
+                    style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
                     onPress={() => sohbetiBaslat(teklif, false)}
                   >
                     <Text style={s.anaBtnY}>💬 Sohbet Et</Text>
                   </TouchableOpacity>
+
                   <TouchableOpacity
                     style={[s.girisBtn, { flex: 1 }]}
                     onPress={() => anlasmaYap(ilan.id, teklif)}
@@ -912,43 +1225,56 @@ export function TekliflerEkrani({
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[s.girisBtn, { backgroundColor: '#ccc', marginTop: 10 }]}>
+                <TouchableOpacity
+                  disabled={true}
+                  style={[s.girisBtn, { backgroundColor: '#ccc', marginTop: 10 }]}
+                >
                   <Text style={s.anaBtnY}>Başka Ustayla Anlaşıldı</Text>
-                </View>
+                </TouchableOpacity>
               )}
             </View>
           ))
         )}
 
-        {ilan?.anlasmaVar && !ilan?.puanlandi && ilan?.sahip === kullanici?.email && (
+        {ilan?.anlasmaVar && !ilan?.puanlandi && ilan?.sahip === kullanici?.email ? (
           <>
             <TouchableOpacity
               style={{ ...s.girisBtn, backgroundColor: '#FF8A57', marginTop: 10, marginBottom: 30 }}
-              onPress={() => { setPuanlananIlan(ilan); setPuanModalAcik(true); }}
+              onPress={() => {
+                setPuanlananIlan(ilan);
+                setPuanModalAcik(true);
+              }}
             >
               <Text style={s.anaBtnY}>⭐ İŞ BİTTİ, USTAYI PUANLA</Text>
             </TouchableOpacity>
+
             <UstaIstatistikModali
               ustaId={istatistikModalUsta?.id}
-              ustaAd={istatistikModalUsta?.ad}              visible={istatistikModalUsta !== null}
+              ustaAd={istatistikModalUsta?.ad}
+              visible={istatistikModalUsta !== null}
               onClose={() => setIstatistikModalUsta(null)}
             />
           </>
-        )}
+        ) : null}
       </ScrollView>
 
       <Modal visible={ustaProfilModalAcik} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 30 }}>
             <TouchableOpacity
-              onPress={() => { setUstaProfilModalAcik(false); setUstaProfil(null); }}
+              onPress={() => {
+                setUstaProfilModalAcik(false);
+                setUstaProfil(null);
+              }}
               style={{ position: 'absolute', top: 15, right: 20 }}
             >
               <Text style={{ color: '#A3B1B9', fontSize: 22 }}>✕</Text>
             </TouchableOpacity>
 
             {ustaProfilYukleniyor ? (
-              <Text style={{ textAlign: 'center', color: '#A3B1B9', marginVertical: 30 }}>Yükleniyor...</Text>
+              <Text style={{ textAlign: 'center', color: '#A3B1B9', marginVertical: 30 }}>
+                Yükleniyor...
+              </Text>
             ) : ustaProfil ? (
               <>
                 <View style={{ alignItems: 'center', marginBottom: 20 }}>
@@ -957,9 +1283,18 @@ export function TekliflerEkrani({
                       {ustaProfil.ad?.[0]?.toUpperCase() || '?'}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1B4965' }}>{ustaProfil.ad}</Text>
-                  {ustaProfil.abonelik === 'vip' && <Text style={{ color: '#F39C12', fontWeight: 'bold' }}>👑 VIP Usta</Text>}
-                  {ustaProfil.abonelik === 'premium' && <Text style={{ color: '#F39C12' }}>⭐ Premium Usta</Text>}
+
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1B4965' }}>
+                    {ustaProfil.ad}
+                  </Text>
+
+                  {ustaProfil.abonelik === 'vip' ? (
+                    <Text style={{ color: '#F39C12', fontWeight: 'bold' }}>👑 VIP Usta</Text>
+                  ) : null}
+
+                  {ustaProfil.abonelik === 'premium' ? (
+                    <Text style={{ color: '#F39C12' }}>⭐ Premium Usta</Text>
+                  ) : null}
                 </View>
 
                 <View style={{ backgroundColor: '#F5F5F0', borderRadius: 16, padding: 16, gap: 10 }}>
@@ -969,17 +1304,23 @@ export function TekliflerEkrani({
                       {ustaProfil.anaBrans || ustaProfil.meslek || '—'}
                     </Text>
                   </View>
-                  {ustaProfil.yanBranslar?.length > 0 && (
+
+                  {ustaProfil.yanBranslar?.length > 0 ? (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <Text style={{ color: '#A3B1B9', fontSize: 13 }}>🔧 Yan Branş</Text>
                       <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13, flex: 1, textAlign: 'right' }}>
                         {ustaProfil.yanBranslar.join(', ')}
                       </Text>
                     </View>
-                  )}
+                  ) : null}
+
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>Bölge</Text>
-                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>{ustaProfil.bolge || '—'}</Text>                  </View>
+                    <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
+                      {ustaProfil.bolge || '—'}
+                    </Text>
+                  </View>
+
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ color: '#A3B1B9', fontSize: 13 }}>⭐ Puan</Text>
                     <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 13 }}>
@@ -988,12 +1329,17 @@ export function TekliflerEkrani({
                         : 'Henüz değerlendirilmedi'}
                     </Text>
                   </View>
-                  {ustaProfil.hakkinda && (
+
+                  {ustaProfil.hakkinda ? (
                     <View>
-                      <Text style={{ color: '#A3B1B9', fontSize: 13, marginBottom: 4 }}>💬 Hakkında</Text>
-                      <Text style={{ color: '#526E7F', fontSize: 13 }}>{ustaProfil.hakkinda}</Text>
+                      <Text style={{ color: '#A3B1B9', fontSize: 13, marginBottom: 4 }}>
+                        💬 Hakkında
+                      </Text>
+                      <Text style={{ color: '#526E7F', fontSize: 13 }}>
+                        {ustaProfil.hakkinda}
+                      </Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </>
             ) : null}
