@@ -338,36 +338,67 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
 // ============================================================
 // İLANLARIM / TEKLİFLERİM EKRANI
 // ============================================================
-export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setSecilenIlan, ustaTeklifTiklandi, onVeriYukle, setKullanici, s }) {
+export function IlanlarimEkrani({
+  kullanici,
+  token,
+  rol,
+  ilanlar,
+  setEkran,
+  setSecilenIlan,
+  ustaTeklifTiklandi,
+  onVeriYukle,
+  setKullanici,
+  s
+}) {
   const [istatistikModalUsta, setIstatistikModalUsta] = useState(null);
-  
-  const benimIlanlarim = rol === 'usta'    ? ilanlar.filter(ilan => ilan.teklifler && ilan.teklifler.some(t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid))
-    : ilanlar.filter(ilan => ilan.sahip === kullanici?.email || ilan.sahipUid === kullanici?.uid);
+
+  const benimIlanlarim = rol === 'usta'
+    ? ilanlar.filter(ilan =>
+        ilan.teklifler &&
+        ilan.teklifler.some(t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid)
+      )
+    : ilanlar.filter(ilan =>
+        ilan.sahip === kullanici?.email || ilan.sahipUid === kullanici?.uid
+      );
 
   const ilanSil = (ilan) => {
     if (ilan.anlasmaVar) {
-      if (Platform.OS === 'web') window.alert('Anlaşma sağlanmış ilanı silemezsin usta.');
-      else Alert.alert('Silinemez', 'Anlaşma sağlanmış ilanı silemezsin usta.');
+      if (Platform.OS === 'web') {
+        window.alert('Anlaşma sağlanmış ilanı silemezsin usta.');
+      } else {
+        Alert.alert('Silinemez', 'Anlaşma sağlanmış ilanı silemezsin usta.');
+      }
       return;
     }
+
     const silmeIslemi = async () => {
       try {
-        await fetch(`${DB_URL}/ilanlar/${ilan.id}.json?auth=${token}`, { method: 'DELETE' });
+        await fetch(`${DB_URL}/ilanlar/${ilan.id}.json?auth=${token}`, {
+          method: 'DELETE',
+        });
+
         await onVeriYukle();
+
         const teklifler = ilan.teklifler;
         const teklifSayisi = Array.isArray(teklifler)
           ? teklifler.length
-          : (teklifler ? Object.keys(teklifler).length : 0);
-          
+          : teklifler
+            ? Object.keys(teklifler).length
+            : 0;
+
         if (teklifSayisi === 0) {
           const gYH = kullanici?.yeniKullaniciHakki || 0;
           const gH = kullanici?.hak || 0;
-          const yeniHak = gYH > 0 ? { yeniKullaniciHakki: gYH + 1 } : { hak: gH + 1 };
+          const yeniHak = gYH > 0
+            ? { yeniKullaniciHakki: gYH + 1 }
+            : { hak: gH + 1 };
+
           const res = await fetch(`${DB_URL}/kullanicilar/${kullanici.uid}.json?auth=${token}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(yeniHak),
           });
+
           if (res.ok) {
             setKullanici({ ...kullanici, ...yeniHak });
             Alert.alert('Silindi', 'İlanın silindi, hakkın iade edildi! 🎁');
@@ -390,7 +421,8 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
         'İlanı Sil',
         `"${ilan.baslik}" ilanını silmek istediğine emin misin? Bu işlem geri alınamaz.`,
         [
-          { text: 'Vazgeç', style: 'cancel' },          { text: 'Evet, Sil', style: 'destructive', onPress: silmeIslemi },
+          { text: 'Vazgeç', style: 'cancel' },
+          { text: 'Evet, Sil', style: 'destructive', onPress: silmeIslemi },
         ]
       );
     }
@@ -402,62 +434,109 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
-        <Text style={s.headerBaslik}>{rol === 'usta' ? 'Tekliflerim' : 'İlanlarım'}</Text>
+
+        <Text style={s.headerBaslik}>
+          {rol === 'usta' ? 'Tekliflerim' : 'İlanlarım'}
+        </Text>
+
         <View style={{ width: 24 }} />
       </View>
+
       <ScrollView style={s.scroll}>
         {benimIlanlarim.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 30 }}>Henüz kayıt yok usta.</Text>
+          <Text style={{ textAlign: 'center', color: '#A3B1B9', marginTop: 30 }}>
+            Henüz kayıt yok usta.
+          </Text>
         ) : (
-          benimIlanlarim.map(item => (
-            <View
-              key={item.id}
-              style={[s.kart, item.acil && { borderWidth: 2, borderColor: '#FF4444' }]}
-            >
-              {item.acil && (
-                <View style={s.acilRozet}>
-                  <Text style={s.acilRozetYazi}>🚨 ACİL</Text>
-                </View>
-              )}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  setSecilenIlan(item);
-                  rol === 'musteri' ? setEkran('teklifler') : ustaTeklifTiklandi(item);
-                }}
+          benimIlanlarim.map(item => {
+            const teklifSayisi = Array.isArray(item.teklifler)
+              ? item.teklifler.length
+              : item.teklifler
+                ? Object.keys(item.teklifler).length
+                : 0;
+
+            return (
+              <View
+                key={item.id}
+                style={[
+                  s.kart,
+                  item.acil && { borderWidth: 2, borderColor: '#FF4444' }
+                ]}
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={s.kategoriBadge}>{item.kategori}</Text>
-                  {item.anlasmaVar && (
-                    <View style={{ backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ color: '#588157', fontSize: 11, fontWeight: 'bold' }}>✅ Anlaşma Var</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={s.kartBaslik}>{item.baslik}</Text>
-                <Text style={s.kartAlt}> {item.mahalle} - {item.bolge}</Text>
-                {item.isTarihi && <Text style={s.kartAlt}> {item.isTarihi}</Text>}
-                <View style={s.kartIstatistikler}>
-                  <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
-                  {rol === 'musteri' && item.goruntuleyen && ( 
-                    <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
-                      👁️ {Object.keys(item.goruntuleyen).length} usta gördü
+                {item.acil ? (
+                  <View style={s.acilRozet}>
+                    <Text style={s.acilRozetYazi}>🚨 ACİL</Text>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setSecilenIlan(item);
+
+                    if (rol === 'musteri') {
+                      setEkran('teklifler');
+                    } else {
+                      ustaTeklifTiklandi(item);
+                    }
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={s.kategoriBadge}>
+                      {item.kategori}
                     </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-              {rol === 'musteri' && !item.anlasmaVar && (
-                <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
-                  <TouchableOpacity
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    onPress={() => ilanSil(item)}
-                  >
-                    <Text style={{ color: '#FF4444', fontSize: 22 }}>🗑️</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ))
+
+                    {item.anlasmaVar ? (
+                      <View style={{ backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                        <Text style={{ color: '#588157', fontSize: 11, fontWeight: 'bold' }}>
+                          ✅ Anlaşma Var
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <Text style={s.kartBaslik}>
+                    {item.baslik}
+                  </Text>
+
+                  <Text style={s.kartAlt}>
+                    📍 {item.mahalle} - {item.bolge}
+                  </Text>
+
+                  {item.isTarihi ? (
+                    <Text style={s.kartAlt}>
+                      📅 {item.isTarihi}
+                    </Text>
+                  ) : null}
+
+                  <View style={s.kartIstatistikler}>
+                    <Text style={s.kartIstatistikMetin}>
+                      {teklifSayisi} Teklif
+                    </Text>
+
+                    {rol === 'musteri' && item.goruntuleyen ? (
+                      <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
+                        👁️ {Object.keys(item.goruntuleyen).length} usta gördü
+                      </Text>
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+
+                {rol === 'musteri' && !item.anlasmaVar ? (
+                  <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
+                    <TouchableOpacity
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      onPress={() => ilanSil(item)}
+                    >
+                      <Text style={{ color: '#FF4444', fontSize: 22 }}>
+                        🗑️
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
