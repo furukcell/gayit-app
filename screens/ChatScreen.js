@@ -214,7 +214,8 @@ export function SohbetEkrani({
       tarih: Date.now(),
       durum: 'gonderildi',
     };
-
+      setMesajlar(onceki => [...onceki, { id: `temp_${Date.now()}`, ...mesaj }]);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     try {
       const res = await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
         method: 'POST',
@@ -285,6 +286,8 @@ export function SohbetEkrani({
                 tip: 'konum',
                 haritaLinki,
               };
+              setMesajlar(onceki => [...onceki, { id: `temp_${Date.now()}`, ...mesaj }]);
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
               await fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
