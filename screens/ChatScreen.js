@@ -530,6 +530,7 @@ export function SohbetEkrani({
           ref={flatListRef}
           data={mesajlar}
           keyExtractor={item => item.id}
+          extraData={mesajlar}
           refreshControl={
             <RefreshControl
               refreshing={yukleniyor}
