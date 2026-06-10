@@ -92,6 +92,7 @@ export function SolMenu({
 }) {
   const [ilcelerAcik, setIlcelerAcik] = useState(false);
   const [acikIlce, setAcikIlce] = useState(null);
+  const [cikisLoading, setCikisLoading] = useState(false);
 
   return (
     <View style={s.drawerContainer}>
@@ -325,17 +326,21 @@ export function SolMenu({
           <View style={s.ayrac} />
 
           <TouchableOpacity
-            style={s.menuItem}
+            style={[s.menuItem, { opacity: cikisLoading ? 0.6 : 1 }]}
+            disabled={cikisLoading}
             onPress={async () => {
+              if (cikisLoading) return;
+              setCikisLoading(true);
               await AsyncStorage.removeItem('oturum_token');
               await AsyncStorage.removeItem('oturum_kullanici');
               setKullanici(null);
               setToken(null);
               setEkran('karsilama');
               setMenuAcik(false);
+              setCikisLoading(false);
             }}
           >
-            <Text style={s.cikisY}>ÇIKIŞ YAP</Text>
+            <Text style={s.cikisY}>{cikisLoading ? 'Çıkış yapılıyor...' : 'ÇIKIŞ YAP'}</Text>
           </TouchableOpacity>
           <Text style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 20, marginBottom: 10 }}>
             © 2026 GAYİT Tüm Hakları Saklıdır.
