@@ -471,13 +471,12 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
   const [teklifFiyat, setTeklifFiyat] = useState('');
   const [teklifNot, setTeklifNot] = useState('');
   const [gonderildi, setGonderildi] = useState(false);
-  
-  // DÜZELTME: Teklif gönderim durumu için state eklendi
   const [teklifGonderiliyor, setTeklifGonderiliyor] = useState(false);
 
   const mevcutTeklif = secilenIlan?.teklifler?.find(
     t => t.ustaId === kullanici?.email || t.ustaUid === kullanici?.uid
   );
+
   const revizeModu = !!mevcutTeklif && !secilenIlan?.anlasmaVar;
 
   useEffect(() => {
@@ -489,7 +488,8 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
 
   useEffect(() => {
     if (secilenIlan?.id && kullanici?.uid && token) {
-      fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json?auth=${token}`)        .then(r => r.json())
+      fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json?auth=${token}`)
+        .then(r => r.json())
         .then(data => {
           if (!data) {
             fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/goruntuleyen/${kullanici.uid}.json?auth=${token}`, {
@@ -498,19 +498,20 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
               body: JSON.stringify(true),
             });
           }
-        }).catch(() => {});
+        })
+        .catch(() => {});
     }
   }, [secilenIlan?.id, token]);
 
   const teklifGonder = async () => {
-    // DÜZELTME: Zaten gönderiliyorsa veya boşsa çık
     if (teklifGonderiliyor) return;
+
     if (!teklifFiyat || teklifFiyat.trim() === '') {
       Alert.alert('Hata', 'Usta, bir fiyat girmelisin gari!');
       return;
     }
 
-    setTeklifGonderiliyor(true); // DÜZELTME: Loading başlat
+    setTeklifGonderiliyor(true);
 
     try {
       const girilenFiyatSayi = parseFloat(teklifFiyat.replace(',', '.')).toString();
@@ -519,7 +520,10 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
         : null;
 
       if (mevcutTeklif && girilenFiyatSayi === eskiFiyatSayi) {
-        Alert.alert('Aynı Fiyat!', 'Zaten bu fiyatı (' + mevcutTeklif.fiyat + ') verdin usta! Farklı bir fiyat girerek teklifini güncelle.');
+        Alert.alert(
+          'Aynı Fiyat!',
+          'Zaten bu fiyatı (' + mevcutTeklif.fiyat + ') verdin usta! Farklı bir fiyat girerek teklifini güncelle.'
+        );
         return;
       }
 
@@ -527,9 +531,14 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
         let gYH = kullanici?.yeniKullaniciHakki ?? 0;
         let gH = kullanici?.hak ?? 0;
 
-        if (gYH > 0) gYH -= 1;
-        else if (gH > 0) gH -= 1;
-        else return Alert.alert('Hata', 'Teklif hakkın kalmamış usta, dükkana uğra gari!');
+        if (gYH > 0) {
+          gYH -= 1;
+        } else if (gH > 0) {
+          gH -= 1;
+        } else {
+          Alert.alert('Hata', 'Teklif hakkın kalmamış usta, dükkana uğra gari!');
+          return;
+        }
 
         setKullanici({ ...kullanici, yeniKullaniciHakki: gYH, hak: gH });
 
@@ -538,43 +547,76 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ yeniKullaniciHakki: gYH, hak: gH }),
-          });        }
+          });
+        }
       }
 
       if (revizeModu) {
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler/${mevcutTeklif.id}.json?auth=${token}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fiyat: teklifFiyat + ' TL', not: teklifNot, revizeTarihi: Date.now() }),
+          body: JSON.stringify({
+            fiyat: teklifFiyat + ' TL',
+            not: teklifNot,
+            revizeTarihi: Date.now(),
+          }),
         });
-        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, '🔄 Teklif Revize Edildi!', `${kullanici.ad} usta teklifini güncelledi: ${teklifFiyat} TL`, token, 'teklifler');
+
+        await bildirimGonderVeKaydet(
+          secilenIlan?.sahipUid,
+          '🔄 Teklif Revize Edildi!',
+          `${kullanici.ad} usta teklifini güncelledi: ${teklifFiyat} TL`,
+          token,
+          'teklifler'
+        );
       } else {
         await fetch(`${DB_URL}/ilanlar/${secilenIlan.id}/teklifler.json?auth=${token}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ustaId: kullanici.email, ustaUid: kullanici.uid, ustaAd: kullanici.ad, kurucuUsta: kullanici?.kurucuUsta || false,
-            fiyat: teklifFiyat + ' TL', not: teklifNot,
-            telefon: kullanici.telefon || 'Numara Yok', tarih: Date.now(),
+            ustaId: kullanici.email,
+            ustaUid: kullanici.uid,
+            ustaAd: kullanici.ad,
+            kurucuUsta: kullanici?.kurucuUsta || false,
+            fiyat: teklifFiyat + ' TL',
+            not: teklifNot,
+            telefon: kullanici.telefon || 'Numara Yok',
+            tarih: Date.now(),
           }),
         });
-        await bildirimGonderVeKaydet(secilenIlan?.sahipUid, 'Yeni Teklif!', `${kullanici.ad} usta ilanına teklif verdi!`, token, 'teklifler');
+
+        await bildirimGonderVeKaydet(
+          secilenIlan?.sahipUid,
+          'Yeni Teklif!',
+          `${kullanici.ad} usta ilanına teklif verdi!`,
+          token,
+          'teklifler'
+        );
 
         try {
           const ilanTarihi = secilenIlan?.tarih || Date.now();
           const yanitSuresiMs = Date.now() - ilanTarihi;
-          await teklifVerildiGuncelle({ ustaId: kullanici.uid, yanıtSuresiMs: yanitSuresiMs, token });
-        } catch (e) { console.log('istatistik hatası:', e); }
+
+          await teklifVerildiGuncelle({
+            ustaId: kullanici.uid,
+            yanıtSuresiMs: yanitSuresiMs,
+            token,
+          });
+        } catch (e) {
+          console.log('istatistik hatası:', e);
+        }
       }
-      
+
       await onVeriYukle();
       setGonderildi(true);
-      setTimeout(() => { setGonderildi(false); setEkran('anasayfa'); }, 1500);
-      
+
+      setTimeout(() => {
+        setGonderildi(false);
+        setEkran('anasayfa');
+      }, 1500);
     } catch (e) {
       Alert.alert('Hata', 'Teklif gönderilemedi!');
     } finally {
-      // DÜZELTME: İşlem bitince (başarılı veya hata) butonu tekrar aktif et
       setTeklifGonderiliyor(false);
     }
   };
@@ -585,65 +627,123 @@ export function TeklifVerEkrani({ kullanici, token, secilenIlan, setEkran, onVer
         <TouchableOpacity style={s.headerGeriBtn} onPress={() => setEkran('anasayfa')}>
           <Text style={s.menuSimge}>←</Text>
         </TouchableOpacity>
-        <Text style={s.headerBaslik}>{revizeModu ? '🔄 Teklifi Revize Et' : 'Teklif Ver'}</Text>
+
+        <Text style={s.headerBaslik}>
+          {revizeModu ? '🔄 Teklifi Revize Et' : 'Teklif Ver'}
+        </Text>
+
         <View style={{ width: 24 }} />
-      </View>      <ScrollView style={s.scroll}>
+      </View>
+
+      <ScrollView style={s.scroll}>
         <View style={[s.kart, secilenIlan?.acil && { borderWidth: 2, borderColor: '#FF4444' }]}>
-          {secilenIlan?.acil && <View style={s.acilRozet}> <Text style={s.acilRozetYazi}>🚨 ACİL</Text> </View>}
+          {secilenIlan?.acil ? (
+            <View style={s.acilRozet}>
+              <Text style={s.acilRozetYazi}>🚨 ACİL</Text>
+            </View>
+          ) : null}
+
           <Text style={s.kategoriBadge}>{secilenIlan?.kategori}</Text>
+
           <Text style={s.kartBaslik}>{secilenIlan?.baslik}</Text>
+
           <View style={{ backgroundColor: '#F0F4F8', padding: 12, borderRadius: 10, marginVertical: 10, borderLeftWidth: 4, borderLeftColor: '#1B4965' }}>
-            <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>İŞİN DETAYI:</Text>
-            <Text style={{ color: '#526E7F', fontSize: 14, lineHeight: 20 }}>{secilenIlan?.detay || 'Detay belirtilmemiş.'}</Text>
+            <Text style={{ color: '#1B4965', fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>
+              İŞİN DETAYI:
+            </Text>
+
+            <Text style={{ color: '#526E7F', fontSize: 14, lineHeight: 20 }}>
+              {secilenIlan?.detay || 'Detay belirtilmemiş.'}
+            </Text>
           </View>
-          <Text style={s.kartAlt}>📍 {secilenIlan?.mahalle} - {secilenIlan?.bolge}</Text>
-          {secilenIlan?.isTarihi && <Text style={s.kartAlt}> {secilenIlan.isTarihi}</Text>}
-          <Text style={s.kartAlt}>{secilenIlan?.teklifler?.length || 0} teklif var</Text>
-          {secilenIlan?.goruntuleyen && (
+
+          <Text style={s.kartAlt}>
+            📍 {secilenIlan?.mahalle} - {secilenIlan?.bolge}
+          </Text>
+
+          {secilenIlan?.isTarihi ? (
+            <Text style={s.kartAlt}>{secilenIlan.isTarihi}</Text>
+          ) : null}
+
+          <Text style={s.kartAlt}>
+            {secilenIlan?.teklifler?.length || 0} teklif var
+          </Text>
+
+          {secilenIlan?.goruntuleyen ? (
             <Text style={{ color: '#A3B1B9', fontSize: 11, marginTop: 4 }}>
               👁️ {Object.keys(secilenIlan.goruntuleyen).length} usta gördü
             </Text>
-          )}
+          ) : null}
         </View>
 
-        {revizeModu && (
+        {revizeModu ? (
           <View style={{ backgroundColor: '#FFF8E1', padding: 15, borderRadius: 12, marginBottom: 15, borderLeftWidth: 4, borderLeftColor: '#F39C12' }}>
-            <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 13 }}>🔄 Revize Modu</Text>
-            <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 4 }}>Mevcut teklifin: {mevcutTeklif?.fiyat}. Değiştirip tekrar gönderebilirsin. Hak düşmez.</Text>
-          </View>
-        )}
+            <Text style={{ color: '#F39C12', fontWeight: 'bold', fontSize: 13 }}>
+              🔄 Revize Modu
+            </Text>
 
-        {!revizeModu && (
-          <View style={{ backgroundColor: '#E1F2FE', padding: 15, borderRadius: 12, marginBottom: 15 }}>
-            <Text style={{ color: '#1B4965', fontSize: 13 }}>💡 Fiyatınız sadece müşteri tarafından görülecek.</Text>
+            <Text style={{ color: '#526E7F', fontSize: 12, marginTop: 4 }}>
+              Mevcut teklifin: {mevcutTeklif?.fiyat}. Değiştirip tekrar gönderebilirsin. Hak düşmez.
+            </Text>
           </View>
-        )}
+        ) : null}
+
+        {!revizeModu ? (
+          <View style={{ backgroundColor: '#E1F2FE', padding: 15, borderRadius: 12, marginBottom: 15 }}>
+            <Text style={{ color: '#1B4965', fontSize: 13 }}>
+              💡 Fiyatınız sadece müşteri tarafından görülecek.
+            </Text>
+          </View>
+        ) : null}
 
         <Text style={s.inputBaslik}>Fiyat Teklifiniz (TL)</Text>
-        <TextInput style={s.inp} placeholder="Örn: 500" value={teklifFiyat} onChangeText={setTeklifFiyat} keyboardType="numeric" />
+
+        <TextInput
+          style={s.inp}
+          placeholder="Örn: 500"
+          value={teklifFiyat}
+          onChangeText={setTeklifFiyat}
+          keyboardType="numeric"
+          editable={!teklifGonderiliyor}
+        />
 
         <Text style={s.inputBaslik}>Kısa Not (İsteğe Bağlı)</Text>
+
         <TextInput
           style={[s.inp, { height: 80, textAlignVertical: 'top' }]}
           placeholder="Örn: Aynı gün gelebilirim..."
-          value={teklifNot} onChangeText={setTeklifNot} multiline
+          value={teklifNot}
+          onChangeText={setTeklifNot}
+          multiline
+          editable={!teklifGonderiliyor}
         />
 
-        {gonderildi && (
+        {gonderildi ? (
           <View style={{ backgroundColor: '#588157', borderRadius: 12, padding: 12, marginBottom: 10, alignItems: 'center' }}>
             <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
-              {revizeModu ? ' Teklif revize edildi!' : '✅ Teklifin müşteriye uçuruldu!'}
+              {revizeModu ? '✅ Teklif revize edildi!' : '✅ Teklifin müşteriye uçuruldu!'}
             </Text>
           </View>
-        )}
-        {/* DÜZELTME: Butona disabled, opacity ve dinamik text eklendi */}
+        ) : null}
+
         <TouchableOpacity
-          style={[s.girisBtn, { opacity: teklifGonderiliyor ? 0.6 : 1, marginBottom: 40, backgroundColor: revizeModu ? '#F39C12' : '#1B4965' }]}
+          style={[
+            s.girisBtn,
+            {
+              opacity: teklifGonderiliyor ? 0.6 : 1,
+              marginBottom: 40,
+              backgroundColor: revizeModu ? '#F39C12' : '#1B4965',
+            }
+          ]}
           onPress={teklifGonder}
           disabled={teklifGonderiliyor}
         >
           <Text style={s.anaBtnY}>
-            {teklifGonderiliyor ? '⏳ Teklif gönderiliyor...' : (revizeModu ? 'TEKLİFİ REVİZE ET' : 'TEKLİFİ GÖNDER')}
+            {teklifGonderiliyor
+              ? '⏳ Teklif gönderiliyor...'
+              : revizeModu
+                ? 'TEKLİFİ REVİZE ET'
+                : 'TEKLİFİ GÖNDER'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
