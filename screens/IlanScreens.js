@@ -851,6 +851,7 @@ export function TekliflerEkrani({
   const [ustaProfil, setUstaProfil] = useState(null);
   const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
+  const [sohbetLoadingId, setSohbetLoadingId] = useState(null);
 
   if (!ilan || (ilan.sahip !== kullanici?.email && ilan.sahipUid !== kullanici?.uid)) {
     return (
@@ -1139,26 +1140,47 @@ export function TekliflerEkrani({
 
               {anlasilanUstaMi(teklif) ? (
                 <TouchableOpacity
-                  style={[s.girisBtn, { backgroundColor: '#588157', marginTop: 10 }]}
-                  onPress={() => sohbetiBaslat(teklif, true)}
-                >
-                  <Text style={s.anaBtnY}>💬 SOHBETE GİT</Text>
-                </TouchableOpacity>
+                style={[s.girisBtn, { backgroundC olor: '#588157', marginTop: 10 }]}
+                disabled={sohbetLoadingId === teklif.id}
+                onPress={async () => {
+                setSohbetLoadingId(teklif.id);
+               await sohbetBaslat(teklif, true);
+               setSohbetLoadingId(null);
+            }}
+          >
+               <Text style={s.anaBtnY}>
+               {sohbetLoadingId === teklif.id ? '⏳ Yükleniyor...' : '💬 SOHBETE GİT'}
+             </Text>
+           </TouchableOpacity>
               ) : !ilan.anlasmaVar ? (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                   <TouchableOpacity
-                    style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
-                    onPress={() => sohbetiBaslat(teklif, false)}
-                  >
-                    <Text style={s.anaBtnY}>💬 Sohbet Et</Text>
-                  </TouchableOpacity>
-
+                style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
+                disabled={sohbetLoadingId === teklif.id}
+               onPress={async () => {
+               setSohbetLoadingId(teklif.id);
+               await sohbetBaslat(teklif, false);
+               setSohbetLoadingId(null);
+            }}
+            >
+       <Text style={s.anaBtnY}>
+             {sohbetLoadingId === teklif.id ? '⏳ Yükleniyor...' : '💬 Sohbet Et'}
+      </Text>
+           </TouchableOpacity>
+ 
                   <TouchableOpacity
-                    style={[s.girisBtn, { flex: 1 }]}
-                    onPress={() => anlasmaYap(ilan.id, teklif)}
-                  >
-                    <Text style={s.anaBtnY}>🤝 Anlaş</Text>
-                  </TouchableOpacity>
+             style={[s.girisBtn, { flex: 1 }]}
+             disabled={sohbetLoadingId === teklif.id}
+             onPress={async () => {
+             setSohbetLoadingId(teklif.id);
+             await anlasmaYap(ilan.id, teklif);
+             setSohbetLoadingId(null);
+           }}
+          >
+           <Text style={s.anaBtnY}>
+          {sohbetLoadingId === teklif.id ? '⏳ Anlaşılıyor...' : '🤝 Anlaş'}
+        </Text>
+          </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity
