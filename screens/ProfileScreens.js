@@ -86,6 +86,10 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
   const [ekBelgeTip, setEkBelgeTip] = useState(kullanici?.ekBelgeTip || null);
   const [onayDurumu, setOnayDurumu] = useState(kullanici?.onayDurumu || null);
   const [onayBildirimiGosterildi, setOnayBildirimiGosterildi] = useState(kullanici?.onayDurumu === 'onayli');
+  const [kaydetLoading, setKaydetLoading] = useState(false);
+  const [basvurLoading, setBasvurLoading] = useState(false);
+  const [iptalLoading, setIptalLoading] = useState(false);
+  const [sekmeLoading, setSekmeLoading] = useState(null);
 
   const EK_BELGE_SECENEKLERI = [
     { key: 'ustalıkBelgesi', label: 'Ustalık Belgesi', ikon: '🔧' },
@@ -167,6 +171,8 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
     : null;
 
   const bilgileriKaydet = async () => {
+    if (kaydetLoading) return;
+    setKaydetLoading(true);
     const up = { telefon: profilTel, ...(rol === 'usta' && { hakkimda, tecrube }) };
     setKullanici(prev => ({ ...prev, ...up }));
     if (token && kullanici?.uid) {
@@ -174,8 +180,9 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(up),
-      }).catch(() => {});
+      }).catch(() => { setKaydetLoading(false); });
     }
+    setKaydetLoading(false);
     setKaydedildi(true);
     setTimeout(() => setKaydedildi(false), 3000);
   };
@@ -252,6 +259,8 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
   };
 
   const onayBasvur = async () => {
+  if (basvurLoading) return;
+  setBasvurLoading(true); 
   if (!profilTel || profilTel.trim().length < 10) {
   Alert.alert('Telefon Gerekli', 'Başvuru yapabilmek için telefon numaranı kaydetmen gerekiyor!');
   return;
@@ -294,12 +303,15 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
 
     setKullanici(prev => ({ ...prev, onayDurumu: 'beklemede', kimlikUrl, ekBelgeUrl, ekBelgeTip }));
     Alert.alert('Başvuru Alındı! ✅', 'Belgeler admin paneline iletildi. En kısa sürede incelenecek.');
+    setBasvurLoading(false);
   } catch (e) {
+    setBasvurLoading(false);
     console.log('Başvuru hatası:', e);
     Alert.alert('Hata', 'Başvuru gönderilemedi!');
   }
 };
   const basvuruyuIptalEt = async () => {
+    setIptalLoading(true);
   Alert.alert(
     'Başvuruyu İptal Et',
     'Başvurunuzu iptal etmek istediğinize emin misiniz? Belgelerinizi düzenleyip tekrar gönderebileceksiniz.',
@@ -325,7 +337,9 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
             // 3. Ekranı ve state'i güncelle
             setKullanici(prev => ({ ...prev, onayDurumu: null }));
             Alert.alert('İptal Edildi', 'Başvurunuz iptal edildi. Belgelerinizi düzenleyebilirsiniz.');
+            setIptalLoading(false);
           } catch (e) {
+            setIptalLoading(false);
             console.log('İptal hatası:', e);
             Alert.alert('Hata', 'İptal işlemi sırasında bir sorun oluştu.');
           }
@@ -358,7 +372,12 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
           <TouchableOpacity
             key={sekme}
             style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderBottomWidth: aktifSekme === sekme ? 2 : 0, borderBottomColor: '#1B4965' }}
-            onPress={() => setAktifSekme(sekme)}
+            onPress={() => {
+           if (sekmeLoading) return;
+           setSekmeLoading(sekme);
+           setAktifSekme(sekme);
+           setTimeout(() => setSekmeLoading(null), 500);
+         }}
           >
             <Text style={{ color: aktifSekme === sekme ? '#1B4965' : '#A3B1B9', fontWeight: 'bold', fontSize: 12 }}>
               {sekme === 'profil' ? '👤 Profil' : sekme === 'degerlendirmeler' ? '⭐ Puanlar' : '📋 Geçmiş'}
@@ -546,20 +565,21 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
     <TouchableOpacity
       style={{ backgroundColor: (profilTel && profilTel.trim().length >= 10 && kimlikUrl && ekBelgeUrl) ? '#F39C12' : '#D1D9E0', padding: 12, borderRadius: 8, marginBottom: 8 }}
       onPress={onayBasvur}
-      disabled={!profilTel || profilTel.trim().length < 10 || !kimlikUrl || !ekBelgeUrl}
+      disabled={!profilTel || profilTel.trim().length < 10 || !kimlikUrl || !ekBelgeUrl || basvurLoading}
     >
-      <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold' }}>
-        📤 Belgeleri Güncelle ve Yeniden Gönder
+      {basvurLoading ? 'Gönderiliyor...' : '🛡 Belgeleri Güncelle ve Yeniden Gönder'}
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
-      style={{ backgroundColor: '#E53935', padding: 10, borderRadius: 6 }}
-      onPress={basvuruyuIptalEt}
-    >
-      <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
-        ❌ Başvuruyu İptal Et
-      </Text>
-    </TouchableOpacity>
+  style={{ backgroundColor: '#E53935', padding: 10, borderRadius: 6,
+    opacity: iptalLoading ? 0.6 : 1 }}
+  onPress={basvuruyuIptalEt}
+  disabled={iptalLoading}
+>
+  <Text style={{ color: '#FFF', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
+    {iptalLoading ? 'İptal ediliyor...' : '❌ Başvuruyu İptal Et'}
+  </Text>
+</TouchableOpacity>
   </View>
   ) : onayDurumu === 'reddedildi' ? (
        <View style={{ padding: 10, backgroundColor: '#FFEBEE', borderRadius: 8, marginBottom: 10 }}>
@@ -661,9 +681,16 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
               </View>
             )}
 
-            <TouchableOpacity style={[s.girisBtn, { marginBottom: 40, marginTop: 15 }]} onPress={bilgileriKaydet}>
-              <Text style={s.anaBtnY}>BİLGİLERİ KAYDET</Text>
-            </TouchableOpacity>
+            <TouchableOpacity
+  style={[s.girisBtn, { marginBottom: 40, marginTop: 15 },
+    kaydetLoading && { opacity: 0.6 }]}
+  onPress={bilgileriKaydet}
+  disabled={kaydetLoading}
+>
+  <Text style={s.anaBtnY}>
+    {kaydetLoading ? 'Kaydediliyor...' : 'BİLGİLERİ KAYDET'}
+  </Text>
+</TouchableOpacity>
           </>
         )}
 
