@@ -363,6 +363,7 @@ export function AnasayfaEkrani({
   const [seciliIlce, setSeciliIlce] = useState('Tümü');
   const [filtreAcik, setFiltreAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(10);
+  const [anlasLoading, setAnlasLoading] = useState(false);
 
   const filtrelenmis = ilanlar.filter(ilan => {
     if (ilan.anlasmaVar && ilan.kapanmaTarihi && Date.now() > ilan.kapanmaTarihi) return false;
@@ -802,6 +803,7 @@ export function SohbetlerimEkrani({
                 {/* ANLAŞ BUTONU */}
                 {!ilan.anlasmaVar && kullanici?.rol === 'musteri' && (
                   <TouchableOpacity
+                    opacity: anlasLoading ? 0.6 : 1,
                     style={{
                       marginTop: 10,
                       backgroundColor: '#1B4965',
@@ -809,12 +811,15 @@ export function SohbetlerimEkrani({
                       paddingVertical: 10,
                       alignItems: 'center',
                     }}
-                    onPress={(e) => {
+                    onPress={async (e) => {
+                      if (anlasLoading) return;
+                      setAnlasLoading(true);
                       e.stopPropagation?.();
-                      anlasmaYap(ilan, { ...teklif, ustaUid: ustaUid });
+                      await anlasmaYap(ilan, { ...teklif, ustaUid: ustaUid });
+                      setAnlasLoading(false);
                     }}
                   >
-                    <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 13 }}>🤝 Anlaş</Text>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 13 }}>{anlasLoading ? 'Anlaşılıyor...' : '🤝 Anlaş'}</Text>
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
