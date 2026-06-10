@@ -351,6 +351,7 @@ export function IlanlarimEkrani({
   s
 }) {
   const [istatistikModalUsta, setIstatistikModalUsta] = useState(null);
+  const [silmeLoadingId, setSilmeLoadingId] = useState(null);
 
   const benimIlanlarim = rol === 'usta'
     ? ilanlar.filter(ilan =>
@@ -372,6 +373,7 @@ export function IlanlarimEkrani({
     }
 
     const silmeIslemi = async () => {
+      setSilmeLoadingId(ilan.id);
       try {
         await fetch(`${DB_URL}/ilanlar/${ilan.id}.json?auth=${token}`, {
           method: 'DELETE',
@@ -402,14 +404,17 @@ export function IlanlarimEkrani({
           if (res.ok) {
             setKullanici({ ...kullanici, ...yeniHak });
             Alert.alert('Silindi', 'İlanın silindi, hakkın iade edildi! 🎁');
+            setSilmeLoadingId(null);
           } else {
             Alert.alert('Silindi', 'İlanın silindi.');
+            setSilmeLoadingId(null);
           }
         } else {
           Alert.alert('Silindi', 'İlanın silindi.');
         }
       } catch (e) {
         Alert.alert('Hata', 'İlan silinemedi!');
+        setSilmeLoadingId(null);
       }
     };
 
@@ -525,13 +530,14 @@ export function IlanlarimEkrani({
                 {rol === 'musteri' && !item.anlasmaVar ? (
                   <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
                     <TouchableOpacity
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      onPress={() => ilanSil(item)}
-                    >
-                      <Text style={{ color: '#FF4444', fontSize: 22 }}>
-                        🗑️
-                      </Text>
-                    </TouchableOpacity>
+                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  disabled={silmeLoadingId === item.id}
+                  onPress={() => ilanSil(item)}
+                >
+                 <Text style={{ color: silmeLoadingId === item.id ? '#ccc' : '#FF4444', fontSize: 22 }}>
+                 {silmeLoadingId === item.id ? '⏳' : '🗑'}
+                </Text>
+                </TouchableOpacity>
                   </View>
                 ) : null}
               </View>
