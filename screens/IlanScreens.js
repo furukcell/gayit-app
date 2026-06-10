@@ -439,7 +439,8 @@ export function IlanlarimEkrani({ kullanici, token, rol, ilanlar, setEkran, setS
                 {item.isTarihi && <Text style={s.kartAlt}> {item.isTarihi}</Text>}
                 <View style={s.kartIstatistikler}>
                   <Text style={s.kartIstatistikMetin}>{item.teklifler?.length || 0} Teklif</Text>
-                  {rol === 'musteri' && item.goruntuleyen && (                    <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
+                  {rol === 'musteri' && item.goruntuleyen && ( 
+                    <Text style={{ color: '#A3B1B9', fontSize: 12, marginLeft: 10 }}>
                       👁️ {Object.keys(item.goruntuleyen).length} usta gördü
                     </Text>
                   )}
