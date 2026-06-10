@@ -567,12 +567,12 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
       onPress={onayBasvur}
       disabled={!profilTel || profilTel.trim().length < 10 || !kimlikUrl || !ekBelgeUrl || basvurLoading}
     >
-      {basvurLoading ? 'Gönderiliyor...' : '🛡 Belgeleri Güncelle ve Yeniden Gönder'}
-      </Text>
+  <Text style={s.anaBtnY}>
+    {basvurLoading ? 'Gönderiliyor...' : '🛡 Belgeleri Güncelle ve Yeniden Gönder'}
+  </Text>
     </TouchableOpacity>
     <TouchableOpacity
-  style={{ backgroundColor: '#E53935', padding: 10, borderRadius: 6,
-    opacity: iptalLoading ? 0.6 : 1 }}
+  style={{ backgroundColor: '#E53935', padding: 10, borderRadius: 6, opacity: iptalLoading ? 0.6 : 1 }}
   onPress={basvuruyuIptalEt}
   disabled={iptalLoading}
 >
