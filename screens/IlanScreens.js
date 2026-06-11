@@ -940,7 +940,7 @@ export function TekliflerEkrani({
       Alert.alert('Hata', 'Sohbet başlatılamadı: ' + e.message);
     }
     } finally {
-  setSohbetLoadingId(null);
+      setSohbetLoadingId(null);
   }
 
     setAktifSohbetTeklif(teklif);
