@@ -894,84 +894,83 @@ export function TekliflerEkrani({
     }
   };
 
-  const sohbetiBaslat = async (teklif, anlasmaDurumu) => {
+  const sohbetiBaslat = (teklif, anlasmaDurumu) => {
   const ustaUid = teklif.ustaUid || teklif.ustaId;
+
   if (!ustaUid) {
     Alert.alert('Hata', 'Usta bilgisi bulunamadı.');
     return;
   }
 
   const loadingKey = teklif.id || teklif.teklifId || ustaUid;
+
   if (sohbetLoadingId === loadingKey) return;
 
-  const sohbetId = `${ilan.id}_${String(ustaUid).replace(/[.#$/[\]]/g, '_')}`;
+  const temizIlanId = String(ilan.id).replace(/[.#$/[\]]/g, '_');
+  const temizUstaUid = String(ustaUid).replace(/[.#$/[\]]/g, '_');
+  const sohbetId = `${temizIlanId}_${temizUstaUid}`;
 
-  try {
-    setSohbetLoadingId(loadingKey);
+  setSohbetLoadingId(loadingKey);
 
-    // ÖNCE EKRANI AÇ — Firebase/bildirim beklenirse buton yükleniyorda kalabilir
-    setAktifSohbetTeklif({
-      ...teklif,
-      ustaUid,
-      ustaId: ustaUid,
-      sohbetId,
-    });
-    setAnlasmaSaglandi(anlasmaDurumu);
-    setSecilenIlan(ilan);
-    setEkran('sohbet');
+  // Önce sohbet ekranını aç
+  setAktifSohbetTeklif({
+    ...teklif,
+    ustaUid,
+    ustaId: ustaUid,
+    sohbetId,
+  });
 
-    // Firebase işlemlerini arkada yap, ekran geçişini bloklama
-    fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        musteriUid: ilan.sahipUid,
-        ustaUid: ustaUid,
-      }),
-    }).catch((e) => {
-      console.log('Sohbet katılımcıları kaydedilemedi:', e);
-    });
+  setAnlasmaSaglandi(anlasmaDurumu);
+  setSecilenIlan(ilan);
+  setEkran('sohbet');
 
-    fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}&orderBy="tarih"&limitToLast=1`)
-      .then((res) => res.json())
-      .then((mevcutData) => {
-        if (!mevcutData || Object.keys(mevcutData).length === 0) {
-          return fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              metin: '💬 Sohbet başlatıldı.',
-              gonderen: kullanici.uid,
-              gonderenAd: kullanici.ad,
-              tarih: Date.now(),
-              durum: 'iletildi',
-              tip: 'sistem',
-            }),
-          });
-        }
-      })
-      .catch((e) => {
-        console.log('Sistem mesajı oluşturulamadı:', e);
-      });
+  setTimeout(() => {
+    setSohbetLoadingId(null);
+  }, 300);
 
-    bildirimGonderVeKaydet(
-      ustaUid,
-      `💬 ${kullanici.ad} sohbet başlattı!`,
-      `${ilan.baslik} ilanı için mesajlaşmak istiyor.`,
-      token,
-      'sohbetlerim'
-    ).catch((e) => {
-      console.log('Sohbet bildirimi gönderilemedi:', e);
+  // Firebase işlemleri arkada çalışsın
+  fetch(`${DB_URL}/sohbetler/${sohbetId}/katilimcilar.json?auth=${token}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      musteriUid: ilan.sahipUid,
+      ustaUid: ustaUid,
+    }),
+  }).catch((e) => {
+    console.log('Sohbet katılımcıları kaydedilemedi:', e);
+  });
+
+  fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}&orderBy="tarih"&limitToLast=1`)
+    .then((res) => res.json())
+    .then((mevcutData) => {
+      if (!mevcutData || Object.keys(mevcutData).length === 0) {
+        return fetch(`${DB_URL}/sohbetler/${sohbetId}/mesajlar.json?auth=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metin: '💬 Sohbet başlatıldı.',
+            gonderen: kullanici.uid,
+            gonderenAd: kullanici.ad,
+            tarih: Date.now(),
+            durum: 'iletildi',
+            tip: 'sistem',
+          }),
+        });
+      }
+    })
+    .catch((e) => {
+      console.log('Sistem mesajı oluşturulamadı:', e);
     });
 
-  } catch (e) {
-    console.log('Sohbet başlatma hatası:', e);
-    Alert.alert('Hata', 'Sohbet başlatılamadı: ' + e.message);
-  } finally {
-    setTimeout(() => {
-      setSohbetLoadingId(null);
-    }, 300);
-  }
+  bildirimGonderVeKaydet(
+    ustaUid,
+    `💬 ${kullanici.ad} sohbet başlattı!`,
+    `${ilan.baslik} ilanı için mesajlaşmak istiyor.`,
+    token,
+    'sohbetlerim'
+  ).catch((e) => {
+    console.log('Sohbet bildirimi gönderilemedi:', e);
+  });
 };
 
   const anlasmaYap = async (ilanId, teklif) => {
