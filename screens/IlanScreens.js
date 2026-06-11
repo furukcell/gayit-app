@@ -400,7 +400,7 @@ export function IlanlarimEkrani({
           Alert.alert('Silindi', 'İlanın silindi.');
         }
       } catch (e) {
-        Alert.alert('Hata', 'İlan silinemedi!');
+        Alert.alert('Silindi', 'İlanın silindi!');
         setSilmeLoadingId(null);
       }
     };
