@@ -938,7 +938,6 @@ export function TekliflerEkrani({
     } catch (e) {
       console.log('Sohbet node oluşturulamadı:', e);
       Alert.alert('Hata', 'Sohbet başlatılamadı: ' + e.message);
-    }
     } finally {
       setSohbetLoadingId(null);
   }
