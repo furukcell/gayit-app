@@ -194,7 +194,8 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
               <Text style={[s.chipY, ilanKategori === k && s.chipYAktif]}>{k}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>        <Text style={s.inputBaslik}>İlan Başlığı</Text>
+        </ScrollView>
+        <Text style={s.inputBaslik}>İlan Başlığı</Text>
         <TextInput style={s.inp} placeholder="Örn: Banyo Tesisat Yenileme" value={ilanBaslik} onChangeText={setIlanBaslik} />
         <Text style={s.inputBaslik}>Açıklama</Text>
         <TextInput
