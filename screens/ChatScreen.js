@@ -52,12 +52,21 @@ export function SohbetEkrani({
 
   const flatListRef = useRef(null);
 
-  // --- Sabitler ---
   const ustaUid = aktifSohbetTeklif?.ustaUid || aktifSohbetTeklif?.ustaId || null;
-  const sohbetId = (secilenIlan?.id && ustaUid)
-    ? `${secilenIlan.id}_${ustaUid.replace(/[.@]/g, '_')}`
-    : null;
-  const sohbetKilitli = secilenIlan?.puanlandi === true;
+
+const temizIlanId = secilenIlan?.id
+  ? String(secilenIlan.id).replace(/[.#$/[\]]/g, '_')
+  : null;
+
+const temizUstaUid = ustaUid
+  ? String(ustaUid).replace(/[.#$/[\]]/g, '_')
+  : null;
+
+const sohbetId =
+  aktifSohbetTeklif?.sohbetId ||
+  (temizIlanId && temizUstaUid ? `${temizIlanId}_${temizUstaUid}` : null);
+
+const sohbetKilitli = secilenIlan?.puanlandi === true;
 
   // --- REST Fallback: Firebase çalışmadığında veya ilk yüklemede kullanılır ---
   const mesajlariResttenYukle = async () => {
