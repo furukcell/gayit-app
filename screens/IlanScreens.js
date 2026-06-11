@@ -1157,11 +1157,7 @@ export function TekliflerEkrani({
                 <TouchableOpacity
                 style={[s.girisBtn, { backgroundColor: '#588157', marginTop: 10 }]}
                 disabled={sohbetLoadingId === teklif.id}
-                onPress={async () => {
-                setSohbetLoadingId(teklif.id);
-               await sohbetBaslat(teklif, true);
-               setSohbetLoadingId(null);
-            }}
+                onPress={() => sohbetiBaslat(teklif, true)}
           >
                <Text style={s.anaBtnY}>
                {sohbetLoadingId === teklif.id ? '⏳ Yükleniyor...' : '💬 SOHBETE GİT'}
@@ -1172,11 +1168,7 @@ export function TekliflerEkrani({
                   <TouchableOpacity
                 style={[s.girisBtn, { flex: 1, backgroundColor: '#526E7F' }]}
                 disabled={sohbetLoadingId === teklif.id}
-               onPress={async () => {
-               setSohbetLoadingId(teklif.id);
-               await sohbetBaslat(teklif, false);
-               setSohbetLoadingId(null);
-            }}
+               onPress={() => sohbetiBaslat(teklif, false)}
             >
        <Text style={s.anaBtnY}>
              {sohbetLoadingId === teklif.id ? '⏳ Yükleniyor...' : '💬 Sohbet Et'}
