@@ -939,6 +939,9 @@ export function TekliflerEkrani({
       console.log('Sohbet node oluşturulamadı:', e);
       Alert.alert('Hata', 'Sohbet başlatılamadı: ' + e.message);
     }
+    } finally {
+  setSohbetLoadingId(null);
+  }
 
     setAktifSohbetTeklif(teklif);
     setAnlasmaSaglandi(anlasmaDurumu);
