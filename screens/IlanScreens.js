@@ -839,6 +839,7 @@ export function TekliflerEkrani({
   const [ustaProfilModalAcik, setUstaProfilModalAcik] = useState(false);
   const [ustaProfilYukleniyor, setUstaProfilYukleniyor] = useState(false);
   const [sohbetLoadingId, setSohbetLoadingId] = useState(null);
+  const [anlasLoadingId, setAnlasLoadingId] = useState(null);
 
   if (!ilan || (ilan.sahip !== kullanici?.email && ilan.sahipUid !== kullanici?.uid)) {
     return (
@@ -1157,15 +1158,15 @@ export function TekliflerEkrani({
  
                   <TouchableOpacity
              style={[s.girisBtn, { flex: 1 }]}
-             disabled={sohbetLoadingId === teklif.id}
+             disabled={anlasLoadingId === teklif.id}
              onPress={async () => {
-             setSohbetLoadingId(teklif.id);
+             setAnlasLoadingId(teklif.id);
              await anlasmaYap(ilan.id, teklif);
-             setSohbetLoadingId(null);
+             setAnlasLoadingId(null);
            }}
           >
            <Text style={s.anaBtnY}>
-          {sohbetLoadingId === teklif.id ? '⏳ Anlaşılıyor...' : '🤝 Anlaş'}
+          {anlasLoadingId === teklif.id ? '⏳ Anlaşılıyor...' : '🤝 Anlaş'}
         </Text>
           </TouchableOpacity>
                 </View>
