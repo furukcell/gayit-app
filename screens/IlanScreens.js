@@ -224,7 +224,7 @@ export function IlanVerEkrani({ kullanici, token, ilanlar, setEkran, onVeriYukle
             setMahalleModalAcik(true);
           }}
         >
-          <Text style={{ color: ilanMahalle ? s.inp.color : '#A3B1B9', fontSize: 15 }}>
+          <Text style={{ color: ilanMahalle ? '#1B2D3A' : '#A3B1B9', fontSize: 15 }}>
             {ilanMahalle || 'Mahalle seçin...'}
           </Text>
           <Text style={{ color: '#A3B1B9' }}>▼</Text>
