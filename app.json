@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gayıt",
     "slug": "gayit-app",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "orientation": "portrait",
     "icon": "./icon.png",
     "scheme": "gayit",
@@ -33,7 +33,7 @@
     "android": {
       "package": "com.gayit.android",
       "targetSdkVersion": 35,
-      "versionCode": 28,
+      "versionCode": 29,
       "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
