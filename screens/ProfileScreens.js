@@ -388,7 +388,10 @@ export function ProfilEkrani({ kullanici, setKullanici, token, rol, setEkran, se
 
      <ScrollView 
   style={s.scroll}
-  refreshControl={
+    keyboardShouldPersistTaps="handled"
+    keyboardDismissMode="none"
+    automaticallyAdjustKeyboardInsets={false}
+    refreshControl={
     <RefreshControl 
       refreshing={yenileniyor} 
       onRefresh={sayfayiYenile}
