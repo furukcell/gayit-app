@@ -36,6 +36,11 @@ export const KATEGORILER = [
   'Halı & Koltuk Yıkama',
   'Çatı & Su Yalıtımı',
   'Fotoğrafçı & Kameraman',
+  'Saç kaynak',
+  'İlaçlama',
+  'Perde',
+  'Ev yemekleri',
+  'Hasta/Çocuk bakıcısı',
   'Güneş Enerji Sistemi',
   'Özel Ders & Eğitim',
   // ------------------------
