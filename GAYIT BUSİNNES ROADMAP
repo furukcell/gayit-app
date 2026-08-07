@@ -1,364 +1,469 @@
-# 🚀 GAYIT Business Yol Haritası
+# 🚀 GAYIT Business Roadmap (Yeni Strateji)
 
-> GAYIT Business, küçük ve orta ölçekli işletmeler için geliştirilen yapay zekâ destekli CRM ve gelir artırma platformudur.
-
-Amacımız sadece işletmeleri listelemek değil.
-
-İşletmelerin daha fazla kazanmasını sağlamak.
+> **Yeni Hedef**
+>
+> GAYIT artık sadece usta listeleyen bir platform değil.
+>
+> **Amacımız, Türkiye'deki esnafa her gün yeni müşteri fırsatları sunan en büyük iş fırsatı ağı olmaktır.**
+>
+> Esnaf CRM satın almaz.
+> Esnaf AI satın almaz.
+>
+> **Esnaf telefonunu çaldıran sistemi satın alır.**
 
 ---
 
-# Vizyon
+# FAZ 1 — GAYIT LEADS (MVP)
+
+## Hedef
+
+Gerçek müşteri taleplerini toplayıp ilgili ustalara ulaştırmak.
+
+Bu fazın tek amacı vardır.
+
+> Günlük gerçek müşteri üretmek.
+
+---
+
+## Talep Toplama Kanalları
+
+### Web Chat
+
+Normal form yerine AI destekli sohbet.
+
+Örnek:
+
+```
+Merhaba 👋
+
+Hangi hizmete ihtiyacınız var?
+
+• Klima
+• Elektrik
+• Tesisat
+• Boya
+```
+
+↓
+
+AI devam eder.
+
+```
+İlçe?
+
+Sorun nedir?
+
+Fotoğraf eklemek ister misiniz?
+
+Telefon numaranız?
+```
+
+↓
+
+Talep oluşur.
+
+---
+
+### WhatsApp Business
+
+Instagram
+
+↓
+
+Facebook
+
+↓
+
+Google
+
+↓
+
+QR Kod
+
+↓
+
+WhatsApp
+
+↓
+
+AI sohbeti
+
+↓
+
+Talep oluşur.
+
+---
+
+### Landing Page
+
+Tek amaç.
+
+Talep oluşturmak.
+
+Sayfa.
+
+```
+Usta mı arıyorsunuz?
+
+↓
+
+30 saniyede talep oluştur.
+
+↓
+
+AI sohbeti başlat.
+```
+
+---
+
+## Reklam Stratejisi
+
+İnsanlara uygulama indirtmeye çalışmayacağız.
+
+Onlara çözüm sunacağız.
+
+Örnek reklamlar.
+
+```
+Klima mı bozuldu?
+
+30 saniyede talep oluştur.
+
+```
+
+```
+Elektrikçi mi lazım?
+
+En yakın ustalar sizi arasın.
+```
+
+```
+Su kaçağı mı var?
+
+Hemen talep oluştur.
+```
+
+---
+
+## Meta Reklamları
+
+Facebook
+
+Instagram
+
+↓
+
+AI Chat
+
+↓
+
+Talep
+
+↓
+
+Ustalar
+
+---
+
+## Google Ads
+
+"Milas klima servisi"
+
+"Milas elektrikçi"
+
+"Milas tesisatçı"
+
+gibi yüksek niyetli aramalardan talep toplamak.
+
+---
+
+## Yerel Sayfalar
+
+Muğla
+
+Milas
+
+Bodrum
+
+Marmaris
+
+Facebook
+
+Instagram
+
+yerel haber sayfaları
+
+↓
+
+Sponsorlu paylaşım
+
+↓
+
+Talep oluştur.
+
+---
+
+# FAZ 2 — AI LEAD ENGINE
+
+AI gelen talepleri otomatik işler.
+
+Çıkarılacak bilgiler.
+
+* Kategori
+* İl
+* İlçe
+* Aciliyet
+* Telefon
+* Fotoğraf
+* Tahmini iş türü
+
+Tekrar eden talepleri birleştirir.
+
+Spamları temizler.
+
+Eksik bilgileri müşteriye sorar.
+
+---
+
+# FAZ 3 — USTA UYGULAMASI
+
+Her sabah.
+
+```
+🔔 Günaydın.
 
 Bugün
 
-Google Business
+Milas
+
+12 yeni müşteri var.
+```
 
 ↓
 
-İşletmeni gösterir.
-
-Armut
+Liste.
 
 ↓
 
-Sana müşteri getirir.
-
-GAYIT Business
+Ara
 
 ↓
 
-Müşteriyi getirir.
+WhatsApp
 
-Müşteriyi kaybetmez.
+↓
 
-Tekrar satış yaptırır.
+Harita
 
-Geliri artırır.
+↓
+
+Teklif.
 
 ---
 
-# FAZ 1
+## Lead Durumu
 
-## Ücretsiz İşletme Profili
+Her müşteri.
 
-- Profil
-- Telefon
-- WhatsApp
-- Konum
-- Galeri
-- Hizmetler
-- Çalışma Saatleri
-- Yorumlar
+* Yeni
+* Arandı
+* WhatsApp gönderildi
+* Teklif verildi
+* İş alındı
+* İş alınamadı
 
-Amaç
-
-Türkiye'deki mümkün olduğunca fazla işletmeyi sisteme almak.
-
----
-
-# FAZ 2
-
-## Teklif Sistemi
-
-Müşteri hizmet oluşturur.
-
-↓
-
-Yakındaki işletmelere gider.
-
-↓
-
-İşletmeler teklif verir.
-
-↓
-
-Müşteri seçer.
-
----
-
-# FAZ 3
-
-# GAYIT Business
-
-İşletmeye özel panel.
-
-## Dashboard
-
-Bugünkü işler
-
-Bekleyen teklifler
-
-Tamamlanan işler
-
-Yeni müşteriler
-
-Toplam gelir
-
-Yaklaşan hatırlatmalar
+olarak takip edilir.
 
 ---
 
 ## CRM
 
-Her tamamlanan iş
+Müşteri rehberi.
+
+Teklif geçmişi.
+
+Hatırlatmalar.
+
+Tekrar arama.
+
+Eski müşteriler.
+
+---
+
+# FAZ 4 — İŞ DOĞRULAMA
+
+Talep kapandıktan sonra.
+
+WhatsApp.
+
+```
+İşiniz tamamlandı mı?
+
+✅ Evet
+
+❌ Hayır
+```
 
 ↓
 
-Tek tuşla müşteriye dönüşür.
+```
+Kim yaptı?
+```
 
-Kayıt edilen bilgiler
+↓
 
-- Ad Soyad
-- Telefon
-- Adres
-- Hizmet Türü
-- Tarih
-- Notlar
-- Fotoğraflar
+```
+Memnun kaldınız mı?
+```
 
----
+↓
 
-# FAZ 4
+Puan.
 
-## Akıllı Hatırlatmalar
+↓
 
-Sektöre göre otomatik.
+Yorum.
 
-### Klima
+↓
 
-12 ay bakım
-
-### Kombi
-
-Sonbahar
-
-### Berber
-
-30 gün
-
-### Veteriner
-
-Aşı
-
-### Oto Servis
-
-10000 km
-
-### Havuz
-
-Yaz başlangıcı
-
-### Su Arıtma
-
-Filtre değişimi
+İstatistik.
 
 ---
 
-# FAZ 5
+# FAZ 5 — AI ANALYTICS
 
-## AI Gelir Merkezi
+AI.
 
-Her sabah
+Şunları söyler.
 
-Bugün aranacak müşteriler
+```
+Son 30 günde
 
-Bakım zamanı gelenler
+42 müşteri geldi.
 
-Kaybedilmek üzere olan müşteriler
+18 iş aldın.
 
-Yeni satış fırsatları
+Başarı oranı
 
-Tahmini ek ciro
+%43
+```
 
-Örnek
+↓
 
+```
+En çok
+
+Klima gaz dolumu
+
+işi kazandın.
+```
+
+↓
+
+```
+En çok
+
+Çarşamba
+
+iş geliyor.
+```
+
+↓
+
+```
+Ortalama geri dönüş süren
+
+11 dakika.
+```
+
+↓
+
+```
+Rakiplerinden
+
+daha yavaşsın.
+```
+
+---
+
+# FAZ 6 — PREMIUM
+
+## İlk Ay
+
+Tamamen ücretsiz.
+
+Ama kullanıcı geri bildirim verir.
+
+* İş alındı
+* İş alınmadı
+
+---
+
+## Sonra
+
+### Free
+
+* Günlük sınırlı talep
+* Temel bildirimler
+
+---
+
+### Premium
+
+* Tüm talepler
+* Anlık bildirim
+* CRM
+* AI
+* WhatsApp entegrasyonu
+* İstatistikler
+
+---
+
+# BAŞARI METRİKLERİ
+
+İndirme sayısı önemli değildir.
+
+Aktif kullanıcı önemli değildir.
+
+Tek hedef.
+
+```
 Bugün
 
-12 bakım zamanı
+Kaç gerçek müşteri talebi üretildi?
+```
 
-4 garanti bitiyor
+İkinci hedef.
 
-2 yeni klima satılabilir
+```
+Kaç tanesi işe dönüştü?
+```
 
-Tahmini gelir
+Üçüncü hedef.
 
-27.500 TL
-
----
-
-# FAZ 6
-
-## WhatsApp Otomasyonu
-
-Hazır şablonlar
-
-Bakım zamanı
-
-Doğum günü
-
-Kontrol zamanı
-
-Garanti bitiyor
-
-Teklif hazır
-
-İndirim
-
-Tek tık gönder.
+```
+Ustaya ortalama ne kadar ciro kazandırıldı?
+```
 
 ---
 
-# FAZ 7
+# GAYIT VİZYONU
 
-## AI Mesaj Yazarı
+Bugün insanlar müşteri bulmak için;
 
-Müşteriye göre mesaj üretir.
+* Facebook gruplarını geziyor.
+* Instagram sayfalarını takip ediyor.
+* WhatsApp gruplarına bakıyor.
+* Tanıdıklarını arıyor.
 
-Örnek
-
-Merhaba Faruk Bey.
-
-Geçen yıl bakımını yaptığımız klimanızın yıllık bakım zamanı geldi.
-
-Bu hafta bakım yaptırırsanız filtre temizliği ücretsizdir.
-
----
-
-# FAZ 8
-
-## AI Satış Önerileri
-
-Örnek
-
-Bu müşteri
-
-3 yıldır klima değiştirmedi.
-
-↓
-
-Yeni inverter öner.
-
----
-
-Bu müşteri
-
-Yeni eve taşınmış olabilir.
-
-↓
-
-18000 BTU öner.
-
----
-
-Bu müşteri
-
-İki klima kullanıyor.
-
-↓
-
-Diğer klimaya bakım öner.
-
----
-
-# FAZ 9
-
-## Raporlar
-
-Aylık gelir
-
-En çok kazandıran hizmet
-
-Tekrar gelen müşteri oranı
-
-Kaybedilen müşteriler
-
-Dönüşüm oranı
-
-En başarılı kampanyalar
-
----
-
-# FAZ 10
-
-## Otomasyon
-
-Google Takvim
-
-WhatsApp
-
-SMS
-
-E-posta
-
-Fatura
-
-Muhasebe
-
-Stok
-
-Personel
-
-API
-
----
-
-# Gelecek
-
-Yapay zekâ artık CRM olmayacak.
-
-İşletmenin satış müdürü olacak.
-
-Sabah işletmeyi açtığında
-
-Bugün sana en çok para kazandıracak müşteriler bunlar.
-
-diyebilecek.
-
----
-
-# Gelir Modeli
-
-FREE
-
-- Profil
-- İlan
-- Teklif alma
-
-PRO
-
-- CRM
-- AI
-- WhatsApp
-- Hatırlatma
-- Teklif PDF
-
-BUSINESS
-
-- Çoklu personel
-- API
-- Muhasebe
-- Otomasyon
-- Gelişmiş AI
-
-ENTERPRISE
-
-- Zincir işletmeler
-- Bayi yönetimi
-- Özel entegrasyonlar
+GAYIT'ın amacı, **izinli ve kendi oluşturduğu talep kanalları üzerinden** bu dağınık süreci tek noktada toplamak ve esnafın her sabah yeni iş fırsatlarını tek ekranda görmesini sağlamaktır.
 
 ---
 
 # Nihai Hedef
 
-GAYIT sadece işletme rehberi olmayacak.
+> **Türkiye'nin en büyük iş fırsatı platformunu oluşturmak.**
 
-Türkiye'nin en büyük yapay zekâ destekli işletme yönetim platformu olacak.
+Esnaf internette müşteri aramayacak.
 
-Bir işletme müşterisini bulacak.
-
-Müşterisini yönetecek.
-
-Müşterisini kaybetmeyecek.
-
-Ve her yıl daha fazla gelir elde edecek.
+**GAYIT müşteriyi esnafın ayağına getirecek.**
