@@ -17,16 +17,20 @@ workflows:
       - name: Keystore Hazırla
         script: |
           echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+
       - name: Cache Temizle
         script: |
           rm -rf node_modules
           rm -f package-lock.json
           npm cache clean --force
+
       - name: Bağımlılıkları Yükle
         script: npm install --legacy-peer-deps
+
       - name: Expo Prebuild (Android Klasörünü Oluştur)
         script: npx expo prebuild --platform android --clean
-      - name: Target SDK 35 Ayarla
+
+      - name: Target SDK 36 Ayarla
         script: |
           cd $CM_BUILD_DIR
           python3 -c "
@@ -34,18 +38,20 @@ workflows:
           for path in ['android/build.gradle', 'android/app/build.gradle']:
               with open(path, 'r') as f:
                   content = f.read()
-              content = re.sub(r'targetSdkVersion\s*=?\s*34', 'targetSdkVersion = 35', content)
-              content = re.sub(r'targetSdkVersion\s*=\s*Integer\.parseInt.*', 'targetSdkVersion = 35', content)
+              content = re.sub(r'targetSdkVersion\s*=?\s*3[0-9]', 'targetSdkVersion = 36', content)
+              content = re.sub(r'targetSdkVersion\s*=\s*Integer\.parseInt.*', 'targetSdkVersion = 36', content)
               with open(path, 'w') as f:
                   f.write(content)
               print(f'Done: {path}')
           "
           grep -n "targetSdk" android/build.gradle
           grep -n "targetSdk" android/app/build.gradle
+
       - name: Doğrulama Dosyasını Yerleştir
         script: |
           mkdir -p android/app/src/main/assets
           cp assets/adi-registration.properties android/app/src/main/assets/adi-registration.properties
+
       - name: Android AAB Üret ve İmzala (Release)
         script: |
           cd android
@@ -55,6 +61,7 @@ workflows:
             -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
             -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD
+
       - name: Android APK Üret ve İmzala (Release)
         script: |
           cd android
@@ -63,9 +70,11 @@ workflows:
             -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
             -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD
+
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
       - android/app/build/outputs/apk/release/*.apk
+
     publishing:
       email:
         recipients:
