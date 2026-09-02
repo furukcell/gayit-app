@@ -2,15 +2,14 @@
   "expo": {
     "name": "Gayıt",
     "slug": "gayit-app",
-    "version": "1.8.0",
+    "version": "1.9.0",
     "orientation": "portrait",
     "icon": "./icon.png",
     "scheme": "gayit",
     "plugins": [
       "expo-notifications",
       "@react-native-community/datetimepicker",
-      "expo-asset",
-      
+      "expo-asset"
     ],
     "splash": {
       "image": "./icon.png",
@@ -32,8 +31,8 @@
     },
     "android": {
       "package": "com.gayit.android",
-      "targetSdkVersion": 35,
-      "versionCode": 30,
+      "targetSdkVersion": 36,
+      "versionCode": 31,
       "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
